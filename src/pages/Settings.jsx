@@ -5,8 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { 
-  User, Palette, Bell, Shield, Moon, Sun, 
-  Mail, CheckCircle2, ChevronRight 
+  User, Palette, Settings2, Moon, Sun, 
+  Mail, CheckCircle2, ChevronRight, Bell, Shield 
 } from "lucide-react";
 
 export default function Settings() {
@@ -31,15 +31,14 @@ export default function Settings() {
     }
   };
 
+  // On a fusionné Notifications et Confidentialité dans "Préférences"
   const TABS = [
     { id: "account", label: "Mon Compte", icon: User },
     { id: "appearance", label: "Apparence", icon: Palette },
-    { id: "notifications", label: "Notifications", icon: Bell },
-    { id: "privacy", label: "Confidentialité", icon: Shield },
+    { id: "preferences", label: "Préférences", icon: Settings2 },
   ];
 
   return (
-    // Utilisation de w-full sans contrainte de largeur maximale pour occuper tout l'espace du main
     <div className="w-full animate-in fade-in duration-500">
       
       <div className="mb-10">
@@ -49,7 +48,7 @@ export default function Settings() {
 
       <div className="flex flex-col md:flex-row gap-8 lg:gap-12">
         
-        {/* --- MENU LATÉRAL (Fixé à 280px pour la structure) --- */}
+        {/* --- MENU LATÉRAL --- */}
         <aside className="w-full md:w-[280px] shrink-0">
           <nav className="flex flex-col gap-2">
             {TABS.map((tab) => {
@@ -75,7 +74,7 @@ export default function Settings() {
           </nav>
         </aside>
 
-        {/* --- CONTENU DE L'ONGLET (Prend tout le reste de la largeur) --- */}
+        {/* --- CONTENU DE L'ONGLET --- */}
         <main className="flex-1">
           
           {/* 👤 ONGLET : MON COMPTE */}
@@ -125,7 +124,7 @@ export default function Settings() {
             <div className="animate-in slide-in-from-right-4 duration-300">
               <div className="bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] rounded-3xl p-8 md:p-12 shadow-sm transition-colors duration-300">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Thème de l'application</h2>
-                <p className="text-base text-gray-500 dark:text-gray-400 mb-10">Choisissez l'ambiance visuelle qui vous convient le mieux pour vos révisions.</p>
+                <p className="text-base text-gray-500 dark:text-gray-400 mb-10">Choisissez l'ambiance visuelle qui vous convient le mieux.</p>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                   {/* Mode Clair */}
@@ -158,55 +157,62 @@ export default function Settings() {
             </div>
           )}
 
-          {/* 🔔 ONGLET : NOTIFICATIONS */}
-          {activeTab === "notifications" && (
+          {/* ⚙️ ONGLET : PRÉFÉRENCES (Fusion Notifications + Confidentialité) */}
+          {activeTab === "preferences" && (
             <div className="animate-in slide-in-from-right-4 duration-300">
               <div className="bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] rounded-3xl p-8 md:p-12 shadow-sm transition-colors duration-300">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-10">Notifications</h2>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-10">Préférences Générales</h2>
                 
-                <div className="space-y-10">
-                  <div className="flex items-center justify-between gap-8">
-                    <div className="flex-1">
-                      <p className="font-semibold text-lg text-gray-900 dark:text-gray-100">Alertes de messagerie</p>
-                      <p className="text-base text-gray-500 dark:text-gray-400 mt-1">Recevoir une notification lors d'un nouveau message.</p>
+                <div className="space-y-12">
+                  
+                  {/* Section Notifications */}
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-6">
+                      <Bell className="w-5 h-5 text-indigo-500" /> Notifications
+                    </h3>
+                    <div className="space-y-8">
+                      <div className="flex items-center justify-between gap-8">
+                        <div className="flex-1">
+                          <p className="font-semibold text-gray-900 dark:text-gray-100">Alertes de messagerie</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Recevoir une notification lors d'un nouveau message.</p>
+                        </div>
+                        <Switch defaultChecked className="data-[state=checked]:bg-indigo-600" />
+                      </div>
+                      <div className="flex items-center justify-between gap-8">
+                        <div className="flex-1">
+                          <p className="font-semibold text-gray-900 dark:text-gray-100">Rappels de calendrier</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Être prévenu avant le début d'une session d'étude.</p>
+                        </div>
+                        <Switch defaultChecked className="data-[state=checked]:bg-indigo-600" />
+                      </div>
                     </div>
-                    <Switch defaultChecked className="data-[state=checked]:bg-indigo-600" />
                   </div>
-                  <div className="h-px w-full bg-gray-100 dark:bg-[#333537]"></div>
-                  <div className="flex items-center justify-between gap-8">
-                    <div className="flex-1">
-                      <p className="font-semibold text-lg text-gray-900 dark:text-gray-100">Rappels de calendrier</p>
-                      <p className="text-base text-gray-500 dark:text-gray-400 mt-1">Être prévenu avant le début d'une session d'étude.</p>
-                    </div>
-                    <Switch defaultChecked className="data-[state=checked]:bg-indigo-600" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
 
-          {/* 🔒 ONGLET : CONFIDENTIALITÉ */}
-          {activeTab === "privacy" && (
-            <div className="animate-in slide-in-from-right-4 duration-300">
-              <div className="bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] rounded-3xl p-8 md:p-12 shadow-sm transition-colors duration-300">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-10">Confidentialité</h2>
-                
-                <div className="space-y-10">
-                  <div className="flex items-center justify-between gap-8">
-                    <div className="flex-1">
-                      <p className="font-semibold text-lg text-gray-900 dark:text-gray-100">Visibilité du profil</p>
-                      <p className="text-base text-gray-500 dark:text-gray-400 mt-1">Permettre aux autres étudiants de vous trouver via la recherche.</p>
-                    </div>
-                    <Switch defaultChecked className="data-[state=checked]:bg-indigo-600" />
-                  </div>
                   <div className="h-px w-full bg-gray-100 dark:bg-[#333537]"></div>
-                  <div className="flex items-center justify-between gap-8">
-                    <div className="flex-1">
-                      <p className="font-semibold text-lg text-gray-900 dark:text-gray-100">Statut de connexion</p>
-                      <p className="text-base text-gray-500 dark:text-gray-400 mt-1">Afficher quand vous êtes en train de travailler sur le site.</p>
+
+                  {/* Section Confidentialité */}
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-6">
+                      <Shield className="w-5 h-5 text-emerald-500" /> Confidentialité
+                    </h3>
+                    <div className="space-y-8">
+                      <div className="flex items-center justify-between gap-8">
+                        <div className="flex-1">
+                          <p className="font-semibold text-gray-900 dark:text-gray-100">Visibilité du profil</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Permettre aux autres étudiants de vous trouver via la recherche.</p>
+                        </div>
+                        <Switch defaultChecked className="data-[state=checked]:bg-indigo-600" />
+                      </div>
+                      <div className="flex items-center justify-between gap-8">
+                        <div className="flex-1">
+                          <p className="font-semibold text-gray-900 dark:text-gray-100">Statut de connexion</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Afficher quand vous êtes en train de travailler sur le site.</p>
+                        </div>
+                        <Switch defaultChecked className="data-[state=checked]:bg-indigo-600" />
+                      </div>
                     </div>
-                    <Switch defaultChecked className="data-[state=checked]:bg-indigo-600" />
                   </div>
+
                 </div>
               </div>
             </div>

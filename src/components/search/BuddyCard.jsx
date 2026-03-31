@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { MapPin, GraduationCap, Monitor, Users, Send } from "lucide-react";
+import { MapPin, GraduationCap, Monitor, Users, Send, Check } from "lucide-react"; // Ajout de l'icône Check
 
 const LEVEL_LABELS = {
   college: "Collège", lycee: "Lycée", prepa: "Prépa", bts_iut: "BTS/IUT",
@@ -62,7 +62,7 @@ export default function BuddyCard({ profile, onRequest, alreadyRequested, isOwnP
                 </span>
               )}
               {profile.is_in_person && (
-                <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
+                <span className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400">
                   <Users className="w-3.5 h-3.5" /> Présentiel
                 </span>
               )}
@@ -105,15 +105,23 @@ export default function BuddyCard({ profile, onRequest, alreadyRequested, isOwnP
         {!isOwnProfile && (
           <div className="mt-5">
             <Button
-              className={`w-full rounded-xl font-medium transition-all ${
+              className={`w-full rounded-xl font-medium transition-all duration-300 ${
                 alreadyRequested
-                  ? "bg-gray-100 dark:bg-[#282a2c] text-gray-400 dark:text-gray-500 cursor-not-allowed border-0 hover:bg-gray-100 dark:hover:bg-[#282a2c]"
-                  : "bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-200 shadow-sm"
+                  ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 cursor-not-allowed border border-emerald-200 dark:border-emerald-500/20 hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
+                  : "bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white shadow-sm hover:shadow-md hover:shadow-indigo-600/20"
               }`}
               disabled={alreadyRequested}
               onClick={() => onRequest(profile)}
             >
-              {alreadyRequested ? "Demande envoyée" : <><Send className="w-4 h-4 mr-2" /> Demander comme binôme</>}
+              {alreadyRequested ? (
+                <>
+                  <Check className="w-4 h-4 mr-2" /> Demande envoyée
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4 mr-2" /> Demander comme binôme
+                </>
+              )}
             </Button>
           </div>
         )}

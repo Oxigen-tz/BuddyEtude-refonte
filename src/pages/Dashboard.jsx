@@ -3,7 +3,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
-import { Users, Bell, Calendar, MessageSquare, Search, ArrowRight } from "lucide-react";
+import { Users, Bell, Calendar, MessageSquare, Search, ArrowRight, UserPlus, Sparkles } from "lucide-react"; // Ajout de nouvelles icônes
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -13,7 +13,7 @@ export default function Dashboard() {
 
   // Données factices pour l'affichage (à remplacer par tes vraies requêtes Firebase si besoin)
   const stats = [
-    { label: "Binômes", value: "1", icon: Users, color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-100 dark:bg-indigo-500/10" },
+    { label: "Binômes", value: "0", icon: Users, color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-100 dark:bg-indigo-500/10" },
     { label: "Demandes", value: "0", icon: Bell, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100 dark:bg-amber-500/10" },
     { label: "Sessions", value: "0", icon: Calendar, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-100 dark:bg-emerald-500/10" },
     { label: "Messages", value: "—", icon: MessageSquare, color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-100 dark:bg-purple-500/10" },
@@ -29,7 +29,7 @@ export default function Dashboard() {
             Bonjour, {firstName} <span className="animate-wave origin-bottom-right">👋</span>
           </h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">
-            Voici un aperçu de votre activité
+            Prêt à booster vos révisions aujourd'hui ?
           </p>
         </div>
         
@@ -65,45 +65,63 @@ export default function Dashboard() {
       {/* --- ZONES DE CONTENU (Demandes & Sessions) --- */}
       <div className="grid md:grid-cols-2 gap-6">
         
-        {/* Demandes reçues */}
-        <div className="bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] rounded-2xl p-6 shadow-sm flex flex-col min-h-[250px] transition-colors duration-300">
-          <div className="flex items-center justify-between mb-6">
+        {/* Demandes reçues -> Transformé en Empty State Actif */}
+        <div className="bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] rounded-2xl p-6 shadow-sm flex flex-col min-h-[250px] transition-colors duration-300 relative overflow-hidden">
+          {/* Petite décoration de fond */}
+          <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-50 dark:bg-amber-500/5 rounded-full blur-2xl" />
+          
+          <div className="flex items-center justify-between mb-6 relative z-10">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Bell className="w-5 h-5 text-amber-500" />
-              Demandes reçues
+              <UserPlus className="w-5 h-5 text-amber-500" />
+              Nouveaux contacts
             </h2>
           </div>
           
-          <div className="flex-1 flex flex-col items-center justify-center text-center">
-            <div className="w-16 h-16 bg-gray-50 dark:bg-[#131314] rounded-full flex items-center justify-center mb-3">
-              <Bell className="w-6 h-6 text-gray-300 dark:text-gray-600" />
+          <div className="flex-1 flex flex-col items-center justify-center text-center relative z-10">
+            <div className="w-16 h-16 bg-amber-50 dark:bg-amber-500/10 rounded-full flex items-center justify-center mb-4">
+              <Sparkles className="w-6 h-6 text-amber-500" />
             </div>
-            <p className="text-gray-500 dark:text-gray-400 text-sm">
-              Aucune demande en attente
+            <h3 className="text-gray-900 dark:text-white font-semibold mb-1">
+              Faites le premier pas !
+            </h3>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mb-4 max-w-[250px]">
+              Vous n'avez pas encore de demande. Découvrez les étudiants qui partagent vos matières.
             </p>
+            <Button 
+              variant="outline" 
+              onClick={() => navigate(createPageUrl("Search"))}
+              className="border-amber-200 dark:border-amber-900 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-xl"
+            >
+              Explorer les profils
+            </Button>
           </div>
         </div>
 
-        {/* Prochaines sessions */}
-        <div className="bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] rounded-2xl p-6 shadow-sm flex flex-col min-h-[250px] transition-colors duration-300">
-          <div className="flex items-center justify-between mb-6">
+        {/* Prochaines sessions -> Transformé en Empty State Actif */}
+        <div className="bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] rounded-2xl p-6 shadow-sm flex flex-col min-h-[250px] transition-colors duration-300 relative overflow-hidden">
+          {/* Petite décoration de fond */}
+          <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-50 dark:bg-emerald-500/5 rounded-full blur-2xl" />
+
+          <div className="flex items-center justify-between mb-6 relative z-10">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
               <Calendar className="w-5 h-5 text-emerald-500" />
               Prochaines sessions
             </h2>
-            <button className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
-              Voir tout <ArrowRight className="w-4 h-4" />
-            </button>
           </div>
           
-          <div className="flex-1 flex flex-col items-center justify-center text-center">
-            <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">
-              Aucune session planifiée
+          <div className="flex-1 flex flex-col items-center justify-center text-center relative z-10">
+            <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-500/10 rounded-full flex items-center justify-center mb-4">
+              <Calendar className="w-6 h-6 text-emerald-500" />
+            </div>
+            <h3 className="text-gray-900 dark:text-white font-semibold mb-1">
+              Votre agenda est vide
+            </h3>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mb-4 max-w-[250px]">
+              Il est temps d'organiser votre prochaine session de révision au tableau blanc.
             </p>
             <Button 
-              variant="outline" 
               onClick={() => navigate(createPageUrl("Sessions"))}
-              className="border-gray-200 dark:border-[#333537] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#282a2c] rounded-xl"
+              className="bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white rounded-xl shadow-sm"
             >
               Planifier une session
             </Button>

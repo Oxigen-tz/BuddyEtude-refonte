@@ -1,17 +1,17 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles, PenTool } from "lucide-react"; // Ajout de PenTool
 import { useAuth } from "@/lib/AuthContext"; 
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom"; // Import pour la navigation
-import { createPageUrl } from "@/utils"; // Import pour l'URL propre
+import { Link } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 
 export default function HeroSection() {
-  const { user, loginWithGoogle } = useAuth(); // On récupère 'user' en plus ici
+  const { user, loginWithGoogle } = useAuth(); 
 
   return (
     <section className="relative min-h-[90vh] flex items-center overflow-hidden">
-      {/* Background (Ton design original) */}
+      {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800" />
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-20 left-20 w-72 h-72 bg-white rounded-full blur-3xl" />
@@ -31,9 +31,10 @@ export default function HeroSection() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
         >
+          {/* Badge corrigé : On met en avant la fonctionnalité clé plutôt qu'un titre fake */}
           <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-5 py-2 mb-8">
-            <Sparkles className="w-4 h-4 text-yellow-300" />
-            <span className="text-sm text-white/90 font-medium">La plateforme d'entraide étudiante #1</span>
+            <PenTool className="w-4 h-4 text-yellow-300" />
+            <span className="text-sm text-white/90 font-medium">Tableau blanc collaboratif intégré</span>
           </div>
 
           <h1 className="text-5xl md:text-7xl font-extrabold text-white mb-6 leading-tight tracking-tight">
@@ -46,15 +47,14 @@ export default function HeroSection() {
             idéal
           </h1>
 
+          {/* Sous-titre revu pour inclure la pratique en temps réel */}
           <p className="text-lg md:text-xl text-indigo-100 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Progressez ensemble, restez motivés et atteignez vos objectifs académiques. 
-            Rejoignez une communauté d'étudiants qui s'entraident.
+            Ne révisez plus seul. Trouvez des étudiants de votre niveau, 
+            lancez une session et <strong className="text-white font-semibold">collaborez en temps réel sur notre tableau blanc</strong>.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            {/* LOGIQUE CONDITIONNELLE DU BOUTON */}
             {user ? (
-              // Si l'utilisateur est CONNECTÉ
               <Link to={createPageUrl("Dashboard")}>
                 <Button
                   size="lg"
@@ -65,7 +65,6 @@ export default function HeroSection() {
                 </Button>
               </Link>
             ) : (
-              // Si l'utilisateur est DÉCONNECTÉ
               <Button
                 size="lg"
                 onClick={loginWithGoogle}
@@ -78,7 +77,7 @@ export default function HeroSection() {
           </div>
         </motion.div>
 
-        {/* Stats (Ton design original) */}
+        {/* Stats revues pour être plus concrètes */}
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
@@ -87,7 +86,7 @@ export default function HeroSection() {
         >
           {[
             { value: "100%", label: "Gratuit" },
-            { value: "24/7", label: "Disponible" },
+            { value: "0ms", label: "Latence dessin" }, // Mise en avant technique du tableau blanc
             { value: "∞", label: "Matières" },
           ].map((stat) => (
             <div key={stat.label} className="text-center">

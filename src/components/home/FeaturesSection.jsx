@@ -1,42 +1,43 @@
 import React from "react";
-import { Target, MessageCircle, Rocket, Users, Clock, BookOpen } from "lucide-react";
+import { Target, MessageCircle, PenTool, Users, Clock, BookOpen } from "lucide-react"; // Remplacement de Rocket par PenTool
 import { motion } from "framer-motion";
 
 const features = [
   {
     icon: Target,
     title: "Objectifs communs",
-    description: "Trouvez quelqu'un qui prépare les mêmes examens ou étudie les mêmes matières.",
+    description: "Trouvez un partenaire qui prépare les mêmes examens ou bloque sur les mêmes chapitres.",
     color: "bg-red-50 text-red-600",
   },
   {
     icon: MessageCircle,
     title: "Chat intégré",
-    description: "Échangez facilement avec votre binôme grâce à la messagerie instantanée.",
+    description: "Échangez instantanément, partagez vos doutes et préparez vos sessions en amont.",
     color: "bg-blue-50 text-blue-600",
   },
   {
-    icon: Rocket,
-    title: "Motivation boostée",
-    description: "Ne révisez plus seul. L'entraide est la clé pour rester régulier et performant.",
+    // C'est ici qu'on met la magie en avant ! 🪄
+    icon: PenTool,
+    title: "Tableau blanc temps réel",
+    description: "Dessinez, écrivez et résolvez des problèmes ensemble sur un espace de travail collaboratif fluide.",
     color: "bg-purple-50 text-purple-600",
   },
   {
     icon: Users,
     title: "Matching intelligent",
-    description: "Trouvez le binôme parfait grâce à nos filtres par niveau, matière et objectif.",
+    description: "Ne perdez plus de temps : notre algorithme filtre par niveau, matière et disponibilité.",
     color: "bg-green-50 text-green-600",
   },
   {
     icon: Clock,
     title: "Sessions planifiées",
-    description: "Organisez vos sessions d'étude et suivez votre progression ensemble.",
+    description: "Organisez votre emploi du temps, fixez des rendez-vous et tenez vos engagements.",
     color: "bg-amber-50 text-amber-600",
   },
   {
     icon: BookOpen,
     title: "Toutes les matières",
-    description: "Maths, sciences, langues, droit, médecine... Trouvez un binôme pour toute matière.",
+    description: "Mathématiques, droit, médecine, langues... Il y a forcément un binôme pour votre spécialité.",
     color: "bg-indigo-50 text-indigo-600",
   },
 ];
@@ -47,10 +48,10 @@ export default function FeaturesSection() {
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            Pourquoi utiliser BuddyEtude ?
+            Étudier à deux, avec les bons outils
           </h2>
           <p className="text-lg text-gray-500 max-w-2xl mx-auto">
-            Tout ce dont vous avez besoin pour étudier efficacement avec un partenaire
+            BuddyEtude n'est pas qu'un simple annuaire de rencontre étudiante, c'est une plateforme de travail complète.
           </p>
         </div>
 
