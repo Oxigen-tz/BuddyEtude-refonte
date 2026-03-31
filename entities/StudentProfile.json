@@ -1,0 +1,95 @@
+{
+  "name": "StudentProfile",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "description": "Email de l'utilisateur associ\u00e9"
+    },
+    "display_name": {
+      "type": "string",
+      "description": "Nom affich\u00e9"
+    },
+    "avatar_url": {
+      "type": "string",
+      "description": "URL de la photo de profil"
+    },
+    "bio": {
+      "type": "string",
+      "description": "Courte biographie"
+    },
+    "school": {
+      "type": "string",
+      "description": "\u00c9tablissement scolaire"
+    },
+    "level": {
+      "type": "string",
+      "enum": [
+        "college",
+        "lycee",
+        "licence",
+        "master",
+        "doctorat",
+        "prepa",
+        "bts_iut",
+        "autre"
+      ],
+      "description": "Niveau d'\u00e9tudes"
+    },
+    "subjects": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Mati\u00e8res \u00e9tudi\u00e9es"
+    },
+    "goals": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Objectifs (ex: pr\u00e9parer un examen, r\u00e9viser, projet)"
+    },
+    "availability": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Disponibilit\u00e9s (ex: matin, apr\u00e8s-midi, soir, weekend)"
+    },
+    "study_style": {
+      "type": "string",
+      "enum": [
+        "visuel",
+        "auditif",
+        "pratique",
+        "lecture",
+        "mixte"
+      ],
+      "description": "Style d'apprentissage pr\u00e9f\u00e9r\u00e9"
+    },
+    "city": {
+      "type": "string",
+      "description": "Ville"
+    },
+    "is_online": {
+      "type": "boolean",
+      "default": true,
+      "description": "Accepte les sessions en ligne"
+    },
+    "is_in_person": {
+      "type": "boolean",
+      "default": false,
+      "description": "Accepte les sessions en pr\u00e9sentiel"
+    },
+    "profile_complete": {
+      "type": "boolean",
+      "default": false,
+      "description": "Profil compl\u00e9t\u00e9"
+    }
+  },
+  "required": [
+    "user_email",
+    "display_name"
+  ]
+}

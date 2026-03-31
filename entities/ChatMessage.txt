@@ -1,0 +1,35 @@
+{
+  "name": "ChatMessage",
+  "type": "object",
+  "properties": {
+    "sender_email": {
+      "type": "string",
+      "description": "Email de l'exp\u00e9diteur"
+    },
+    "receiver_email": {
+      "type": "string",
+      "description": "Email du destinataire"
+    },
+    "sender_name": {
+      "type": "string"
+    },
+    "content": {
+      "type": "string",
+      "description": "Contenu du message"
+    },
+    "conversation_key": {
+      "type": "string",
+      "description": "Cl\u00e9 unique de conversation (emails tri\u00e9s)"
+    },
+    "is_read": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "sender_email",
+    "receiver_email",
+    "content",
+    "conversation_key"
+  ]
+}

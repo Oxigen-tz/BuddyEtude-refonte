@@ -1,0 +1,73 @@
+{
+  "name": "StudySession",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Titre de la session"
+    },
+    "organizer_email": {
+      "type": "string",
+      "description": "Email de l'organisateur"
+    },
+    "buddy_email": {
+      "type": "string",
+      "description": "Email du bin\u00f4me"
+    },
+    "organizer_name": {
+      "type": "string"
+    },
+    "buddy_name": {
+      "type": "string"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Mati\u00e8re de la session"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date de la session"
+    },
+    "time": {
+      "type": "string",
+      "description": "Heure de la session"
+    },
+    "duration_minutes": {
+      "type": "number",
+      "default": 60,
+      "description": "Dur\u00e9e en minutes"
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "en_ligne",
+        "presentiel"
+      ],
+      "default": "en_ligne"
+    },
+    "location": {
+      "type": "string",
+      "description": "Lieu ou lien de la session"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notes sur la session"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "planned",
+        "completed",
+        "cancelled"
+      ],
+      "default": "planned"
+    }
+  },
+  "required": [
+    "title",
+    "organizer_email",
+    "buddy_email",
+    "date"
+  ]
+}

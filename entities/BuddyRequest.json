@@ -1,0 +1,45 @@
+{
+  "name": "BuddyRequest",
+  "type": "object",
+  "properties": {
+    "from_email": {
+      "type": "string",
+      "description": "Email de l'exp\u00e9diteur"
+    },
+    "to_email": {
+      "type": "string",
+      "description": "Email du destinataire"
+    },
+    "from_name": {
+      "type": "string",
+      "description": "Nom de l'exp\u00e9diteur"
+    },
+    "to_name": {
+      "type": "string",
+      "description": "Nom du destinataire"
+    },
+    "message": {
+      "type": "string",
+      "description": "Message accompagnant la demande"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "accepted",
+        "declined"
+      ],
+      "default": "pending",
+      "description": "Statut de la demande"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Mati\u00e8re en commun"
+    }
+  },
+  "required": [
+    "from_email",
+    "to_email",
+    "status"
+  ]
+}
