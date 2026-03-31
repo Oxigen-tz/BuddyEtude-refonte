@@ -1,25 +1,33 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { auth } from '../firebase/config'; // Vérifie que ce chemin est bon !
+import { auth } from '../firebase/config'; 
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
-import { syncUserProfile } from '../firebase/services'; // Vérifie que ce chemin est bon !
+import { syncUserProfile } from '../firebase/services'; 
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  // 1. ON FORCE L'UTILISATEUR (Faux profil pour la démo)
+  const [user, setUser] = useState({
+    uid: "demo-12345",
+    email: "jury@pepite.fr",
+    full_name: "Jury Pépite",
+    name: "Jury",
+    photoURL: "https://api.dicebear.com/7.x/avataaars/svg?seed=Jury"
+  });
   
-  // Variables requises par la nouvelle architecture générée par l'IA
+  // 2. ON DIT AU SITE QU'ON EST DÉJÀ CONNECTÉ
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(false); // Fini de charger
+  
+  // Variables requises par la nouvelle architecture
   const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(false);
   const [authError, setAuthError] = useState(null);
   const [appPublicSettings, setAppPublicSettings] = useState(null);
 
   useEffect(() => {
-    // On écoute Firebase
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    // --- DÉSACTIVATION TEMPORAIRE DE FIREBASE ---
+    /* const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
-        // On formate l'utilisateur pour que la nouvelle UI le comprenne bien
         setUser({
           uid: firebaseUser.uid,
           email: firebaseUser.email,
@@ -36,33 +44,42 @@ export const AuthProvider = ({ children }) => {
     });
     
     return () => unsubscribe();
+    */
+    // ---------------------------------------------
   }, []);
 
   const loginWithGoogle = async () => {
+    // --- DÉSACTIVATION TEMPORAIRE DE LA POPUP GOOGLE ---
+    /*
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
-      await syncUserProfile(result.user); // On sauvegarde le profil en BDD !
+      await syncUserProfile(result.user); 
       return result;
     } catch (error) {
       console.error("Erreur connexion Google:", error);
       setAuthError({ type: 'unknown', message: error.message });
       throw error;
     }
+    */
+    console.log("Connexion Google désactivée en mode Démo.");
   };
 
   const logout = async () => {
+    // --- DÉSACTIVATION TEMPORAIRE DE LA DÉCONNEXION ---
+    /*
     await signOut(auth);
-    window.location.href = "/"; // Retour à l'accueil
+    window.location.href = "/"; 
+    */
+    console.log("Déconnexion désactivée en mode Démo.");
   };
 
   const navigateToLogin = () => {
-    // Si l'app veut rediriger vers le login, on lance la popup Google
-    loginWithGoogle();
+    // On ne fait rien en mode démo puisqu'on est déjà connecté
   };
 
   const checkAppState = async () => {
-    // Fonction vide pour satisfaire le App.jsx de l'IA
+    // Fonction vide pour satisfaire le App.jsx
   };
 
   return (
@@ -74,7 +91,7 @@ export const AuthProvider = ({ children }) => {
       authError,
       appPublicSettings,
       logout,
-      loginWithGoogle, // J'ajoute notre vraie fonction
+      loginWithGoogle,
       navigateToLogin,
       checkAppState
     }}>
