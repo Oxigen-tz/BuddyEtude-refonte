@@ -1,23 +1,59 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
-import { Users, Bell, Calendar, MessageSquare, Search, ArrowRight, UserPlus, Sparkles } from "lucide-react"; // Ajout de nouvelles icônes
+import { Search, UserPlus, Calendar, Sparkles, Check, X } from "lucide-react";
+import { db } from "../firebase/config";
+import { collection, query, where, getDocs } from "firebase/firestore";
 
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  const [isProfileComplete, setIsProfileComplete] = useState(false);
+  const [hasBuddy, setHasBuddy] = useState(false);
+  
+  // NOUVEAU : On gère l'état de l'étape 3 et la visibilité du tutoriel via le localStorage
+  const [hasLaunchedSession, setHasLaunchedSession] = useState(localStorage.getItem("tuto_step3") === "true");
+  const [showTutorial, setShowTutorial] = useState(localStorage.getItem("tuto_hidden") !== "true");
+
   const firstName = user?.displayName?.split(" ")[0] || user?.full_name?.split(" ")[0] || "Étudiant";
 
-  // Données factices pour l'affichage (à remplacer par tes vraies requêtes Firebase si besoin)
-  const stats = [
-    { label: "Binômes", value: "0", icon: Users, color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-100 dark:bg-indigo-500/10" },
-    { label: "Demandes", value: "0", icon: Bell, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100 dark:bg-amber-500/10" },
-    { label: "Sessions", value: "0", icon: Calendar, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-100 dark:bg-emerald-500/10" },
-    { label: "Messages", value: "—", icon: MessageSquare, color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-100 dark:bg-purple-500/10" },
-  ];
+  useEffect(() => {
+    if (!user?.email) return;
+
+    const checkUserProgress = async () => {
+      try {
+        // 1. Profil complété ?
+        const userQuery = query(collection(db, "users"), where("email", "==", user.email));
+        const userSnap = await getDocs(userQuery);
+        if (!userSnap.empty) {
+          const userData = userSnap.docs[0].data();
+          setIsProfileComplete(!!userData.profile_complete);
+        }
+
+        // 2. Binôme trouvé ?
+        const reqQueryTo = query(collection(db, "requests"), where("to_email", "==", user.email), where("status", "==", "accepted"));
+        const reqQueryFrom = query(collection(db, "requests"), where("from_email", "==", user.email), where("status", "==", "accepted"));
+        
+        const [toSnap, fromSnap] = await Promise.all([getDocs(reqQueryTo), getDocs(reqQueryFrom)]);
+        if (!toSnap.empty || !fromSnap.empty) {
+          setHasBuddy(true);
+        }
+      } catch (error) {
+        console.error("Erreur lors de la vérification de la progression :", error);
+      }
+    };
+
+    checkUserProgress();
+  }, [user]);
+
+  // Fonction pour masquer définitivement le tutoriel
+  const hideTutorialBanner = () => {
+    localStorage.setItem("tuto_hidden", "true");
+    setShowTutorial(false);
+  };
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
@@ -42,66 +78,114 @@ export default function Dashboard() {
         </Button>
       </div>
 
-      {/* --- CARTES DE STATISTIQUES --- */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {stats.map((stat, index) => (
-          <div 
-            key={index} 
-            className="bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] rounded-2xl p-5 shadow-sm transition-colors duration-300"
-          >
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${stat.bg}`}>
-              <stat.icon className={`w-5 h-5 ${stat.color}`} />
+      {/* --- BANNIÈRE D'ONBOARDING DYNAMIQUE --- */}
+      {showTutorial && (
+        <div className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 rounded-3xl p-8 text-white shadow-lg relative overflow-hidden transition-all duration-500">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 left-0 w-40 h-40 bg-purple-400 opacity-20 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2" />
+          
+          <div className="relative z-10">
+            <div className="flex justify-between items-start">
+              <h2 className="text-2xl font-bold mb-2 flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-yellow-300" /> 
+                {isProfileComplete && hasBuddy && hasLaunchedSession ? "Félicitations, vous êtes prêt !" : "Bienvenue sur votre espace !"}
+              </h2>
+              
+              {/* NOUVEAU : Bouton pour fermer le tuto */}
+              <button onClick={hideTutorialBanner} className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors" title="Masquer le tutoriel">
+                <X className="w-5 h-5" />
+              </button>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
-              {stat.value}
-            </h3>
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-              {stat.label}
-            </p>
-          </div>
-        ))}
-      </div>
 
-      {/* --- ZONES DE CONTENU (Demandes & Sessions) --- */}
+            <p className="text-indigo-100 mb-8 max-w-xl text-sm md:text-base leading-relaxed">
+              {isProfileComplete && hasBuddy && hasLaunchedSession
+                ? "Vous avez accompli toutes les étapes de base. Vous pouvez maintenant fermer ce tutoriel et profiter pleinement de BuddyEtude !" 
+                : "Suivez ces 3 étapes simples pour débloquer tout le potentiel de BuddyEtude et commencer à réviser à plusieurs."}
+            </p>
+            
+            <div className="grid md:grid-cols-3 gap-4">
+              {/* Étape 1 : Compléter le profil */}
+              <div 
+                onClick={() => !isProfileComplete && navigate(createPageUrl("Profile"))}
+                className={`rounded-2xl p-5 transition-all ${isProfileComplete ? "bg-white/5 border border-white/10 opacity-70 cursor-default" : "bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 cursor-pointer group"}`}
+              >
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-4 font-bold shadow-sm transition-transform ${isProfileComplete ? "bg-emerald-400 text-white" : "bg-white text-indigo-700 group-hover:scale-110"}`}>
+                  {isProfileComplete ? <Check className="w-5 h-5" /> : "1"}
+                </div>
+                <h3 className="font-semibold text-white mb-1">Compléter mon profil</h3>
+                <p className="text-sm text-indigo-100">{isProfileComplete ? "Profil validé et visible." : "Ajoutez vos matières et votre niveau."}</p>
+              </div>
+
+              {/* Étape 2 : Trouver un binôme */}
+              <div 
+                onClick={() => !hasBuddy && navigate(createPageUrl("Search"))}
+                className={`rounded-2xl p-5 transition-all ${hasBuddy ? "bg-white/5 border border-white/10 opacity-70 cursor-default" : "bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 cursor-pointer group"}`}
+              >
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-4 font-bold shadow-sm transition-transform ${hasBuddy ? "bg-emerald-400 text-white" : "bg-white text-indigo-700 group-hover:scale-110"}`}>
+                  {hasBuddy ? <Check className="w-5 h-5" /> : "2"}
+                </div>
+                <h3 className="font-semibold text-white mb-1">Trouver un binôme</h3>
+                <p className="text-sm text-indigo-100">{hasBuddy ? "Vous avez des partenaires d'étude." : "Cherchez des étudiants compatibles."}</p>
+              </div>
+
+              {/* Étape 3 : Lancer une session (Maintenant elle se valide !) */}
+              <div 
+                onClick={() => {
+                  if (isProfileComplete && hasBuddy && !hasLaunchedSession) {
+                    localStorage.setItem("tuto_step3", "true"); // On sauvegarde la validation
+                    setHasLaunchedSession(true); // On met à jour l'icône direct
+                    navigate(createPageUrl("Sessions"));
+                  } else if (hasLaunchedSession) {
+                     navigate(createPageUrl("Sessions"));
+                  }
+                }}
+                className={`rounded-2xl p-5 transition-all ${hasLaunchedSession ? "bg-white/5 border border-white/10 opacity-70 cursor-default" : isProfileComplete && hasBuddy ? "bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 cursor-pointer group shadow-[0_0_15px_rgba(255,255,255,0.2)]" : "bg-white/5 border border-white/10 opacity-60 cursor-not-allowed"}`}
+              >
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-4 font-bold transition-transform ${hasLaunchedSession ? "bg-emerald-400 text-white shadow-sm" : isProfileComplete && hasBuddy ? "bg-white text-indigo-700 group-hover:scale-110 shadow-sm" : "bg-white/30 text-indigo-900"}`}>
+                  {hasLaunchedSession ? <Check className="w-5 h-5" /> : "3"}
+                </div>
+                <h3 className="font-semibold text-white mb-1">Lancer une session</h3>
+                <p className="text-sm text-indigo-200">{hasLaunchedSession ? "Première session planifiée !" : isProfileComplete && hasBuddy ? "Organisez votre premier tableau blanc !" : "Disponible une fois votre binôme trouvé."}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- ZONES DE CONTENU --- */}
       <div className="grid md:grid-cols-2 gap-6">
         
-        {/* Demandes reçues -> Transformé en Empty State Actif */}
-        <div className="bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] rounded-2xl p-6 shadow-sm flex flex-col min-h-[250px] transition-colors duration-300 relative overflow-hidden">
-          {/* Petite décoration de fond */}
-          <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-50 dark:bg-amber-500/5 rounded-full blur-2xl" />
-          
+        {/* Demandes reçues */}
+        <div className="bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] rounded-3xl p-8 shadow-sm flex flex-col min-h-[250px] transition-colors duration-300 relative overflow-hidden">
           <div className="flex items-center justify-between mb-6 relative z-10">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <UserPlus className="w-5 h-5 text-amber-500" />
+              <UserPlus className="w-5 h-5 text-indigo-500" />
               Nouveaux contacts
             </h2>
           </div>
           
           <div className="flex-1 flex flex-col items-center justify-center text-center relative z-10">
-            <div className="w-16 h-16 bg-amber-50 dark:bg-amber-500/10 rounded-full flex items-center justify-center mb-4">
-              <Sparkles className="w-6 h-6 text-amber-500" />
+            <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-500/10 rounded-full flex items-center justify-center mb-4">
+              <Search className="w-6 h-6 text-indigo-500" />
             </div>
             <h3 className="text-gray-900 dark:text-white font-semibold mb-1">
               Faites le premier pas !
             </h3>
-            <p className="text-gray-500 dark:text-gray-400 text-sm mb-4 max-w-[250px]">
-              Vous n'avez pas encore de demande. Découvrez les étudiants qui partagent vos matières.
+            <p className="text-gray-500 dark:text-gray-400 text-sm mb-6 max-w-[250px]">
+              Découvrez les étudiants qui partagent vos matières et proposez-leur de travailler.
             </p>
             <Button 
               variant="outline" 
               onClick={() => navigate(createPageUrl("Search"))}
-              className="border-amber-200 dark:border-amber-900 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-xl"
+              className="border-indigo-200 dark:border-indigo-900 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-xl"
             >
               Explorer les profils
             </Button>
           </div>
         </div>
 
-        {/* Prochaines sessions -> Transformé en Empty State Actif */}
-        <div className="bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] rounded-2xl p-6 shadow-sm flex flex-col min-h-[250px] transition-colors duration-300 relative overflow-hidden">
-          {/* Petite décoration de fond */}
-          <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-50 dark:bg-emerald-500/5 rounded-full blur-2xl" />
-
+        {/* Prochaines sessions */}
+        <div className="bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] rounded-3xl p-8 shadow-sm flex flex-col min-h-[250px] transition-colors duration-300 relative overflow-hidden">
           <div className="flex items-center justify-between mb-6 relative z-10">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
               <Calendar className="w-5 h-5 text-emerald-500" />
@@ -116,7 +200,7 @@ export default function Dashboard() {
             <h3 className="text-gray-900 dark:text-white font-semibold mb-1">
               Votre agenda est vide
             </h3>
-            <p className="text-gray-500 dark:text-gray-400 text-sm mb-4 max-w-[250px]">
+            <p className="text-gray-500 dark:text-gray-400 text-sm mb-6 max-w-[250px]">
               Il est temps d'organiser votre prochaine session de révision au tableau blanc.
             </p>
             <Button 

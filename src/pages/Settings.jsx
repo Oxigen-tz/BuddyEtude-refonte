@@ -20,18 +20,19 @@ export default function Settings() {
     const root = document.documentElement;
     if (theme === "dark") {
       root.classList.add("dark");
-      localStorage.setItem("buddyetude_theme", "dark");
+      // 🛠️ CORRECTION : On utilise "theme" pour correspondre à App.jsx
+      localStorage.setItem("theme", "dark");
       setIsDarkMode(true);
       toast.success("Mode sombre activé");
     } else {
       root.classList.remove("dark");
-      localStorage.setItem("buddyetude_theme", "light");
+      // 🛠️ CORRECTION : On utilise "theme" pour correspondre à App.jsx
+      localStorage.setItem("theme", "light");
       setIsDarkMode(false);
       toast.success("Mode clair activé");
     }
   };
 
-  // On a fusionné Notifications et Confidentialité dans "Préférences"
   const TABS = [
     { id: "account", label: "Mon Compte", icon: User },
     { id: "appearance", label: "Apparence", icon: Palette },
@@ -112,7 +113,7 @@ export default function Settings() {
                 <div className="mt-10 p-5 rounded-2xl bg-indigo-50/30 dark:bg-indigo-500/5 border border-indigo-100/50 dark:border-indigo-500/10">
                   <p className="text-sm text-indigo-700 dark:text-indigo-400 flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4" /> 
-                    Ces informations sont synchronisées avec votre compte Google / Firebase.
+                    Ces informations sont synchronisées avec votre compte Google
                   </p>
                 </div>
               </div>

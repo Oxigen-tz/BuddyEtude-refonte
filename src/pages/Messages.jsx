@@ -1,14 +1,17 @@
 import React, { useState, useEffect, useRef } from "react";
 import { db, storage } from "../firebase/config";
-import { collection, query, where, onSnapshot, addDoc, serverTimestamp } from "firebase/firestore";
+// 🛠️ NOUVEAU : On importe doc, updateDoc et deleteDoc
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useAuth } from "@/lib/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Send, MessageSquare, Loader2, Paperclip, FileText, Image as ImageIcon, PenTool, X } from "lucide-react";
-import { toast } from "sonner"; // Import pour les alertes
+// 🛠️ NOUVEAU : On importe les icônes Edit2, Trash2 et Check
+import { Send, MessageSquare, Loader2, Paperclip, FileText, Image as ImageIcon, PenTool, X, Edit2, Trash2, Check } from "lucide-react";
+import { toast } from "sonner"; 
+
 const BANNED_EXTENSIONS = [
   ".exe", ".msi", ".bat", ".cmd", ".sh", ".vbs", ".js", ".com", ".scr", ".dll", ".sys"
 ];
@@ -22,6 +25,11 @@ export default function Messages() {
   const [newMessage, setNewMessage] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
   const [isSending, setIsSending] = useState(false);
+  
+  // 🛠️ NOUVEAU : États pour gérer la modification d'un message
+  const [editingMessageId, setEditingMessageId] = useState(null);
+  const [editMessageText, setEditMessageText] = useState("");
+
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -57,7 +65,6 @@ export default function Messages() {
     e.preventDefault();
     if ((!newMessage.trim() && !selectedFile) || !activeChat) return;
 
-    // 🛡️ SÉCURITÉ ANTI-CRASH : On vérifie si storage existe avant de l'utiliser
     if (selectedFile && !storage) {
       toast.error("Le service de stockage n'est pas activé dans firebase/config.js");
       console.error("Erreur: 'storage' est undefined. Vérifiez votre fichier firebase/config.js");
@@ -89,6 +96,41 @@ export default function Messages() {
       toast.error("Erreur lors de l'envoi du fichier.");
     } finally { 
       setIsSending(false); 
+    }
+  };
+
+  // 🛠️ NOUVEAU : Fonction pour supprimer un message
+  const handleDeleteMessage = async (msgId) => {
+    if (!window.confirm("Voulez-vous vraiment supprimer ce message ?")) return;
+    try {
+      await deleteDoc(doc(db, "messages", msgId));
+      toast.success("Message supprimé");
+    } catch (error) {
+      console.error("Erreur de suppression:", error);
+      toast.error("Impossible de supprimer le message");
+    }
+  };
+
+  // 🛠️ NOUVEAU : Fonction pour lancer le mode édition
+  const startEditing = (msg) => {
+    setEditingMessageId(msg.id);
+    setEditMessageText(msg.text || "");
+  };
+
+  // 🛠️ NOUVEAU : Fonction pour sauvegarder la modification
+  const handleSaveEdit = async (msgId) => {
+    if (!editMessageText.trim()) return;
+    try {
+      await updateDoc(doc(db, "messages", msgId), {
+        text: editMessageText.trim(),
+        isEdited: true // On ajoute un petit flag pour indiquer qu'il a été modifié
+      });
+      setEditingMessageId(null);
+      setEditMessageText("");
+      toast.success("Message modifié");
+    } catch (error) {
+      console.error("Erreur de modification:", error);
+      toast.error("Impossible de modifier le message");
     }
   };
 
@@ -124,7 +166,6 @@ export default function Messages() {
                  <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100 leading-tight">{activeChat.name}</h3>
                  <p className="text-sm text-green-600 dark:text-green-400 font-medium">En ligne</p>
                </div>
-               {/* 🎨 BOUTON TABLEAU BLANC CORRIGÉ */}
                <Button 
                 variant="outline" 
                 onClick={() => navigate(`/whiteboard?sessionId=${[user.email, activeChat.email].sort().join("_")}`)}
@@ -138,7 +179,21 @@ export default function Messages() {
               {messages.map((msg) => {
                 const isMe = msg.senderEmail === user.email;
                 return (
-                  <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                  // 🛠️ Ajout de la classe "group" pour l'effet de survol
+                  <div key={msg.id} className={`flex items-center gap-3 group ${isMe ? "justify-end" : "justify-start"}`}>
+                    
+                    {/* 🛠️ Menu d'actions (visible au survol) - Uniquement pour NOS messages */}
+                    {isMe && editingMessageId !== msg.id && (
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
+                        <button onClick={() => startEditing(msg)} className="p-1.5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-full hover:bg-gray-100 dark:hover:bg-[#282a2c] transition-colors" title="Modifier">
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleDeleteMessage(msg.id)} className="p-1.5 text-gray-400 hover:text-red-500 rounded-full hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors" title="Supprimer">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+
                     <div className={`max-w-[75%] md:max-w-[60%] rounded-2xl px-5 py-3 text-base flex flex-col gap-2 ${isMe ? "bg-indigo-600 dark:bg-indigo-500 text-white rounded-tr-sm shadow-sm" : "bg-white dark:bg-[#282a2c] border border-gray-100 dark:border-[#333537] text-gray-800 dark:text-gray-100 rounded-tl-sm shadow-sm"}`}>
                       {msg.fileUrl && (
                         msg.fileType?.includes("image") ? (
@@ -150,8 +205,30 @@ export default function Messages() {
                           </a>
                         )
                       )}
-                      {msg.text && <span className="leading-relaxed">{msg.text}</span>}
+                      
+                      {/* 🛠️ Logique d'affichage : Mode édition OU Mode texte normal */}
+                      {editingMessageId === msg.id ? (
+                        <div className="flex items-center gap-2">
+                          <input 
+                            value={editMessageText} 
+                            onChange={(e) => setEditMessageText(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && handleSaveEdit(msg.id)}
+                            autoFocus
+                            className="bg-white/20 text-white outline-none rounded-lg px-3 py-1 w-full text-sm placeholder-white/50"
+                          />
+                          <button onClick={() => handleSaveEdit(msg.id)} className="p-1.5 hover:bg-white/20 rounded-full transition-colors"><Check className="w-4 h-4" /></button>
+                          <button onClick={() => setEditingMessageId(null)} className="p-1.5 hover:bg-white/20 rounded-full transition-colors"><X className="w-4 h-4" /></button>
+                        </div>
+                      ) : (
+                        msg.text && (
+                          <span className="leading-relaxed relative">
+                            {msg.text}
+                            {msg.isEdited && <span className="text-[10px] opacity-60 ml-2 italic">(modifié)</span>}
+                          </span>
+                        )
+                      )}
                     </div>
+
                   </div>
                 );
               })}

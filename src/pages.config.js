@@ -11,8 +11,11 @@ import Search from './pages/Search';
 import Dashboard from './pages/Dashboard';
 import Messages from './pages/Messages';
 import Sessions from './pages/Sessions';
-import Settings from './pages/Settings';     // <-- NOUVEAU
-import Whiteboard from './pages/Whiteboard'; // <-- NOUVEAU
+import Settings from './pages/Settings';
+import Whiteboard from './pages/Whiteboard';
+import Legal from './pages/Legal';       
+import Privacy from './pages/Privacy';   
+import About from './pages/About';       
 import __Layout from './Layout.jsx';
 
 export const PAGES = {
@@ -22,8 +25,11 @@ export const PAGES = {
     "Dashboard": Dashboard,
     "Messages": Messages,
     "Sessions": Sessions,
-    "Settings": Settings,     // <-- NOUVEAU
-    "Whiteboard": Whiteboard, // <-- NOUVEAU
+    "Settings": Settings,
+    "Whiteboard": Whiteboard,
+    "Legal": Legal,       
+    "Privacy": Privacy,   
+    "About": About,       
 }
 
 export const pagesConfig = {

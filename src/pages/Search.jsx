@@ -4,9 +4,9 @@ import { collection, query, where, onSnapshot, addDoc, serverTimestamp } from "f
 import { useAuth } from "@/lib/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search as SearchIcon, Filter, Users, Loader2, MapPin, Monitor } from "lucide-react";
+import { Search as SearchIcon, Filter, Users, Loader2, MapPin, Monitor, BookOpen } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import BuddyCard from "../components/search/BuddyCard";
+import BuddyCard from "@/components/search/BuddyCard";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
 } from "@/components/ui/dialog";
@@ -33,9 +33,18 @@ const TYPE_OPTIONS = [
 
 export default function Search() {
   const { user } = useAuth();
+  
+  // États des filtres
   const [search, setSearch] = useState("");
+  const [subjectFilter, setSubjectFilter] = useState("");
+  const [cityFilter, setCityFilter] = useState("");
   const [levelFilter, setLevelFilter] = useState("all");
-  const [typeFilter, setTypeFilter] = useState("all"); // Nouveau filtre
+  const [typeFilter, setTypeFilter] = useState("all"); 
+  
+  // États pour afficher les menus de suggestions
+  const [isSubjectFocused, setIsSubjectFocused] = useState(false);
+  const [isCityFocused, setIsCityFocused] = useState(false);
+
   const [requestDialog, setRequestDialog] = useState(null);
   const [requestMessage, setRequestMessage] = useState("");
   
@@ -66,6 +75,25 @@ export default function Search() {
       unsubRequests();
     };
   }, [user]);
+
+  // --- LOGIQUE DES SUGGESTIONS INTELLIGENTES ---
+  // On récupère toutes les villes uniques des profils existants
+  const availableCities = Array.from(new Set(profiles.map(p => p.city?.trim()).filter(Boolean))).sort();
+  // On récupère toutes les matières uniques des profils existants
+  const availableSubjects = Array.from(new Set(
+    profiles.flatMap(p => p.subjects?.map(s => {
+      return (typeof s === "string" ? s : s.name)?.trim();
+    })).filter(Boolean)
+  )).sort();
+
+  // On filtre les suggestions en fonction de ce que tape l'utilisateur
+  const suggestedCities = availableCities.filter(c => 
+    c.toLowerCase().includes(cityFilter.toLowerCase()) && c.toLowerCase() !== cityFilter.toLowerCase()
+  );
+  
+  const suggestedSubjects = availableSubjects.filter(s => 
+    s.toLowerCase().includes(subjectFilter.toLowerCase()) && s.toLowerCase() !== subjectFilter.toLowerCase()
+  );
 
   const handleSendRequest = async () => {
     if (!requestDialog || !user) return;
@@ -101,31 +129,35 @@ export default function Search() {
   };
 
   const filteredProfiles = profiles.filter(p => {
-    // Filtre par Niveau
     if (levelFilter !== "all" && p.level !== levelFilter) return false;
-    
-    // Filtre par Type (En ligne / Présentiel)
     if (typeFilter === "online" && !p.is_online) return false;
     if (typeFilter === "inperson" && !p.is_in_person) return false;
-
-    // Recherche par texte
+    if (cityFilter && !p.city?.toLowerCase().includes(cityFilter.toLowerCase())) return false;
+    if (subjectFilter) {
+      const hasSubject = p.subjects?.some(s => {
+        const subjectName = typeof s === "string" ? s : s.name;
+        return subjectName?.toLowerCase().includes(subjectFilter.toLowerCase());
+      });
+      if (!hasSubject) return false;
+    }
     if (search) {
       const q = search.toLowerCase();
       const matchName = (p.display_name || p.full_name || "").toLowerCase().includes(q);
-      
-      const matchSubject = p.subjects?.some(s => {
-        const subjectName = typeof s === "string" ? s : s.name;
-        return subjectName?.toLowerCase().includes(q);
-      });
-      
-      const matchCity = (p.city || "").toLowerCase().includes(q);
       const matchSchool = (p.school || "").toLowerCase().includes(q);
-      return matchName || matchSubject || matchCity || matchSchool;
+      return matchName || matchSchool;
     }
     return true;
   });
 
   const sentToEmails = myRequests.map(r => r.to_email);
+
+  const resetFilters = () => {
+    setSearch("");
+    setSubjectFilter("");
+    setCityFilter("");
+    setLevelFilter("all");
+    setTypeFilter("all");
+  };
 
   return (
     <div className="max-w-6xl mx-auto animate-in fade-in duration-500">
@@ -137,28 +169,89 @@ export default function Search() {
         </div>
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Trouver un binôme</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Parcourez les profils et envoyez vos demandes d'étude</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Filtrez les profils pour trouver le partenaire d'étude idéal</p>
         </div>
       </div>
 
-      {/* --- BARRE DE RECHERCHE ET FILTRES MULTIPLES --- */}
-      <div className="bg-white dark:bg-[#1e1f20] p-4 rounded-2xl border border-gray-100 dark:border-[#333537] shadow-sm mb-8 flex flex-col md:flex-row gap-4 transition-colors duration-300">
+      {/* --- PANNEAU DE FILTRES MULTIPLES --- */}
+      <div className="bg-white dark:bg-[#1e1f20] p-5 rounded-2xl border border-gray-100 dark:border-[#333537] shadow-sm mb-8 space-y-4 transition-colors duration-300">
         
-        {/* Champ de texte */}
-        <div className="relative flex-1">
-          <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Matière, ville, nom de l'école..."
-            className="pl-11 py-6 h-full rounded-xl border-gray-200 dark:border-[#333537] bg-gray-50 dark:bg-[#131314] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus-visible:ring-indigo-500/50"
-          />
+        {/* Ligne 1 : Recherche générale & Matière avec Autocomplétion */}
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="relative flex-1">
+            <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Rechercher par nom ou école..."
+              className="pl-11 py-6 rounded-xl border-gray-200 dark:border-[#333537] bg-gray-50 dark:bg-[#131314] text-gray-900 dark:text-gray-100 focus-visible:ring-indigo-500/50"
+            />
+          </div>
+          
+          <div className="relative flex-1">
+            <BookOpen className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input
+              value={subjectFilter}
+              onChange={(e) => setSubjectFilter(e.target.value)}
+              onFocus={() => setIsSubjectFocused(true)}
+              // Le timeout permet de laisser le temps au clic de se faire avant de cacher les suggestions
+              onBlur={() => setTimeout(() => setIsSubjectFocused(false), 200)}
+              placeholder="Filtrer par matière (ex: Maths, Droit...)"
+              className="pl-11 py-6 rounded-xl border-gray-200 dark:border-[#333537] bg-gray-50 dark:bg-[#131314] text-gray-900 dark:text-gray-100 focus-visible:ring-indigo-500/50"
+            />
+            {/* Boîte de suggestions pour les Matières */}
+            {isSubjectFocused && subjectFilter.length > 0 && suggestedSubjects.length > 0 && (
+              <div className="absolute z-50 w-full mt-2 bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                {suggestedSubjects.map(sub => (
+                  <div 
+                    key={sub}
+                    className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-[#282a2c] cursor-pointer text-sm text-gray-700 dark:text-gray-200 transition-colors"
+                    onClick={() => {
+                      setSubjectFilter(sub);
+                      setIsSubjectFocused(false);
+                    }}
+                  >
+                    {sub}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-        
-        {/* Les 2 filtres (Sélecteurs) */}
-        <div className="flex flex-col sm:flex-row gap-4 shrink-0">
+
+        {/* Ligne 2 : Ville avec Autocomplétion & Menus déroulants */}
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="relative flex-1">
+            <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input
+              value={cityFilter}
+              onChange={(e) => setCityFilter(e.target.value)}
+              onFocus={() => setIsCityFocused(true)}
+              onBlur={() => setTimeout(() => setIsCityFocused(false), 200)}
+              placeholder="Filtrer par ville..."
+              className="pl-11 py-6 rounded-xl border-gray-200 dark:border-[#333537] bg-gray-50 dark:bg-[#131314] text-gray-900 dark:text-gray-100 focus-visible:ring-indigo-500/50"
+            />
+            {/* Boîte de suggestions pour les Villes */}
+            {isCityFocused && cityFilter.length > 0 && suggestedCities.length > 0 && (
+              <div className="absolute z-50 w-full mt-2 bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                {suggestedCities.map(city => (
+                  <div 
+                    key={city}
+                    className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-[#282a2c] cursor-pointer text-sm text-gray-700 dark:text-gray-200 transition-colors"
+                    onClick={() => {
+                      setCityFilter(city);
+                      setIsCityFocused(false);
+                    }}
+                  >
+                    {city}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          
           <Select value={levelFilter} onValueChange={setLevelFilter}>
-            <SelectTrigger className="w-full sm:w-[180px] h-12 py-0 rounded-xl border-gray-200 dark:border-[#333537] bg-white dark:bg-[#1e1f20] text-gray-700 dark:text-gray-300">
+            <SelectTrigger className="w-full md:w-[220px] h-[50px] rounded-xl border-gray-200 dark:border-[#333537] bg-white dark:bg-[#1e1f20] text-gray-700 dark:text-gray-300">
               <Filter className="w-4 h-4 mr-2 text-indigo-500" />
               <SelectValue />
             </SelectTrigger>
@@ -172,7 +265,7 @@ export default function Search() {
           </Select>
 
           <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-full sm:w-[200px] h-12 py-0 rounded-xl border-gray-200 dark:border-[#333537] bg-white dark:bg-[#1e1f20] text-gray-700 dark:text-gray-300">
+            <SelectTrigger className="w-full md:w-[240px] h-[50px] rounded-xl border-gray-200 dark:border-[#333537] bg-white dark:bg-[#1e1f20] text-gray-700 dark:text-gray-300">
               {typeFilter === "online" ? <Monitor className="w-4 h-4 mr-2 text-emerald-500" /> : <MapPin className="w-4 h-4 mr-2 text-blue-500" />}
               <SelectValue />
             </SelectTrigger>
@@ -205,7 +298,7 @@ export default function Search() {
           </p>
           <Button 
             variant="outline" 
-            onClick={() => {setSearch(""); setLevelFilter("all"); setTypeFilter("all");}}
+            onClick={resetFilters}
             className="mt-6 rounded-xl border-gray-200 dark:border-[#333537] hover:bg-gray-50 dark:hover:bg-[#282a2c]"
           >
             Réinitialiser les filtres
@@ -237,8 +330,8 @@ export default function Search() {
           <Textarea
             value={requestMessage}
             onChange={(e) => setRequestMessage(e.target.value)}
-            placeholder="Bonjour ! J'ai vu que tu préparais aussi les mêmes examens. Ça te dirait qu'on révise ensemble sur le tableau blanc ce week-end ?"
-            className="h-32 mt-6 resize-none bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus-visible:ring-indigo-500/50 rounded-2xl p-4"
+            placeholder="Bonjour ! J'ai vu que tu préparais aussi les mêmes examens..."
+            className="h-32 mt-6 resize-none bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-gray-100 focus-visible:ring-indigo-500/50 rounded-2xl p-4"
           />
           <DialogFooter className="mt-8 flex gap-3 sm:gap-4">
             <Button 

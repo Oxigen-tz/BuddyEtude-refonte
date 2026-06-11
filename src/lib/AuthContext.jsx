@@ -10,7 +10,7 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   
-  // Variables requises par la nouvelle architecture
+  // Variables requises par l'architecture de navigation
   const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(false);
   const [authError, setAuthError] = useState(null);
   const [appPublicSettings, setAppPublicSettings] = useState(null);
@@ -46,8 +46,7 @@ export const AuthProvider = ({ children }) => {
       // On sauvegarde le profil en BDD
       await syncUserProfile(result.user); 
       
-      // 🚀 REDIRECTION AUTOMATIQUE ICI 🚀
-      // (Vérifie juste que ton url s'appelle bien "Dashboard" avec une majuscule ou non)
+      // 🚀 Redirection automatique vers le Dashboard après connexion
       window.location.href = "/Dashboard"; 
       
       return result;
@@ -64,12 +63,12 @@ export const AuthProvider = ({ children }) => {
   };
 
   const navigateToLogin = () => {
-    // Lance la popup Google
+    // Si l'app exige une authentification, on lance la popup Google
     loginWithGoogle();
   };
 
   const checkAppState = async () => {
-    // Fonction vide pour l'architecture
+    // Fonction vide requise par la structure
   };
 
   return (
