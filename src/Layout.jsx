@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
-import { db } from "../firebase/config";
+import { db } from "./firebase/config";
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { createPageUrl } from "@/utils";
