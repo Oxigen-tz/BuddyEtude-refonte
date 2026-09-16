@@ -1,16 +1,18 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { db } from "../firebase/config";
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
+import { createPageUrl } from "@/utils";
 import { HexColorPicker } from "react-colorful";
 import { 
-  ArrowLeft, Eraser, Pen, Trash2, Download, Circle, Palette, X, Plus
+  ArrowLeft, Eraser, Pen, Trash2, Download, Circle, Palette, X, Plus, Undo2
 } from "lucide-react";
 
 const CANVAS_WIDTH = 1200;
 const CANVAS_HEIGHT = 800;
 const BRUSH_SIZES = [2, 6, 12, 24];
+const MAX_HISTORY = 25;
 
 export default function Whiteboard() {
   const location = useLocation();
@@ -24,7 +26,12 @@ export default function Whiteboard() {
   const [tool, setTool] = useState("pen");
   const [isCustomColorOpen, setIsCustomColorOpen] = useState(false);
 
-  // 🌙 NOUVEAU : Détecter en direct si on est en mode clair ou sombre
+  // Pile d'historique pour le undo (tableau de dataURL)
+  const historyRef = useRef([]);
+  const [canUndo, setCanUndo] = useState(false);
+  const isRestoringRef = useRef(false); // évite de re-sauvegarder pendant une restauration
+
+  // 🌙 Détecter en direct si on est en mode clair ou sombre
   const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.classList.contains("dark"));
 
   useEffect(() => {
@@ -35,15 +42,14 @@ export default function Whiteboard() {
     return () => observer.disconnect();
   }, []);
 
-  // 🎨 PALETTE DYNAMIQUE (Le 1er stylo change avec le thème !)
+  // 🎨 PALETTE DYNAMIQUE
   const PRESET_COLORS = [
-    isDarkMode ? "#ffffff" : "#09090b", // Blanc si sombre, Noir si clair
+    isDarkMode ? "#ffffff" : "#09090b",
     "#ef4444", "#3b82f6", "#22c55e", "#a855f7"
   ];
 
   const [color, setColor] = useState(PRESET_COLORS[0]);
 
-  // Si l'utilisateur change de mode, on adapte la couleur de son stylo s'il utilisait la couleur par défaut
   useEffect(() => {
     if (color === "#ffffff" && !isDarkMode) setColor("#09090b");
     else if (color === "#09090b" && isDarkMode) setColor("#ffffff");
@@ -63,7 +69,7 @@ export default function Whiteboard() {
         const canvas = canvasRef.current;
         const ctx = canvas.getContext("2d");
         
-        ctx.clearRect(0, 0, canvas.width, canvas.height); // On nettoie le tableau
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         
         if (data.image) {
           const img = new Image();
@@ -86,7 +92,21 @@ export default function Whiteboard() {
     return { x: x * scaleX, y: y * scaleY };
   };
 
+  // Sauvegarde l'état actuel du canvas dans l'historique (appelé AVANT de commencer un nouveau trait)
+  const pushHistory = () => {
+    if (isRestoringRef.current) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const snapshot = canvas.toDataURL("image/png");
+    historyRef.current.push(snapshot);
+    if (historyRef.current.length > MAX_HISTORY) {
+      historyRef.current.shift();
+    }
+    setCanUndo(historyRef.current.length > 0);
+  };
+
   const startDrawing = (e) => {
+    pushHistory();
     const { x, y } = getCanvasCoordinates(e);
     const ctx = canvasRef.current.getContext("2d");
     ctx.beginPath();
@@ -100,7 +120,6 @@ export default function Whiteboard() {
     const ctx = canvasRef.current.getContext("2d");
     ctx.lineTo(x, y);
     
-    // 🪄 MAGIE PRO : On utilise destination-out pour EFFACER de vrais pixels, au lieu de colorier par-dessus !
     if (tool === "eraser") {
       ctx.globalCompositeOperation = "destination-out";
       ctx.lineWidth = lineWidth * 4;
@@ -116,28 +135,70 @@ export default function Whiteboard() {
     ctx.stroke();
   };
 
+  const saveToFirestore = async () => {
+    const canvas = canvasRef.current;
+    const imageBase64 = canvas.toDataURL("image/png");
+    await setDoc(doc(db, "whiteboards", sessionId), { image: imageBase64, updatedAt: new Date().toISOString() }, { merge: true });
+  };
+
   const stopDrawing = async () => {
     if (!isDrawing) return;
     setIsDrawing(false);
     
-    // On repasse en mode dessin normal avant de sauvegarder
     const ctx = canvasRef.current.getContext("2d");
     ctx.globalCompositeOperation = "source-over";
 
-    const canvas = canvasRef.current;
-    const imageBase64 = canvas.toDataURL("image/png"); // Sauvegarde avec fond transparent
-    await setDoc(doc(db, "whiteboards", sessionId), { image: imageBase64, updatedAt: new Date().toISOString() }, { merge: true });
+    await saveToFirestore();
   };
+
+  // ↩️ UNDO : restaure le dernier état sauvegardé
+  const undoLastStroke = useCallback(async () => {
+    if (historyRef.current.length === 0) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const lastSnapshot = historyRef.current.pop();
+    setCanUndo(historyRef.current.length > 0);
+
+    isRestoringRef.current = true;
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (lastSnapshot) {
+      const img = new Image();
+      img.onload = async () => {
+        ctx.drawImage(img, 0, 0);
+        isRestoringRef.current = false;
+        await saveToFirestore();
+      };
+      img.src = lastSnapshot;
+    } else {
+      isRestoringRef.current = false;
+      await saveToFirestore();
+    }
+  }, [sessionId]);
+
+  // Raccourci clavier Ctrl+Z / Cmd+Z
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        undoLastStroke();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [undoLastStroke]);
 
   const clearBoard = async () => {
     if(!window.confirm("Voulez-vous vraiment tout effacer ?")) return;
+    pushHistory(); // permet d'annuler un effacement total
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, canvas.width, canvas.height); // Nettoyage total
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     await setDoc(doc(db, "whiteboards", sessionId), { image: null }, { merge: true });
   };
 
-  // 📥 MAGIE DE TÉLÉCHARGEMENT : On fusionne l'image avec un fond avant d'enregistrer
   const downloadBoard = () => {
     const canvas = canvasRef.current;
     const tempCanvas = document.createElement("canvas");
@@ -145,11 +206,8 @@ export default function Whiteboard() {
     tempCanvas.height = canvas.height;
     const ctx = tempCanvas.getContext("2d");
 
-    // On crée un fond de la couleur actuelle (Clair ou Sombre)
     ctx.fillStyle = isDarkMode ? "#1e1f20" : "#ffffff";
     ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-    
-    // On dessine le trait transparent par-dessus
     ctx.drawImage(canvas, 0, 0);
 
     const link = document.createElement("a");
@@ -166,6 +224,18 @@ export default function Whiteboard() {
     }
   };
 
+  // 🔙 RETOUR AU CHAT : navigate(-1) échoue s'il n'y a pas d'historique
+  // (arrivée directe sur le lien, actualisation de page, nouvel onglet...).
+  // On revient en arrière seulement si un historique existe, sinon on va
+  // explicitement vers la page Messages.
+  const handleBack = () => {
+    if (window.history.state && window.history.state.idx > 0) {
+      navigate(-1);
+    } else {
+      navigate(createPageUrl("Messages"));
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-slate-50 dark:bg-[#131314] z-50 flex flex-col transition-colors duration-300" 
          style={{ backgroundImage: "radial-gradient(currentColor 1px, transparent 1px)", backgroundSize: "24px 24px", color: "var(--tw-prose-body, rgba(148, 163, 184, 0.2))" }}>
@@ -173,7 +243,7 @@ export default function Whiteboard() {
       {/* EN TÊTE */}
       <div className="bg-white/80 dark:bg-[#1e1f20]/90 backdrop-blur-md border-b border-gray-200 dark:border-[#333537] px-6 py-3 flex items-center justify-between shadow-sm transition-colors duration-300">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => navigate(-1)} className="hover:bg-gray-100 dark:hover:bg-[#282a2c] text-gray-700 dark:text-gray-300 rounded-xl">
+          <Button variant="ghost" onClick={handleBack} className="hover:bg-gray-100 dark:hover:bg-[#282a2c] text-gray-700 dark:text-gray-300 rounded-xl">
             <ArrowLeft className="w-5 h-5 mr-2" /> Retour au Chat
           </Button>
           <div className="h-6 w-px bg-gray-300 dark:bg-[#333537] hidden md:block"></div>
@@ -181,15 +251,25 @@ export default function Whiteboard() {
             {isDarkMode ? "Tableau Noir Interactif" : "Tableau Blanc Interactif"}
           </h2>
         </div>
-        <Button onClick={downloadBoard} variant="outline" className="border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 rounded-xl transition-colors">
-          <Download className="w-4 h-4 mr-2" /> Exporter (PNG)
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            onClick={undoLastStroke} 
+            disabled={!canUndo}
+            variant="outline" 
+            className="border-gray-200 dark:border-[#333537] text-gray-700 dark:text-gray-300 rounded-xl disabled:opacity-40"
+            title="Annuler (Ctrl+Z)"
+          >
+            <Undo2 className="w-4 h-4 mr-2" /> Annuler
+          </Button>
+          <Button onClick={downloadBoard} variant="outline" className="border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 rounded-xl transition-colors">
+            <Download className="w-4 h-4 mr-2" /> Exporter (PNG)
+          </Button>
+        </div>
       </div>
 
       {/* ZONE DE DESSIN */}
       <div className="flex-1 overflow-auto flex justify-center items-center p-4 md:p-8 relative">
         
-        {/* LE CANVAS : C'est le CSS qui gère la couleur de fond ! */}
         <div className="relative shadow-2xl rounded-xl ring-1 ring-gray-200 dark:ring-[#333537] overflow-hidden bg-white dark:bg-[#1e1f20] transition-colors duration-300">
           <canvas
             ref={canvasRef}
@@ -204,7 +284,6 @@ export default function Whiteboard() {
           />
         </div>
 
-        {/* PANNEAU DE COULEUR PERSONNALISÉ */}
         {isCustomColorOpen && (
           <div className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-white/95 dark:bg-[#1e1f20]/95 backdrop-blur-xl p-4 rounded-3xl shadow-2xl border border-gray-100 dark:border-[#333537] z-50 flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-5 duration-300 min-w-[250px]">
             <div className="flex items-center justify-between gap-2 px-1">
