@@ -9,8 +9,6 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
-// Import de la nouvelle page Whiteboard
-import Whiteboard from './pages/Whiteboard';
 // Import du Footer
 import Footer from '@/components/Footer';
 
@@ -27,7 +25,7 @@ const LayoutWrapper = ({ children, currentPageName }) => {
   const showSidebar = Layout && !hideSidebarRoutes.includes(location.pathname);
 
   // On cache le footer sur le tableau blanc pour avoir 100% de l'écran pour dessiner
-  const hideFooterRoutes = ['/whiteboard'];
+  const hideFooterRoutes = ['/Whiteboard'];
   const showFooter = !hideFooterRoutes.includes(location.pathname);
 
   return showSidebar ? (
@@ -78,7 +76,7 @@ const AuthenticatedApp = () => {
         </LayoutWrapper>
       } />
 
-      {/* Génération dynamique des autres pages depuis pages.config */}
+      {/* Génération dynamique de TOUTES les pages depuis pages.config (Whiteboard inclus) */}
       {Object.entries(Pages).map(([path, Page]) => (
         <Route
           key={path}
@@ -90,16 +88,6 @@ const AuthenticatedApp = () => {
           }
         />
       ))}
-
-      {/* Route Whiteboard */}
-      <Route 
-        path="/whiteboard" 
-        element={
-          <LayoutWrapper currentPageName="Whiteboard">
-            <Whiteboard />
-          </LayoutWrapper>
-        } 
-      />
 
       {/* Page 404 */}
       <Route path="*" element={<PageNotFound />} />
