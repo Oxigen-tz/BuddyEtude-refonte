@@ -1,13 +1,15 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Sparkles, PenTool } from "lucide-react"; // Ajout de PenTool
+import { ArrowRight, Sparkles, PenTool } from "lucide-react"; 
 import { useAuth } from "@/lib/AuthContext"; 
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { useTranslation } from "react-i18next"; // Ajout de i18n
 
 export default function HeroSection() {
   const { user, loginWithGoogle } = useAuth(); 
+  const { t } = useTranslation(); // Activation des traductions
 
   return (
     <section className="relative min-h-[90vh] flex items-center overflow-hidden">
@@ -31,26 +33,25 @@ export default function HeroSection() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
         >
-          {/* Badge corrigé : On met en avant la fonctionnalité clé plutôt qu'un titre fake */}
           <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-5 py-2 mb-8">
             <PenTool className="w-4 h-4 text-yellow-300" />
-            <span className="text-sm text-white/90 font-medium">Tableau blanc collaboratif intégré</span>
+            <span className="text-sm text-white/90 font-medium">{t('hero.badge')}</span>
           </div>
 
           <h1 className="text-5xl md:text-7xl font-extrabold text-white mb-6 leading-tight tracking-tight">
-            Trouvez votre
+            {t('hero.title1')}
             <br />
             <span className="bg-gradient-to-r from-yellow-200 via-amber-200 to-yellow-300 bg-clip-text text-transparent">
-              binôme d'études
+              {t('hero.title_highlight')}
             </span>
             <br />
-            idéal
+            {t('hero.title2')}
           </h1>
 
-          {/* Sous-titre revu pour inclure la pratique en temps réel */}
           <p className="text-lg md:text-xl text-indigo-100 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Ne révisez plus seul. Trouvez des étudiants de votre niveau, 
-            lancez une session et <strong className="text-white font-semibold">collaborez en temps réel sur notre tableau blanc</strong>.
+            {t('hero.subtitle_part1')} 
+            <strong className="text-white font-semibold">{t('hero.subtitle_bold')}</strong>
+            {t('hero.subtitle_part2')}
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -60,7 +61,7 @@ export default function HeroSection() {
                   size="lg"
                   className="bg-white text-indigo-700 hover:bg-indigo-50 font-semibold text-base px-8 py-6 rounded-xl shadow-xl shadow-indigo-900/20 group"
                 >
-                  Accéder à mon espace
+                  {t('hero.btn_dashboard')}
                   <ArrowRight className="w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" />
                 </Button>
               </Link>
@@ -70,14 +71,13 @@ export default function HeroSection() {
                 onClick={loginWithGoogle}
                 className="bg-white text-indigo-700 hover:bg-indigo-50 font-semibold text-base px-8 py-6 rounded-xl shadow-xl shadow-indigo-900/20 group"
               >
-                C'est parti !
+                {t('hero.btn_start')}
                 <ArrowRight className="w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" />
               </Button>
             )}
           </div>
         </motion.div>
 
-        {/* Stats revues pour être plus concrètes */}
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
@@ -85,13 +85,13 @@ export default function HeroSection() {
           className="mt-20 grid grid-cols-3 gap-8 max-w-lg mx-auto"
         >
           {[
-            { value: "100%", label: "Gratuit" },
-            { value: "0ms", label: "Latence dessin" }, // Mise en avant technique du tableau blanc
-            { value: "∞", label: "Matières" },
+            { value: "100%", labelKey: "free" },
+            { value: "0ms", labelKey: "latency" },
+            { value: "∞", labelKey: "subjects" },
           ].map((stat) => (
-            <div key={stat.label} className="text-center">
+            <div key={stat.labelKey} className="text-center">
               <div className="text-3xl font-bold text-white">{stat.value}</div>
-              <div className="text-sm text-indigo-200 mt-1">{stat.label}</div>
+              <div className="text-sm text-indigo-200 mt-1">{t(`hero.stats.${stat.labelKey}`)}</div>
             </div>
           ))}
         </motion.div>

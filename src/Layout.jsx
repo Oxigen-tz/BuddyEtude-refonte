@@ -106,7 +106,16 @@ export default function Layout({ children, currentPageName }) {
           </div>
         ) : (
           notifications.map((notif, idx) => (
-            <div key={idx} className="p-3 mb-1 hover:bg-gray-50 dark:hover:bg-[#282a2c] rounded-xl cursor-pointer transition-colors" onClick={() => { navigate(createPageUrl("Messages")); setShowNotifications(false); }}>
+            <div 
+              key={idx} 
+              className="p-3 mb-1 hover:bg-gray-50 dark:hover:bg-[#282a2c] rounded-xl cursor-pointer transition-colors" 
+              onClick={() => { 
+                navigate(createPageUrl("Messages")); 
+                setShowNotifications(false);
+                // 🛠️ CORRECTIF : Retire cette notification précise de la liste
+                setNotifications(prev => prev.filter(n => n.id !== notif.id));
+              }}
+            >
               <div className="flex gap-3">
                 <div className="mt-1">{notif.icon}</div>
                 <div>
@@ -126,7 +135,7 @@ export default function Layout({ children, currentPageName }) {
     <div className="min-h-screen bg-gray-50 dark:bg-[#131314] flex flex-col md:flex-row transition-colors duration-300">
       <Toaster position="bottom-right" richColors />
 
-      {/* --- SIDEBAR DESKTOP (Ajout de z-50 ici pour régler le bug visuel !) --- */}
+      {/* --- SIDEBAR DESKTOP --- */}
       <aside className="hidden md:flex w-64 flex-col bg-white dark:bg-[#1e1f20] border-r border-gray-100 dark:border-[#333537] h-screen sticky top-0 transition-colors duration-300 z-50">
         
         <Link to="/" className="p-6 flex items-center gap-3 hover:opacity-80 transition-opacity">

@@ -1,11 +1,13 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
-import { useAuth } from "@/lib/AuthContext"; // Changé ici
+import { useAuth } from "@/lib/AuthContext"; 
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next"; // Ajout de i18n
 
 export default function CTASection() {
-  const { loginWithGoogle } = useAuth(); // Changé ici
+  const { loginWithGoogle } = useAuth(); 
+  const { t } = useTranslation();
 
   return (
     <section className="py-24 px-6 bg-gray-50">
@@ -22,17 +24,17 @@ export default function CTASection() {
           </div>
           <div className="relative">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Prêt à trouver votre binôme ?
+              {t('cta.title')}
             </h2>
             <p className="text-lg text-indigo-100 mb-8 max-w-xl mx-auto">
-              Rejoignez BuddyEtude gratuitement et commencez à étudier plus efficacement dès aujourd'hui.
+              {t('cta.subtitle')}
             </p>
             <Button
               size="lg"
-              onClick={loginWithGoogle} // ✅ BRANCHÉ ICI
+              onClick={loginWithGoogle} 
               className="bg-white text-indigo-700 hover:bg-indigo-50 font-semibold text-base px-8 py-6 rounded-xl group"
             >
-              Créer mon compte
+              {t('cta.button')}
               <ArrowRight className="w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" />
             </Button>
           </div>

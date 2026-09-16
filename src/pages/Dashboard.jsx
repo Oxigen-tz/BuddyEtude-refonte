@@ -14,7 +14,7 @@ export default function Dashboard() {
   const [isProfileComplete, setIsProfileComplete] = useState(false);
   const [hasBuddy, setHasBuddy] = useState(false);
   
-  // NOUVEAU : On gère l'état de l'étape 3 et la visibilité du tutoriel via le localStorage
+  // Gestion de l'état de l'étape 3 et la visibilité du tutoriel via le localStorage
   const [hasLaunchedSession, setHasLaunchedSession] = useState(localStorage.getItem("tuto_step3") === "true");
   const [showTutorial, setShowTutorial] = useState(localStorage.getItem("tuto_hidden") !== "true");
 
@@ -33,9 +33,10 @@ export default function Dashboard() {
           setIsProfileComplete(!!userData.profile_complete);
         }
 
-        // 2. Binôme trouvé ?
+        // 2. Binôme trouvé (ou demande envoyée) ?
         const reqQueryTo = query(collection(db, "requests"), where("to_email", "==", user.email), where("status", "==", "accepted"));
-        const reqQueryFrom = query(collection(db, "requests"), where("from_email", "==", user.email), where("status", "==", "accepted"));
+        // 🛠️ CORRECTIF : On valide l'étape dès qu'on a ENVOYÉ une demande (plus besoin qu'elle soit acceptée)
+        const reqQueryFrom = query(collection(db, "requests"), where("from_email", "==", user.email));
         
         const [toSnap, fromSnap] = await Promise.all([getDocs(reqQueryTo), getDocs(reqQueryFrom)]);
         if (!toSnap.empty || !fromSnap.empty) {
@@ -91,7 +92,6 @@ export default function Dashboard() {
                 {isProfileComplete && hasBuddy && hasLaunchedSession ? "Félicitations, vous êtes prêt !" : "Bienvenue sur votre espace !"}
               </h2>
               
-              {/* NOUVEAU : Bouton pour fermer le tuto */}
               <button onClick={hideTutorialBanner} className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors" title="Masquer le tutoriel">
                 <X className="w-5 h-5" />
               </button>
@@ -128,12 +128,12 @@ export default function Dashboard() {
                 <p className="text-sm text-indigo-100">{hasBuddy ? "Vous avez des partenaires d'étude." : "Cherchez des étudiants compatibles."}</p>
               </div>
 
-              {/* Étape 3 : Lancer une session (Maintenant elle se valide !) */}
+              {/* Étape 3 : Lancer une session */}
               <div 
                 onClick={() => {
                   if (isProfileComplete && hasBuddy && !hasLaunchedSession) {
-                    localStorage.setItem("tuto_step3", "true"); // On sauvegarde la validation
-                    setHasLaunchedSession(true); // On met à jour l'icône direct
+                    localStorage.setItem("tuto_step3", "true"); 
+                    setHasLaunchedSession(true); 
                     navigate(createPageUrl("Sessions"));
                   } else if (hasLaunchedSession) {
                      navigate(createPageUrl("Sessions"));
