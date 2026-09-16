@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search as SearchIcon, Filter, Users, Loader2, MapPin, Monitor, BookOpen } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import BuddyCard from "@/components/search/BuddyCard";
+import Autocomplete from "@/components/ui/Autocomplete";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
 } from "@/components/ui/dialog";
@@ -34,16 +35,11 @@ const TYPE_OPTIONS = [
 export default function Search() {
   const { user } = useAuth();
   
-  // États des filtres
   const [search, setSearch] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("");
   const [cityFilter, setCityFilter] = useState("");
   const [levelFilter, setLevelFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all"); 
-  
-  // États pour afficher les menus de suggestions
-  const [isSubjectFocused, setIsSubjectFocused] = useState(false);
-  const [isCityFocused, setIsCityFocused] = useState(false);
 
   const [requestDialog, setRequestDialog] = useState(null);
   const [requestMessage, setRequestMessage] = useState("");
@@ -76,24 +72,47 @@ export default function Search() {
     };
   }, [user]);
 
-  // --- LOGIQUE DES SUGGESTIONS INTELLIGENTES ---
-  // On récupère toutes les villes uniques des profils existants
-  const availableCities = Array.from(new Set(profiles.map(p => p.city?.trim()).filter(Boolean))).sort();
-  // On récupère toutes les matières uniques des profils existants
-  const availableSubjects = Array.from(new Set(
-    profiles.flatMap(p => p.subjects?.map(s => {
-      return (typeof s === "string" ? s : s.name)?.trim();
-    })).filter(Boolean)
-  )).sort();
+  // 1. Recherche dynamique des Villes via l'API officielle française
+  const searchFrenchCities = async (queryText) => {
+    const response = await fetch(
+      `https://geo.api.gouv.fr/communes?nom=${encodeURIComponent(queryText)}&fields=nom&boost=population&limit=6`
+    );
+    const data = await response.json();
+    return data.map((commune) => commune.nom);
+  };
 
-  // On filtre les suggestions en fonction de ce que tape l'utilisateur
-  const suggestedCities = availableCities.filter(c => 
-    c.toLowerCase().includes(cityFilter.toLowerCase()) && c.toLowerCase() !== cityFilter.toLowerCase()
-  );
-  
-  const suggestedSubjects = availableSubjects.filter(s => 
-    s.toLowerCase().includes(subjectFilter.toLowerCase()) && s.toLowerCase() !== subjectFilter.toLowerCase()
-  );
+  // 2. Recherche dynamique des Matières sur le web avec filtre anti-géographie
+  const searchSubjects = async (queryText) => {
+    if (!queryText || queryText.trim().length < 2) return [];
+
+    try {
+      const response = await fetch(
+        `https://fr.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(queryText)}&limit=15&namespace=0&format=json&origin=*`
+      );
+      const data = await response.json();
+      const results = data[1] || [];
+
+      // Mots-clés géographiques ou administratifs à écarter pour ne pas avoir de régions/villes
+      const forbiddenWords = [
+        "nord", "pas-de-calais", "france", "paris", "lyon", "marseille", 
+        "region", "département", "académie", "canton", "arrondissement",
+        "territoire", "provence", "bretagne", "corse", "guadeloupe"
+      ];
+
+      const cleanResults = results.filter(item => {
+        const lower = item.toLowerCase();
+        const hasForbiddenWord = forbiddenWords.some(word => lower.includes(word));
+        const isTooComplex = lower.includes(" du ") || lower.includes(" de la ") || lower.split(" ").length > 4;
+
+        return !hasForbiddenWord && !isTooComplex;
+      });
+
+      return cleanResults.slice(0, 6);
+    } catch (error) {
+      console.error("Erreur de recherche:", error);
+      return [];
+    }
+  };
 
   const handleSendRequest = async () => {
     if (!requestDialog || !user) return;
@@ -176,78 +195,39 @@ export default function Search() {
       {/* --- PANNEAU DE FILTRES MULTIPLES --- */}
       <div className="bg-white dark:bg-[#1e1f20] p-5 rounded-2xl border border-gray-100 dark:border-[#333537] shadow-sm mb-8 space-y-4 transition-colors duration-300">
         
-        {/* Ligne 1 : Recherche générale & Matière avec Autocomplétion */}
+        {/* Ligne 1 : Recherche générale & Matière avec Autocomplétion dynamique */}
         <div className="flex flex-col md:flex-row gap-4">
           <div className="relative flex-1">
-            <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Rechercher par nom ou école..."
-              className="pl-11 py-6 rounded-xl border-gray-200 dark:border-[#333537] bg-gray-50 dark:bg-[#131314] text-gray-900 dark:text-gray-100 focus-visible:ring-indigo-500/50"
+              className="pl-11 h-[50px] rounded-xl border-gray-200 dark:border-[#333537] bg-gray-50 dark:bg-[#131314] text-gray-900 dark:text-gray-100 focus-visible:ring-indigo-500/50"
             />
           </div>
           
-          <div className="relative flex-1">
-            <BookOpen className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <Input
+          <div className="flex-1">
+            <Autocomplete
+              fetchOptions={searchSubjects}
               value={subjectFilter}
-              onChange={(e) => setSubjectFilter(e.target.value)}
-              onFocus={() => setIsSubjectFocused(true)}
-              // Le timeout permet de laisser le temps au clic de se faire avant de cacher les suggestions
-              onBlur={() => setTimeout(() => setIsSubjectFocused(false), 200)}
-              placeholder="Filtrer par matière (ex: Maths, Droit...)"
-              className="pl-11 py-6 rounded-xl border-gray-200 dark:border-[#333537] bg-gray-50 dark:bg-[#131314] text-gray-900 dark:text-gray-100 focus-visible:ring-indigo-500/50"
+              onChange={setSubjectFilter}
+              placeholder="Filtrer par matière (ex: Droit, Cinéma...)"
+              icon={BookOpen}
             />
-            {/* Boîte de suggestions pour les Matières */}
-            {isSubjectFocused && subjectFilter.length > 0 && suggestedSubjects.length > 0 && (
-              <div className="absolute z-50 w-full mt-2 bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] rounded-xl shadow-lg max-h-48 overflow-y-auto">
-                {suggestedSubjects.map(sub => (
-                  <div 
-                    key={sub}
-                    className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-[#282a2c] cursor-pointer text-sm text-gray-700 dark:text-gray-200 transition-colors"
-                    onClick={() => {
-                      setSubjectFilter(sub);
-                      setIsSubjectFocused(false);
-                    }}
-                  >
-                    {sub}
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         </div>
 
-        {/* Ligne 2 : Ville avec Autocomplétion & Menus déroulants */}
+        {/* Ligne 2 : Ville (API infinie) & Menus déroulants */}
         <div className="flex flex-col md:flex-row gap-4">
-          <div className="relative flex-1">
-            <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <Input
+          <div className="flex-1">
+            <Autocomplete
+              fetchOptions={searchFrenchCities}
               value={cityFilter}
-              onChange={(e) => setCityFilter(e.target.value)}
-              onFocus={() => setIsCityFocused(true)}
-              onBlur={() => setTimeout(() => setIsCityFocused(false), 200)}
+              onChange={setCityFilter}
               placeholder="Filtrer par ville..."
-              className="pl-11 py-6 rounded-xl border-gray-200 dark:border-[#333537] bg-gray-50 dark:bg-[#131314] text-gray-900 dark:text-gray-100 focus-visible:ring-indigo-500/50"
+              icon={MapPin}
             />
-            {/* Boîte de suggestions pour les Villes */}
-            {isCityFocused && cityFilter.length > 0 && suggestedCities.length > 0 && (
-              <div className="absolute z-50 w-full mt-2 bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] rounded-xl shadow-lg max-h-48 overflow-y-auto">
-                {suggestedCities.map(city => (
-                  <div 
-                    key={city}
-                    className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-[#282a2c] cursor-pointer text-sm text-gray-700 dark:text-gray-200 transition-colors"
-                    onClick={() => {
-                      setCityFilter(city);
-                      setIsCityFocused(false);
-                    }}
-                  >
-                    {city}
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
           
           <Select value={levelFilter} onValueChange={setLevelFilter}>
