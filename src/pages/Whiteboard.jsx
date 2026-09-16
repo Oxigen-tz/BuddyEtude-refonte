@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
 import { db } from "../firebase/config";
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
@@ -224,20 +225,15 @@ export default function Whiteboard() {
     }
   };
 
-  // 🔙 RETOUR AU CHAT : navigate(-1) échoue s'il n'y a pas d'historique
-  // (arrivée directe sur le lien, actualisation de page, nouvel onglet...).
-  // On revient en arrière seulement si un historique existe, sinon on va
-  // explicitement vers la page Messages.
+  // 🔙 RETOUR AU CHAT : navigation directe et explicite vers Messages,
+  // plutôt que de dépendre de l'historique du navigateur (peu fiable en SPA
+  // et pouvait provoquer des effets de bord au lieu de naviguer réellement).
   const handleBack = () => {
-    if (window.history.state && window.history.state.idx > 0) {
-      navigate(-1);
-    } else {
-      navigate(createPageUrl("Messages"));
-    }
+    navigate(createPageUrl("Messages"));
   };
 
-  return (
-    <div className="fixed inset-0 bg-slate-50 dark:bg-[#131314] z-50 flex flex-col transition-colors duration-300" 
+  return createPortal(
+    <div className="fixed inset-0 bg-slate-50 dark:bg-[#131314] z-[9999] flex flex-col transition-colors duration-300" 
          style={{ backgroundImage: "radial-gradient(currentColor 1px, transparent 1px)", backgroundSize: "24px 24px", color: "var(--tw-prose-body, rgba(148, 163, 184, 0.2))" }}>
       
       {/* EN TÊTE */}
@@ -382,6 +378,7 @@ export default function Whiteboard() {
         .custom-picker .react-colorful__hue { height: 16px; border-radius: 0 0 12px 12px; margin-top: -1px; }
         .custom-picker .react-colorful__handle { width: 20px; height: 20px; border: 3px solid #ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
       `}</style>
-    </div>
+    </div>,
+    document.body
   );
 }
