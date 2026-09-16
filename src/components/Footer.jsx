@@ -1,7 +1,20 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { GraduationCap, Mail, Instagram, Twitter, Github } from "lucide-react";
+import { GraduationCap, Mail, Instagram, Github } from "lucide-react";
 import { createPageUrl } from "@/utils";
+
+// Composant pour le logo X (anciennement Twitter)
+function XIcon({ className = "w-5 h-5" }) {
+  return (
+    <svg 
+      viewBox="0 0 24 24" 
+      aria-hidden="true" 
+      className={`fill-current ${className}`}
+    >
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+    </svg>
+  );
+}
 
 export default function Footer() {
   return (
@@ -21,7 +34,7 @@ export default function Footer() {
             </p>
             <div className="flex gap-4">
               <a href="#" className="text-gray-400 hover:text-indigo-600 transition-colors"><Instagram className="w-5 h-5" /></a>
-              <a href="#" className="text-gray-400 hover:text-indigo-600 transition-colors"><Twitter className="w-5 h-5" /></a>
+              <a href="#" className="text-gray-400 hover:text-indigo-600 transition-colors"><XIcon className="w-5 h-5" /></a>
               <a href="#" className="text-gray-400 hover:text-indigo-600 transition-colors"><Github className="w-5 h-5" /></a>
             </div>
           </div>
@@ -32,7 +45,6 @@ export default function Footer() {
             <ul className="space-y-3">
               <li><Link to={createPageUrl("About")} className="text-gray-500 hover:text-indigo-600 dark:text-gray-400 text-sm transition-colors">À propos de nous</Link></li>
               <li><Link to={createPageUrl("Search")} className="text-gray-500 hover:text-indigo-600 dark:text-gray-400 text-sm transition-colors">Trouver un binôme</Link></li>
-              {/* Le système de parrainage mentionné dans l'audit (visuel pour l'instant) */}
               <li><span className="text-gray-500 hover:text-indigo-600 dark:text-gray-400 text-sm transition-colors cursor-pointer flex items-center gap-2">Programme de parrainage <span className="bg-indigo-100 text-indigo-700 text-[10px] px-2 py-0.5 rounded-full font-bold">Bientôt</span></span></li>
             </ul>
           </div>

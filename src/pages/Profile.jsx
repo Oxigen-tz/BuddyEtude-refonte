@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
   User, CheckCircle, Edit, MapPin, GraduationCap, 
-  Monitor, Users, BookOpen, Target, Clock, ArrowLeft 
+  Monitor, Users, BookOpen, Target, Clock, ArrowLeft, Camera 
 } from "lucide-react";
 import ProfileForm from "../components/profile/ProfileForm";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -35,11 +35,16 @@ export default function Profile() {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = docSnap.data();
+          // S'il n'y a pas encore de photo dans Firestore mais qu'on a une photo Google, on l'associe
+          if (!data.photo_url && user.photoURL) {
+            data.photo_url = user.photoURL;
+          }
           setProfile(data);
           if (!data.profile_complete) setIsEditing(true);
         } else {
           setProfile({
             display_name: user.displayName || "",
+            photo_url: user.photoURL || "",
             subjects: [], goals: [], availability: [], profile_complete: false
           });
           setIsEditing(true); 
@@ -59,7 +64,11 @@ export default function Profile() {
     try {
       const docRef = doc(db, "users", user.uid);
       const dataToSave = { 
-        ...formData, email: user.email, profile_complete: true, updatedAt: new Date().toISOString() 
+        ...formData, 
+        email: user.email, 
+        photo_url: formData.photo_url || profile?.photo_url || user.photoURL || "",
+        profile_complete: true, 
+        updatedAt: new Date().toISOString() 
       };
       await setDoc(docRef, dataToSave, { merge: true });
       setProfile(dataToSave);
@@ -109,19 +118,37 @@ export default function Profile() {
 
       {!isEditing ? (
         <div className="space-y-6">
-          {/* --- CARTE PRINCIPALE (Remplace Shadcn Card) --- */}
+          {/* --- CARTE PRINCIPALE --- */}
           <div className="border border-gray-100 dark:border-[#333537] shadow-sm rounded-2xl overflow-hidden bg-white dark:bg-[#1e1f20] transition-colors duration-300">
             
-            {/* Bannière dégradée */}
-            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-gray-50 dark:border-[#333537]">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{profile.display_name || "Étudiant"}</h2>
-                <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-gray-600 dark:text-gray-300">
-                  {profile.school && <span className="font-medium text-indigo-700 dark:text-indigo-400">{profile.school}</span>}
-                  {profile.level && <span>• {LEVEL_LABELS[profile.level] || profile.level}</span>}
-                  {profile.city && <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> {profile.city}</span>}
+            {/* Bannière dégradée avec Avatar */}
+            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-gray-50 dark:border-[#333537]">
+              <div className="flex items-center gap-5">
+                {/* Avatar utilisateur */}
+                <div className="relative">
+                  {profile.photo_url ? (
+                    <img 
+                      src={profile.photo_url} 
+                      alt={profile.display_name} 
+                      className="w-20 h-20 rounded-2xl object-cover border-2 border-white dark:border-[#333537] shadow-md"
+                    />
+                  ) : (
+                    <div className="w-20 h-20 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-2xl font-bold border-2 border-white dark:border-[#333537] shadow-md">
+                      {profile.display_name ? profile.display_name.charAt(0).toUpperCase() : "E"}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{profile.display_name || "Étudiant"}</h2>
+                  <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-gray-600 dark:text-gray-300">
+                    {profile.school && <span className="font-medium text-indigo-700 dark:text-indigo-400">{profile.school}</span>}
+                    {profile.level && <span>• {LEVEL_LABELS[profile.level] || profile.level}</span>}
+                    {profile.city && <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> {profile.city}</span>}
+                  </div>
                 </div>
               </div>
+
               <Button onClick={() => setIsEditing(true)} className="bg-white dark:bg-[#282a2c] text-indigo-600 dark:text-indigo-400 hover:bg-gray-50 dark:hover:bg-[#333537] border border-indigo-100 dark:border-[#333537] rounded-xl shadow-sm">
                 <Edit className="w-4 h-4 mr-2" /> Modifier
               </Button>
@@ -134,7 +161,6 @@ export default function Profile() {
               {profile.bio && (
                 <div>
                   <h3 className="text-sm font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">À propos de moi</h3>
-                  {/* Fond #131314 pour créer un effet d'enfoncement très propre */}
                   <p className="text-gray-700 dark:text-gray-300 leading-relaxed bg-gray-50 dark:bg-[#131314] p-4 rounded-xl border border-transparent dark:border-[#333537]">
                     {profile.bio}
                   </p>

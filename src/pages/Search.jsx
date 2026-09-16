@@ -4,7 +4,7 @@ import { collection, query, where, onSnapshot, addDoc, serverTimestamp } from "f
 import { useAuth } from "@/lib/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search as SearchIcon, Filter, Users, Loader2, MapPin, Monitor, BookOpen } from "lucide-react";
+import { Search as SearchIcon, Filter, Users, Loader2, MapPin, Monitor, BookOpen, Lock } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import BuddyCard from "@/components/search/BuddyCard";
 import Autocomplete from "@/components/ui/Autocomplete";
@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 const LEVEL_OPTIONS = [
   { value: "all", label: "Tous les niveaux" },
@@ -34,6 +35,7 @@ const TYPE_OPTIONS = [
 
 export default function Search() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   
   const [search, setSearch] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("");
@@ -72,6 +74,27 @@ export default function Search() {
     };
   }, [user]);
 
+  // Si l'utilisateur n'est pas connecté, on bloque l'accès avec un écran propre
+  if (!user) {
+    return (
+      <div className="max-w-md mx-auto text-center py-24 px-6 bg-white dark:bg-[#1e1f20] rounded-3xl border border-gray-100 dark:border-[#333537] shadow-sm my-12 animate-in fade-in duration-500">
+        <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20">
+          <Lock className="w-8 h-8" />
+        </div>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">Connexion requise</h2>
+        <p className="text-gray-500 dark:text-gray-400 text-sm mb-8 leading-relaxed">
+          Tu dois être connecté à ton compte BuddyEtude pour accéder à la recherche de binômes et contacter des étudiants.
+        </p>
+        <Button 
+          onClick={() => navigate("/")} 
+          className="w-full bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white py-6 rounded-xl font-medium shadow-sm transition-all"
+        >
+          Retourner à l'accueil / Se connecter
+        </Button>
+      </div>
+    );
+  }
+
   // 1. Recherche dynamique des Villes via l'API officielle française
   const searchFrenchCities = async (queryText) => {
     const response = await fetch(
@@ -92,7 +115,6 @@ export default function Search() {
       const data = await response.json();
       const results = data[1] || [];
 
-      // Mots-clés géographiques ou administratifs à écarter pour ne pas avoir de régions/villes
       const forbiddenWords = [
         "nord", "pas-de-calais", "france", "paris", "lyon", "marseille", 
         "region", "département", "académie", "canton", "arrondissement",
@@ -322,7 +344,7 @@ export default function Search() {
               Annuler
             </Button>
             <Button
-              className="bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded-xl shadow-sm flex-1 sm:flex-none py-6 font-medium"
+              className="bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded-sm flex-1 sm:flex-none py-6 font-medium"
               disabled={isSending || !requestMessage.trim()}
               onClick={handleSendRequest}
             >

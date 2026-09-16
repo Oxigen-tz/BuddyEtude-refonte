@@ -1,15 +1,30 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Sparkles, PenTool } from "lucide-react"; 
+import { ArrowRight, Sparkles, PenTool, Users } from "lucide-react"; 
 import { useAuth } from "@/lib/AuthContext"; 
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { useTranslation } from "react-i18next"; // Ajout de i18n
+import { useTranslation } from "react-i18next";
+import { db } from "../firebase/config";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
 
 export default function HeroSection() {
   const { user, loginWithGoogle } = useAuth(); 
-  const { t } = useTranslation(); // Activation des traductions
+  const { t } = useTranslation();
+
+  // État pour stocker le nombre réel d'étudiants inscrits
+  const [studentCount, setStudentCount] = useState(0);
+
+  useEffect(() => {
+    // Écoute en temps réel des profils complets dans Firestore
+    const q = query(collection(db, "users"), where("profile_complete", "==", true));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setStudentCount(snapshot.size);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   return (
     <section className="relative min-h-[90vh] flex items-center overflow-hidden">
@@ -54,7 +69,7 @@ export default function HeroSection() {
             {t('hero.subtitle_part2')}
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             {user ? (
               <Link to={createPageUrl("Dashboard")}>
                 <Button
@@ -76,13 +91,23 @@ export default function HeroSection() {
               </Button>
             )}
           </div>
+
+          {/* Badge social proof avec le nombre réel d'étudiants */}
+          <div className="mt-8 inline-flex items-center gap-3 bg-white/10 backdrop-blur-md px-5 py-2.5 rounded-2xl border border-white/20 shadow-sm">
+            <div className="w-7 h-7 rounded-full bg-indigo-500/30 flex items-center justify-center text-white">
+              <Users className="w-4 h-4 text-indigo-200" />
+            </div>
+            <p className="text-sm font-medium text-indigo-100">
+              Rejoins déjà <strong className="text-white font-bold">{studentCount} étudiants</strong> actifs sur la plateforme !
+            </p>
+          </div>
         </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.3 }}
-          className="mt-20 grid grid-cols-3 gap-8 max-w-lg mx-auto"
+          className="mt-16 grid grid-cols-3 gap-8 max-w-lg mx-auto"
         >
           {[
             { value: "100%", labelKey: "free" },
