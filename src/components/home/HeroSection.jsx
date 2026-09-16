@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useTranslation } from "react-i18next";
-import { db } from "../firebase/config";
+import { db } from "@/firebase/config";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 
 export default function HeroSection() {
