@@ -4,6 +4,7 @@ import { collection, query, where, onSnapshot, addDoc, serverTimestamp, doc, upd
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useAuth } from "@/lib/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -244,7 +245,7 @@ export default function Messages() {
                    </div>
                    <Button 
                     variant="outline" 
-                    onClick={() => navigate(`/whiteboard?sessionId=${[user.email, activeChat.email].sort().join("_")}`)}
+                    onClick={() => navigate(`${createPageUrl("Whiteboard")}?sessionId=${[user.email, activeChat.email].sort().join("_")}`)}
                     className="border-indigo-200 dark:border-[#333537] text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-[#282a2c] dark:bg-[#1e1f20] rounded-xl py-5 px-5"
                    >
                      <PenTool className="w-5 h-5 mr-2" /> Ouvrir le Tableau Blanc
