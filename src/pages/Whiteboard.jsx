@@ -1,5 +1,4 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
-import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
 import { db } from "../firebase/config";
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
@@ -232,7 +231,7 @@ export default function Whiteboard() {
     navigate(createPageUrl("Messages"));
   };
 
-  return createPortal(
+  return (
     <div className="fixed inset-0 bg-slate-50 dark:bg-[#131314] z-[9999] flex flex-col transition-colors duration-300" 
          style={{ backgroundImage: "radial-gradient(currentColor 1px, transparent 1px)", backgroundSize: "24px 24px", color: "var(--tw-prose-body, rgba(148, 163, 184, 0.2))" }}>
       
@@ -378,7 +377,6 @@ export default function Whiteboard() {
         .custom-picker .react-colorful__hue { height: 16px; border-radius: 0 0 12px 12px; margin-top: -1px; }
         .custom-picker .react-colorful__handle { width: 20px; height: 20px; border: 3px solid #ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
       `}</style>
-    </div>,
-    document.body
+    </div>
   );
 }

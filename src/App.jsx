@@ -21,7 +21,7 @@ const LayoutWrapper = ({ children, currentPageName }) => {
   const location = useLocation();
   
   // On définit ici les pages qui NE DOIVENT PAS avoir de menu latéral (ex: l'accueil)
-  const hideSidebarRoutes = ['/', '/login', '/register']; 
+  const hideSidebarRoutes = ['/', '/login', '/register', '/Whiteboard']; 
   const showSidebar = Layout && !hideSidebarRoutes.includes(location.pathname);
 
   // On cache le footer sur le tableau blanc pour avoir 100% de l'écran pour dessiner
