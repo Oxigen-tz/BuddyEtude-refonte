@@ -1,389 +1,154 @@
-import React, { useRef, useState, useEffect, useCallback } from "react";
-import { createPortal } from "react-dom";
-import { useLocation, useNavigate } from "react-router-dom";
-import { db } from "./firebase/config";
-import { doc, onSnapshot, setDoc } from "firebase/firestore";
-import { Button } from "@/components/ui/button";
-import { createPageUrl } from "@/utils";
-import { HexColorPicker } from "react-colorful";
+import React, { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "@/lib/AuthContext";
 import { 
-  ArrowLeft, Eraser, Pen, Trash2, Download, Circle, Palette, X, Plus, Undo2
+  LayoutDashboard, Search, MessageSquare, Calendar, 
+  User, Settings, LogOut, Menu, X 
 } from "lucide-react";
 
-const CANVAS_WIDTH = 1200;
-const CANVAS_HEIGHT = 800;
-const BRUSH_SIZES = [2, 6, 12, 24];
-const MAX_HISTORY = 25;
-
-export default function Whiteboard() {
-  const location = useLocation();
+export default function Layout({ children, currentPageName }) {
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const queryParams = new URLSearchParams(location.search);
-  const sessionId = queryParams.get("sessionId") || "demo-board";
+  const location = useLocation();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const canvasRef = useRef(null);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [lineWidth, setLineWidth] = useState(BRUSH_SIZES[1]);
-  const [tool, setTool] = useState("pen");
-  const [isCustomColorOpen, setIsCustomColorOpen] = useState(false);
-
-  // Pile d'historique pour le undo (tableau de dataURL)
-  const historyRef = useRef([]);
-  const [canUndo, setCanUndo] = useState(false);
-  const isRestoringRef = useRef(false); // évite de re-sauvegarder pendant une restauration
-
-  // 🌙 Détecter en direct si on est en mode clair ou sombre
-  const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.classList.contains("dark"));
-
-  useEffect(() => {
-    const observer = new MutationObserver(() => {
-      setIsDarkMode(document.documentElement.classList.contains("dark"));
-    });
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-    return () => observer.disconnect();
-  }, []);
-
-  // 🎨 PALETTE DYNAMIQUE
-  const PRESET_COLORS = [
-    isDarkMode ? "#ffffff" : "#09090b",
-    "#ef4444", "#3b82f6", "#22c55e", "#a855f7"
+  const navItems = [
+    { name: "Dashboard", label: "Tableau de bord", icon: LayoutDashboard, path: "/Dashboard" },
+    { name: "Search", label: "Rechercher", icon: Search, path: "/Search" },
+    { name: "Messages", label: "Messages", icon: MessageSquare, path: "/Messages" },
+    { name: "Sessions", label: "Sessions", icon: Calendar, path: "/Sessions" },
+    { name: "Profile", label: "Mon profil", icon: User, path: "/Profile" },
+    { name: "Settings", label: "Paramètres", icon: Settings, path: "/Settings" },
   ];
 
-  const [color, setColor] = useState(PRESET_COLORS[0]);
-
-  useEffect(() => {
-    if (color === "#ffffff" && !isDarkMode) setColor("#09090b");
-    else if (color === "#09090b" && isDarkMode) setColor("#ffffff");
-  }, [isDarkMode]);
-
-  const [savedColors, setSavedColors] = useState(() => {
-    const saved = localStorage.getItem("buddyetude_saved_colors");
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  // Synchronisation Firebase (Avec fond TRANSPARENT)
-  useEffect(() => {
-    const docRef = doc(db, "whiteboards", sessionId);
-    const unsub = onSnapshot(docRef, (docSnap) => {
-      if (docSnap.exists() && canvasRef.current) {
-        const data = docSnap.data();
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext("2d");
-        
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        if (data.image) {
-          const img = new Image();
-          img.onload = () => ctx.drawImage(img, 0, 0);
-          img.src = data.image;
-        }
-      }
-    });
-    return () => unsub();
-  }, [sessionId]);
-
-  const getCanvasCoordinates = (e) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
-    const rect = canvas.getBoundingClientRect(); 
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    return { x: x * scaleX, y: y * scaleY };
-  };
-
-  // Sauvegarde l'état actuel du canvas dans l'historique (appelé AVANT de commencer un nouveau trait)
-  const pushHistory = () => {
-    if (isRestoringRef.current) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const snapshot = canvas.toDataURL("image/png");
-    historyRef.current.push(snapshot);
-    if (historyRef.current.length > MAX_HISTORY) {
-      historyRef.current.shift();
-    }
-    setCanUndo(historyRef.current.length > 0);
-  };
-
-  const startDrawing = (e) => {
-    pushHistory();
-    const { x, y } = getCanvasCoordinates(e);
-    const ctx = canvasRef.current.getContext("2d");
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    setIsDrawing(true);
-  };
-
-  const draw = (e) => {
-    if (!isDrawing) return;
-    const { x, y } = getCanvasCoordinates(e);
-    const ctx = canvasRef.current.getContext("2d");
-    ctx.lineTo(x, y);
-    
-    if (tool === "eraser") {
-      ctx.globalCompositeOperation = "destination-out";
-      ctx.lineWidth = lineWidth * 4;
-      ctx.strokeStyle = "rgba(0,0,0,1)";
-    } else {
-      ctx.globalCompositeOperation = "source-over";
-      ctx.strokeStyle = color;
-      ctx.lineWidth = lineWidth;
-    }
-    
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.stroke();
-  };
-
-  const saveToFirestore = async () => {
-    const canvas = canvasRef.current;
-    const imageBase64 = canvas.toDataURL("image/png");
-    await setDoc(doc(db, "whiteboards", sessionId), { image: imageBase64, updatedAt: new Date().toISOString() }, { merge: true });
-  };
-
-  const stopDrawing = async () => {
-    if (!isDrawing) return;
-    setIsDrawing(false);
-    
-    const ctx = canvasRef.current.getContext("2d");
-    ctx.globalCompositeOperation = "source-over";
-
-    await saveToFirestore();
-  };
-
-  // ↩️ UNDO : restaure le dernier état sauvegardé
-  const undoLastStroke = useCallback(async () => {
-    if (historyRef.current.length === 0) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const lastSnapshot = historyRef.current.pop();
-    setCanUndo(historyRef.current.length > 0);
-
-    isRestoringRef.current = true;
-    const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    if (lastSnapshot) {
-      const img = new Image();
-      img.onload = async () => {
-        ctx.drawImage(img, 0, 0);
-        isRestoringRef.current = false;
-        await saveToFirestore();
-      };
-      img.src = lastSnapshot;
-    } else {
-      isRestoringRef.current = false;
-      await saveToFirestore();
-    }
-  }, [sessionId]);
-
-  // Raccourci clavier Ctrl+Z / Cmd+Z
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
-        e.preventDefault();
-        undoLastStroke();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [undoLastStroke]);
-
-  const clearBoard = async () => {
-    if(!window.confirm("Voulez-vous vraiment tout effacer ?")) return;
-    pushHistory(); // permet d'annuler un effacement total
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    await setDoc(doc(db, "whiteboards", sessionId), { image: null }, { merge: true });
-  };
-
-  const downloadBoard = () => {
-    const canvas = canvasRef.current;
-    const tempCanvas = document.createElement("canvas");
-    tempCanvas.width = canvas.width;
-    tempCanvas.height = canvas.height;
-    const ctx = tempCanvas.getContext("2d");
-
-    ctx.fillStyle = isDarkMode ? "#1e1f20" : "#ffffff";
-    ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-    ctx.drawImage(canvas, 0, 0);
-
-    const link = document.createElement("a");
-    link.download = `BuddyEtude_Session_${new Date().toLocaleDateString().replace(/\//g, '-')}.png`;
-    link.href = tempCanvas.toDataURL("image/png");
-    link.click();
-  };
-
-  const handleSaveColor = () => {
-    if (!savedColors.includes(color) && !PRESET_COLORS.includes(color)) {
-      const newColors = [color, ...savedColors].slice(0, 8);
-      setSavedColors(newColors);
-      localStorage.setItem("buddyetude_saved_colors", JSON.stringify(newColors));
-    }
-  };
-
-  // 🔙 RETOUR AU CHAT : navigate(-1) échoue s'il n'y a pas d'historique
-  // (arrivée directe sur le lien, actualisation de page, nouvel onglet...).
-  // On revient en arrière seulement si un historique existe, sinon on va
-  // explicitement vers la page Messages.
-  const handleBack = () => {
-    if (window.history.state && window.history.state.idx > 0) {
-      navigate(-1);
-    } else {
-      navigate(createPageUrl("Messages"));
-    }
-  };
-
-  return createPortal(
-    <div className="fixed inset-0 bg-slate-50 dark:bg-[#131314] z-[9999] flex flex-col transition-colors duration-300" 
-         style={{ backgroundImage: "radial-gradient(currentColor 1px, transparent 1px)", backgroundSize: "24px 24px", color: "var(--tw-prose-body, rgba(148, 163, 184, 0.2))" }}>
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-[#131314] text-gray-900 dark:text-gray-100 flex transition-colors duration-300">
       
-      {/* EN TÊTE */}
-      <div className="bg-white/80 dark:bg-[#1e1f20]/90 backdrop-blur-md border-b border-gray-200 dark:border-[#333537] px-6 py-3 flex items-center justify-between shadow-sm transition-colors duration-300">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={handleBack} className="hover:bg-gray-100 dark:hover:bg-[#282a2c] text-gray-700 dark:text-gray-300 rounded-xl">
-            <ArrowLeft className="w-5 h-5 mr-2" /> Retour au Chat
-          </Button>
-          <div className="h-6 w-px bg-gray-300 dark:bg-[#333537] hidden md:block"></div>
-          <h2 className="font-bold text-gray-800 dark:text-gray-100 hidden md:block">
-            {isDarkMode ? "Tableau Noir Interactif" : "Tableau Blanc Interactif"}
-          </h2>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button 
-            onClick={undoLastStroke} 
-            disabled={!canUndo}
-            variant="outline" 
-            className="border-gray-200 dark:border-[#333537] text-gray-700 dark:text-gray-300 rounded-xl disabled:opacity-40"
-            title="Annuler (Ctrl+Z)"
-          >
-            <Undo2 className="w-4 h-4 mr-2" /> Annuler
-          </Button>
-          <Button onClick={downloadBoard} variant="outline" className="border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 rounded-xl transition-colors">
-            <Download className="w-4 h-4 mr-2" /> Exporter (PNG)
-          </Button>
-        </div>
-      </div>
-
-      {/* ZONE DE DESSIN */}
-      <div className="flex-1 overflow-auto flex justify-center items-center p-4 md:p-8 relative">
+      {/* --- SIDEBAR DESKTOP --- */}
+      <aside className="hidden md:flex flex-col w-64 bg-white dark:bg-[#1e1f20] border-r border-gray-200 dark:border-[#333537] p-6 shrink-0">
         
-        <div className="relative shadow-2xl rounded-xl ring-1 ring-gray-200 dark:ring-[#333537] overflow-hidden bg-white dark:bg-[#1e1f20] transition-colors duration-300">
-          <canvas
-            ref={canvasRef}
-            width={CANVAS_WIDTH}
-            height={CANVAS_HEIGHT}
-            onMouseDown={startDrawing}
-            onMouseMove={draw}
-            onMouseUp={stopDrawing}
-            onMouseOut={stopDrawing}
-            style={{ width: "100%", maxWidth: `${CANVAS_WIDTH}px`, aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`, touchAction: "none" }}
-            className="cursor-crosshair" 
-          />
+        {/* Logo / Marque */}
+        <div className="flex items-center gap-3 mb-8 px-2 cursor-pointer" onClick={() => navigate("/Dashboard")}>
+          <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-md">
+            B
+          </div>
+          <span className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+            BuddyEtude
+          </span>
         </div>
 
-        {isCustomColorOpen && (
-          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-white/95 dark:bg-[#1e1f20]/95 backdrop-blur-xl p-4 rounded-3xl shadow-2xl border border-gray-100 dark:border-[#333537] z-50 flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-5 duration-300 min-w-[250px]">
-            <div className="flex items-center justify-between gap-2 px-1">
-              <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">Couleur personnalisée</span>
-              <button onClick={() => setIsCustomColorOpen(false)} className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
-                <X className="w-4 h-4" />
+        {/* Liens de navigation */}
+        <nav className="space-y-1.5 flex-1">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.path || currentPageName === item.name;
+            return (
+              <button
+                key={item.name}
+                onClick={() => navigate(item.path)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                  isActive 
+                    ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold shadow-sm" 
+                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#282a2c] hover:text-gray-900 dark:hover:text-white"
+                }`}
+              >
+                <Icon className="w-5 h-5" />
+                {item.label}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Section utilisateur & déconnexion en bas */}
+        <div className="pt-6 border-t border-gray-100 dark:border-[#333537]">
+          {user && (
+            <div className="flex items-center gap-3 mb-4 px-2">
+              <div className="w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 font-bold flex items-center justify-center text-sm shrink-0">
+                {user.displayName ? user.displayName.charAt(0).toUpperCase() : "E"}
+              </div>
+              <div className="overflow-hidden">
+                <p className="text-sm font-semibold truncate text-gray-800 dark:text-gray-200">
+                  {user.displayName || user.full_name || "Étudiant"}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
+              </div>
+            </div>
+          )}
+          <button
+            onClick={logout}
+            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+            Déconnexion
+          </button>
+        </div>
+      </aside>
+
+      {/* --- CONTENEUR PRINCIPAL --- */}
+      <div className="flex-1 flex flex-col min-w-0">
+        
+        {/* Topbar Mobile */}
+        <header className="md:hidden flex items-center justify-between bg-white dark:bg-[#1e1f20] border-b border-gray-200 dark:border-[#333537] px-6 py-4 sticky top-0 z-40">
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/Dashboard")}>
+            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-lg">
+              B
+            </div>
+            <span className="font-bold text-lg bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              BuddyEtude
+            </span>
+          </div>
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="p-2 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#282a2c]"
+          >
+            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </header>
+
+        {/* Menu Mobile déroulant */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden bg-white dark:bg-[#1e1f20] border-b border-gray-200 dark:border-[#333537] p-4 space-y-2 sticky top-[73px] z-30 shadow-lg">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = location.pathname === item.path || currentPageName === item.name;
+              return (
+                <button
+                  key={item.name}
+                  onClick={() => {
+                    navigate(item.path);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                    isActive 
+                      ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold" 
+                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#282a2c]"
+                  }`}
+                >
+                  <Icon className="w-5 h-5" />
+                  {item.label}
+                </button>
+              );
+            })}
+            <div className="pt-2 border-t border-gray-100 dark:border-[#333537]">
+              <button
+                onClick={() => {
+                  logout();
+                  setIsMobileMenuOpen(false);
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10"
+              >
+                <LogOut className="w-5 h-5" />
+                Déconnexion
               </button>
             </div>
-            
-            <div className="custom-picker">
-              <HexColorPicker color={color} onChange={(newColor) => { setColor(newColor); setTool("pen"); }} />
-            </div>
-            
-            <div className="flex items-center gap-2 mt-1">
-              <div className="flex-1 flex items-center gap-2 bg-gray-50 dark:bg-[#131314] border border-gray-200 dark:border-[#333537] p-1.5 rounded-xl transition-colors duration-300">
-                <div className="w-6 h-6 rounded-md shadow-inner border border-gray-200 dark:border-[#333537]" style={{ backgroundColor: color }} />
-                <input 
-                  type="text" 
-                  value={color} 
-                  onChange={(e) => setColor(e.target.value)} 
-                  className="w-full bg-transparent text-sm font-mono uppercase text-gray-800 dark:text-gray-200 focus:outline-none"
-                />
-              </div>
-              <Button onClick={handleSaveColor} variant="outline" className="rounded-xl px-3 border-indigo-200 dark:border-indigo-500/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors">
-                <Plus className="w-4 h-4" />
-              </Button>
-            </div>
-
-            {savedColors.length > 0 && (
-              <div className="pt-3 mt-1 border-t border-gray-100 dark:border-[#333537]">
-                <span className="text-xs font-medium text-gray-400 dark:text-gray-500 mb-2 block px-1">Vos favoris</span>
-                <div className="flex flex-wrap gap-2 px-1">
-                  {savedColors.map(c => (
-                    <button
-                      key={c}
-                      onClick={() => { setColor(c); setTool("pen"); }}
-                      className={`w-6 h-6 rounded-md shadow-sm border transition-all hover:scale-110 ${color === c ? 'border-gray-900 dark:border-white ring-2 ring-gray-900/20 dark:ring-white/20' : 'border-gray-200 dark:border-[#333537]'}`}
-                      style={{ backgroundColor: c }}
-                      title={c}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         )}
+
+        {/* --- ZONE D'AFFICHAGE DES PAGES --- */}
+        <main className="flex-1 p-6 md:p-10 overflow-y-auto">
+          {children}
+        </main>
       </div>
-
-      {/* BARRE D'OUTILS FLOTTANTE */}
-      <div className="absolute bottom-6 md:bottom-8 left-1/2 -translate-x-1/2 bg-white/95 dark:bg-[#1e1f20]/95 backdrop-blur-xl shadow-2xl border border-gray-200 dark:border-[#333537] p-2 md:p-3 rounded-2xl flex items-center gap-3 md:gap-5 max-w-[95vw] transition-colors duration-300">
-        
-        <div className="flex items-center gap-1 bg-gray-100/50 dark:bg-[#131314]/50 p-1 rounded-xl shrink-0 transition-colors duration-300">
-          <button onClick={() => { setTool("pen"); setIsCustomColorOpen(false); }} className={`p-2.5 md:p-3 rounded-lg transition-all ${tool === "pen" && !isCustomColorOpen ? "bg-indigo-600 dark:bg-indigo-500 text-white shadow-md" : "text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-[#282a2c]"}`}>
-            <Pen className="w-5 h-5" />
-          </button>
-          <button onClick={() => { setTool("eraser"); setIsCustomColorOpen(false); }} className={`p-2.5 md:p-3 rounded-lg transition-all ${tool === "eraser" ? "bg-white dark:bg-[#282a2c] text-gray-900 dark:text-white shadow-md ring-1 ring-gray-200 dark:ring-[#333537]" : "text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-[#282a2c]"}`}>
-            <Eraser className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="w-px h-8 bg-gray-200 dark:bg-[#333537] shrink-0 transition-colors duration-300"></div>
-
-        <div className={`flex items-center gap-1.5 shrink-0 transition-opacity ${tool === "eraser" ? "opacity-30 pointer-events-none" : "opacity-100"}`}>
-          {PRESET_COLORS.map((c) => (
-            <button key={c} onClick={() => { setColor(c); setTool("pen"); setIsCustomColorOpen(false); }} className={`w-7 h-7 md:w-8 md:h-8 rounded-full border-2 transition-all ${color === c && !isCustomColorOpen ? "border-gray-900 dark:border-white scale-110 shadow-lg" : "border-transparent hover:scale-110 shadow-sm"}`} style={{ backgroundColor: c }} />
-          ))}
-          
-          <button 
-            onClick={() => setIsCustomColorOpen(!isCustomColorOpen)} 
-            className={`w-7 h-7 md:w-8 md:h-8 rounded-full border-2 transition-all flex items-center justify-center bg-gradient-to-tr from-pink-400 via-purple-400 to-indigo-400 ${isCustomColorOpen ? "border-gray-900 dark:border-white scale-110 shadow-lg" : "border-transparent hover:scale-110 shadow-sm"}`}
-          >
-            <Palette className={`w-4 h-4 ${isCustomColorOpen ? "text-white" : "text-white/80"}`} />
-          </button>
-        </div>
-
-        <div className="w-px h-8 bg-gray-200 dark:bg-[#333537] shrink-0 hidden md:block transition-colors duration-300"></div>
-
-        <div className="flex items-center gap-1 shrink-0">
-          {BRUSH_SIZES.map((size, index) => (
-            <button key={size} onClick={() => setLineWidth(size)} className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-xl transition-all ${lineWidth === size ? "bg-gray-100 dark:bg-[#282a2c] shadow-inner" : "hover:bg-gray-50 dark:hover:bg-[#131314]"}`}>
-              <Circle className="fill-gray-700 dark:fill-gray-300 text-gray-700 dark:text-gray-300" style={{ width: 4 + index * 4, height: 4 + index * 4 }} />
-            </button>
-          ))}
-        </div>
-
-        <div className="w-px h-8 bg-gray-200 dark:bg-[#333537] shrink-0 transition-colors duration-300"></div>
-
-        <button onClick={clearBoard} className="p-2.5 md:p-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-colors shrink-0" title="Effacer le tableau">
-          <Trash2 className="w-5 h-5" />
-        </button>
-      </div>
-
-      <style>{`
-        .custom-picker .react-colorful { width: 100%; height: 160px; border-radius: 12px; }
-        .custom-picker .react-colorful__saturation { border-radius: 12px 12px 0 0; border-bottom: none; }
-        .custom-picker .react-colorful__hue { height: 16px; border-radius: 0 0 12px 12px; margin-top: -1px; }
-        .custom-picker .react-colorful__handle { width: 20px; height: 20px; border: 3px solid #ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
-      `}</style>
-    </div>,
-    document.body
+    </div>
   );
 }
