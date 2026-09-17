@@ -4,7 +4,6 @@ import { ArrowRight, Sparkles, PenTool, Users } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext"; 
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
-import { createPageUrl } from "@/utils";
 import { useTranslation } from "react-i18next";
 import { db } from "@/firebase/config";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
@@ -82,7 +81,7 @@ export default function HeroSection() {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             {user ? (
-              <Link to={createPageUrl("Dashboard")}>
+              <Link to="/Dashboard">
                 <Button
                   size="lg"
                   className="bg-white text-indigo-700 hover:bg-indigo-50 font-semibold text-base px-8 py-6 rounded-xl shadow-xl shadow-indigo-900/20 group"
