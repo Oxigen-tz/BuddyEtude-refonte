@@ -10,16 +10,13 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   
-  // Variables requises par l'architecture de navigation
   const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(false);
   const [authError, setAuthError] = useState(null);
   const [appPublicSettings, setAppPublicSettings] = useState(null);
 
   useEffect(() => {
-    // On écoute Firebase pour savoir si quelqu'un est connecté
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
-        // On formate l'utilisateur pour que l'interface le comprenne bien
         setUser({
           uid: firebaseUser.uid,
           email: firebaseUser.email,
@@ -42,13 +39,9 @@ export const AuthProvider = ({ children }) => {
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
-      
-      // On sauvegarde le profil en BDD
       await syncUserProfile(result.user); 
-      
-      // 🚀 Redirection automatique vers le Dashboard après connexion
-      window.location.href = "/Dashboard"; 
-      
+      // On retire "window.location.href" car l'UI va se mettre à jour seule 
+      // grâce au changement d'état React (user = true).
       return result;
     } catch (error) {
       console.error("Erreur connexion Google:", error);
@@ -59,17 +52,14 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     await signOut(auth);
-    window.location.href = "/"; // Retour à l'accueil
+    window.location.href = "/"; // Pour nettoyer complètement l'état de l'app au logout
   };
 
   const navigateToLogin = () => {
-    // Si l'app exige une authentification, on lance la popup Google
     loginWithGoogle();
   };
 
-  const checkAppState = async () => {
-    // Fonction vide requise par la structure
-  };
+  const checkAppState = async () => {};
 
   return (
     <AuthContext.Provider value={{ 

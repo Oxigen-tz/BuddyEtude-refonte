@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { db } from "../firebase/config";
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
-import { createPageUrl } from "@/utils";
 import { HexColorPicker } from "react-colorful";
 import { 
   ArrowLeft, Eraser, Pen, Trash2, Download, Circle, Palette, X, Plus, Undo2
@@ -224,11 +223,9 @@ export default function Whiteboard() {
     }
   };
 
-  // 🔙 RETOUR AU CHAT : navigation directe et explicite vers Messages,
-  // plutôt que de dépendre de l'historique du navigateur (peu fiable en SPA
-  // et pouvait provoquer des effets de bord au lieu de naviguer réellement).
+  // 🔙 RETOUR AU CHAT : navigation directe et explicite vers Messages
   const handleBack = () => {
-    navigate(createPageUrl("Messages"));
+    navigate("/Messages"); // Modifie "/Messages" si ta route s'appelle différemment (ex: "/Dashboard")
   };
 
   return (
