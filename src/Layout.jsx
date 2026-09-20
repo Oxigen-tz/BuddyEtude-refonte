@@ -4,10 +4,11 @@ import { db } from "./firebase/config";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { createPageUrl } from "@/utils";
 import { useAuth } from "@/lib/AuthContext";
+import { useTranslation } from "react-i18next";
 import { Toaster, toast } from "sonner";
 import {
   Home, Search, LayoutDashboard, MessageSquare, Calendar,
-  User, LogOut, Menu, X, GraduationCap, Settings as SettingsIcon, Bell, CheckCircle2
+  User, LogOut, Menu, X, GraduationCap, Settings as SettingsIcon, Bell, CheckCircle2, Globe
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -23,11 +24,19 @@ const navItems = [
 export default function Layout({ children, currentPageName }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { i18n } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
-  // 🔔 NOUVEAU : États pour gérer les notifications
+  // 🔔 États pour gérer les notifications
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+
+  // 🌐 Bascule de langue
+  const toggleLanguage = () => {
+    const newLang = i18n.language.startsWith('fr') ? 'en' : 'fr';
+    i18n.changeLanguage(newLang);
+  };
+  const isFr = i18n.language.startsWith('fr');
 
   useEffect(() => {
     if (!user?.email) return;
@@ -38,7 +47,6 @@ export default function Layout({ children, currentPageName }) {
         if (change.type === "modified") {
           const data = change.doc.data();
           
-          // On ajoute la notification à notre liste locale
           newNotifs.push({
             id: change.doc.id,
             title: "Demande acceptée 🎉",
@@ -46,7 +54,6 @@ export default function Layout({ children, currentPageName }) {
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           });
 
-          // On garde le toast pour l'alerte immédiate
           toast.success(`🎉 Bonne nouvelle !`, {
             description: `${data.to_name} a accepté votre demande !`,
             action: { label: "Voir", onClick: () => navigate(createPageUrl("Messages")) }
@@ -63,13 +70,11 @@ export default function Layout({ children, currentPageName }) {
 
   const initials = (user?.displayName || user?.full_name || "U").split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
 
-  // Fonction pour marquer les notifications comme lues
   const clearNotifications = () => {
     setNotifications([]);
     setShowNotifications(false);
   };
 
-  // 🔔 COMPOSANT PANNEAU DE NOTIFICATIONS
   const NotificationsPanel = () => (
     <div className="absolute bottom-16 left-4 md:bottom-24 md:left-64 w-80 bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] shadow-xl rounded-2xl z-50 overflow-hidden transition-all animate-in fade-in slide-in-from-bottom-4">
       <div className="p-4 border-b border-gray-100 dark:border-[#333537] flex justify-between items-center bg-gray-50 dark:bg-[#131314]">
@@ -137,8 +142,17 @@ export default function Layout({ children, currentPageName }) {
           })}
         </nav>
 
-        {/* --- BLOC DU BAS (Notifications + Paramètres + Profil) --- */}
+        {/* --- BLOC DU BAS (Langue + Notifications + Paramètres + Profil) --- */}
         <div className="p-4 border-t border-gray-100 dark:border-[#333537] flex flex-col gap-2 relative">
+
+          {/* 🌐 BOUTON LANGUE DESKTOP */}
+          <button
+            onClick={toggleLanguage}
+            className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all w-full text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-[#282a2c]"
+          >
+            <Globe className="w-5 h-5" />
+            {isFr ? "English" : "Français"}
+          </button>
           
           {/* 🔔 BOUTON NOTIFICATIONS DESKTOP */}
           <button 
@@ -236,6 +250,16 @@ export default function Layout({ children, currentPageName }) {
                 {item.name}
               </Link>
             ))}
+
+            {/* 🌐 BOUTON LANGUE MOBILE */}
+            <button
+              onClick={toggleLanguage}
+              className="flex items-center gap-3 px-4 py-4 rounded-xl font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#282a2c]"
+            >
+              <Globe className="w-5 h-5" />
+              {isFr ? "English" : "Français"}
+            </button>
+
             <Link to={createPageUrl("Settings")} onClick={() => setMobileMenuOpen(false)} className={`flex items-center gap-3 px-4 py-4 rounded-xl font-medium ${currentPageName === "Settings" ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400" : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#282a2c]"}`}>
               <SettingsIcon className="w-5 h-5" />
               Paramètres

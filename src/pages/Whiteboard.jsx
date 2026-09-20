@@ -11,7 +11,7 @@ import {
 const CANVAS_WIDTH = 1200;
 const CANVAS_HEIGHT = 800;
 const BRUSH_SIZES = [2, 6, 12, 24];
-const FONT_SIZES = { 2: "16px", 6: "24px", 12: "36px", 24: "64px" }; // Tailles de texte dynamiques
+const FONT_SIZES = { 2: "16px", 6: "24px", 12: "36px", 24: "64px" };
 const MAX_HISTORY = 25;
 
 export default function Whiteboard() {
@@ -22,20 +22,18 @@ export default function Whiteboard() {
 
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
+  const isDrawingRef = useRef(false); // 🛠️ NOUVEAU : ref miroir pour éviter de resubscribe le listener Firestore
   const [lineWidth, setLineWidth] = useState(BRUSH_SIZES[1]);
-  const [tool, setTool] = useState("pen"); // 'pen', 'eraser', 'text'
+  const [tool, setTool] = useState("pen");
   const [isCustomColorOpen, setIsCustomColorOpen] = useState(false);
-  
-  // 📝 État pour l'outil Texte
+
   const [textInput, setTextInput] = useState({ visible: false, x: 0, y: 0, text: "" });
   const textInputRef = useRef(null);
 
-  // Pile d'historique pour le undo
   const historyRef = useRef([]);
   const [canUndo, setCanUndo] = useState(false);
   const isRestoringRef = useRef(false);
 
-  // 🌙 Détecter en direct si on est en mode clair ou sombre
   const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.classList.contains("dark"));
 
   useEffect(() => {
@@ -46,7 +44,6 @@ export default function Whiteboard() {
     return () => observer.disconnect();
   }, []);
 
-  // 🎨 PALETTE DYNAMIQUE
   const PRESET_COLORS = [
     isDarkMode ? "#ffffff" : "#09090b",
     "#ef4444", "#3b82f6", "#22c55e", "#a855f7"
@@ -64,11 +61,18 @@ export default function Whiteboard() {
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Synchronisation Firebase
+  // 🛠️ NOUVEAU : garder la ref synchronisée avec le state, sans provoquer de resubscribe
+  useEffect(() => {
+    isDrawingRef.current = isDrawing;
+  }, [isDrawing]);
+
+  // 🛠️ CORRIGÉ : le listener ne dépend plus que de sessionId.
+  // On ne se réabonne plus à chaque coup de crayon, donc plus de flash
+  // où Firestore renvoie une version en cache et efface le trait qu'on vient de faire.
   useEffect(() => {
     const docRef = doc(db, "whiteboards", sessionId);
     const unsub = onSnapshot(docRef, (docSnap) => {
-      if (docSnap.exists() && canvasRef.current && !isDrawing && !isRestoringRef.current) {
+      if (docSnap.exists() && canvasRef.current && !isDrawingRef.current && !isRestoringRef.current) {
         const data = docSnap.data();
         const canvas = canvasRef.current;
         const ctx = canvas.getContext("2d");
@@ -83,14 +87,22 @@ export default function Whiteboard() {
       }
     });
     return () => unsub();
-  }, [sessionId, isDrawing]);
+  }, [sessionId]);
+
+  // 🛠️ NOUVEAU : extrait le point (x,y) qu'il vienne d'un événement souris OU tactile
+  const getEventPoint = (e) => {
+    if (e.touches && e.touches.length > 0) return e.touches[0];
+    if (e.changedTouches && e.changedTouches.length > 0) return e.changedTouches[0];
+    return e;
+  };
 
   const getCanvasCoordinates = (e) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
+    const point = getEventPoint(e);
     const rect = canvas.getBoundingClientRect(); 
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const x = point.clientX - rect.left;
+    const y = point.clientY - rect.top;
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
     return { x: x * scaleX, y: y * scaleY };
@@ -108,7 +120,6 @@ export default function Whiteboard() {
     setCanUndo(historyRef.current.length > 0);
   };
 
-  // 📝 Valider le texte et le dessiner
   const finalizeText = async () => {
     if (!textInput.visible) return;
     if (textInput.text.trim()) {
@@ -266,7 +277,6 @@ export default function Whiteboard() {
       {/* EN TÊTE */}
       <div className="bg-white/80 dark:bg-[#1e1f20]/90 backdrop-blur-md border-b border-gray-200 dark:border-[#333537] px-6 py-3 flex items-center justify-between shadow-sm transition-colors duration-300">
         <div className="flex items-center gap-4">
-          {/* RETOUR 3: Bouton de fermeture plus clair */}
           <Button variant="ghost" onClick={handleBack} className="hover:bg-gray-100 dark:hover:bg-[#282a2c] text-gray-700 dark:text-gray-300 rounded-xl">
             <X className="w-5 h-5 mr-2" /> Fermer le tableau
           </Button>
@@ -276,7 +286,6 @@ export default function Whiteboard() {
           </h2>
         </div>
         <div className="flex items-center gap-2">
-          {/* RETOUR 2: Bouton 'Défaire' plus explicite */}
           <Button 
             onClick={undoLastStroke} 
             disabled={!canUndo}
@@ -304,11 +313,14 @@ export default function Whiteboard() {
             onMouseMove={draw}
             onMouseUp={stopDrawing}
             onMouseOut={stopDrawing}
+            onTouchStart={(e) => { e.preventDefault(); startDrawing(e); }}
+            onTouchMove={(e) => { e.preventDefault(); draw(e); }}
+            onTouchEnd={(e) => { e.preventDefault(); stopDrawing(); }}
+            onTouchCancel={(e) => { e.preventDefault(); stopDrawing(); }}
             style={{ width: "100%", maxWidth: `${CANVAS_WIDTH}px`, aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`, touchAction: "none" }}
             className={tool === "text" ? "cursor-text" : "cursor-crosshair"} 
           />
 
-          {/* INPUT TEXTE FLOTTANT */}
           {textInput.visible && (
             <input
               ref={textInputRef}
@@ -323,10 +335,10 @@ export default function Whiteboard() {
                 left: `${(textInput.x / CANVAS_WIDTH) * 100}%`,
                 top: `${(textInput.y / CANVAS_HEIGHT) * 100}%`,
                 color: color,
-                fontSize: "1.2rem", // Taille standard pour l'interface de saisie
+                fontSize: "1.2rem",
                 fontWeight: "600",
                 background: "transparent",
-                border: "1px dashed #6366f1", // Bordure indigo visible
+                border: "1px dashed #6366f1",
                 borderRadius: "4px",
                 outline: "none",
                 minWidth: "150px",
@@ -375,7 +387,6 @@ export default function Whiteboard() {
           <button onClick={() => { setTool("pen"); setIsCustomColorOpen(false); }} className={`p-2.5 md:p-3 rounded-lg transition-all ${tool === "pen" && !isCustomColorOpen ? "bg-indigo-600 dark:bg-indigo-500 text-white shadow-md" : "text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-[#282a2c]"}`} title="Stylo">
             <Pen className="w-5 h-5" />
           </button>
-          {/* RETOUR 1 : AJOUT DE L'OUTIL TEXTE */}
           <button onClick={() => { setTool("text"); setIsCustomColorOpen(false); }} className={`p-2.5 md:p-3 rounded-lg transition-all ${tool === "text" && !isCustomColorOpen ? "bg-indigo-600 dark:bg-indigo-500 text-white shadow-md" : "text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-[#282a2c]"}`} title="Texte">
             <Type className="w-5 h-5" />
           </button>
