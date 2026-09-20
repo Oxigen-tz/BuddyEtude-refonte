@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Search, UserPlus, Calendar, Sparkles, Check, X, ArrowRight } from "lucide-react";
@@ -10,6 +11,7 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [isProfileComplete, setIsProfileComplete] = useState(false);
   const [hasBuddy, setHasBuddy] = useState(false);
@@ -58,10 +60,10 @@ export default function Dashboard() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
         <div>
           <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-            Bonjour, {firstName} <span className="animate-wave origin-bottom-right">👋</span>
+            {t("dashboard.greeting", { name: firstName })} <span className="animate-wave origin-bottom-right">👋</span>
           </h1>
           <p className="text-muted-foreground mt-1 font-sans">
-            Prêt à booster vos révisions aujourd'hui ?
+            {t("dashboard.subtitle")}
           </p>
         </div>
         
@@ -70,7 +72,7 @@ export default function Dashboard() {
           className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
         >
           <Search className="w-4 h-4 mr-2" />
-          Trouver un binôme
+          {t("dashboard.findBuddy")}
         </Button>
       </div>
 
@@ -81,7 +83,7 @@ export default function Dashboard() {
             <div className="flex justify-between items-start mb-4">
               <h2 className="text-xl font-bold flex items-center gap-2 text-foreground">
                 <Sparkles className="w-5 h-5 text-primary" /> 
-                {isProfileComplete && hasBuddy && hasLaunchedSession ? "Félicitations, vous êtes prêt !" : "Bienvenue sur votre espace !"}
+                {isProfileComplete && hasBuddy && hasLaunchedSession ? t("dashboard.tutorial.title_ready") : t("dashboard.tutorial.title_welcome")}
               </h2>
               <button onClick={hideTutorialBanner} className="p-1.5 text-muted-foreground hover:bg-muted rounded-md transition-colors">
                 <X className="w-4 h-4" />
@@ -94,8 +96,8 @@ export default function Dashboard() {
                 <div className={`w-6 h-6 rounded-md flex items-center justify-center mb-3 text-xs font-bold ${isProfileComplete ? "bg-emerald-500 text-white" : "bg-primary/10 text-primary"}`}>
                   {isProfileComplete ? <Check className="w-4 h-4" /> : "1"}
                 </div>
-                <h3 className="font-semibold text-sm mb-1 text-foreground">Compléter mon profil</h3>
-                <p className="text-xs text-muted-foreground">{isProfileComplete ? "Profil validé." : "Ajoutez vos matières."}</p>
+                <h3 className="font-semibold text-sm mb-1 text-foreground">{t("dashboard.tutorial.step1")}</h3>
+                <p className="text-xs text-muted-foreground">{isProfileComplete ? t("dashboard.tutorial.step1_done") : t("dashboard.tutorial.step1_todo")}</p>
               </div>
 
               {/* Étape 2 */}
@@ -103,8 +105,8 @@ export default function Dashboard() {
                 <div className={`w-6 h-6 rounded-md flex items-center justify-center mb-3 text-xs font-bold ${hasBuddy ? "bg-emerald-500 text-white" : "bg-primary/10 text-primary"}`}>
                   {hasBuddy ? <Check className="w-4 h-4" /> : "2"}
                 </div>
-                <h3 className="font-semibold text-sm mb-1 text-foreground">Trouver un binôme</h3>
-                <p className="text-xs text-muted-foreground">{hasBuddy ? "Partenaires trouvés." : "Cherchez des étudiants."}</p>
+                <h3 className="font-semibold text-sm mb-1 text-foreground">{t("dashboard.tutorial.step2")}</h3>
+                <p className="text-xs text-muted-foreground">{hasBuddy ? t("dashboard.tutorial.step2_done") : t("dashboard.tutorial.step2_todo")}</p>
               </div>
 
               {/* Étape 3 */}
@@ -118,8 +120,14 @@ export default function Dashboard() {
                 <div className={`w-6 h-6 rounded-md flex items-center justify-center mb-3 text-xs font-bold ${hasLaunchedSession ? "bg-emerald-500 text-white" : isProfileComplete && hasBuddy ? "bg-primary text-white" : "bg-muted-foreground/20 text-muted-foreground"}`}>
                   {hasLaunchedSession ? <Check className="w-4 h-4" /> : "3"}
                 </div>
-                <h3 className="font-semibold text-sm mb-1 text-foreground">Lancer une session</h3>
-                <p className="text-xs text-muted-foreground">{hasLaunchedSession ? "Session planifiée." : "Organisez un tableau blanc."}</p>
+                <h3 className="font-semibold text-sm mb-1 text-foreground">{t("dashboard.tutorial.step3")}</h3>
+                <p className="text-xs text-muted-foreground">
+                  {hasLaunchedSession
+                    ? t("dashboard.tutorial.step3_done")
+                    : isProfileComplete && hasBuddy
+                      ? t("dashboard.tutorial.step3_ready")
+                      : t("dashboard.tutorial.step3_todo")}
+                </p>
               </div>
             </div>
           </div>
@@ -135,15 +143,15 @@ export default function Dashboard() {
               <UserPlus className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h3 className="font-semibold text-foreground text-lg">Développer votre réseau</h3>
+              <h3 className="font-semibold text-foreground text-lg">{t("dashboard.contacts.title")}</h3>
               <p className="text-muted-foreground text-sm mt-1 leading-relaxed">
-                Découvrez les étudiants qui partagent vos matières et proposez-leur de travailler sur un tableau blanc collaboratif.
+                {t("dashboard.contacts.desc")}
               </p>
             </div>
           </div>
           <div className="mt-5 flex justify-end">
             <Button variant="ghost" onClick={() => navigate(createPageUrl("Search"))} className="text-primary hover:text-primary hover:bg-primary/10">
-              Explorer les profils <ArrowRight className="w-4 h-4 ml-2" />
+              {t("dashboard.contacts.button")} <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </div>
         </div>
@@ -154,15 +162,15 @@ export default function Dashboard() {
               <Calendar className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             </div>
             <div>
-              <h3 className="font-semibold text-foreground text-lg">Prochaines sessions</h3>
+              <h3 className="font-semibold text-foreground text-lg">{t("dashboard.sessions.title")}</h3>
               <p className="text-muted-foreground text-sm mt-1 leading-relaxed">
-                Votre agenda est actuellement vide. Planifiez une session de révision avec vos binômes pour structurer votre travail.
+                {t("dashboard.sessions.desc")}
               </p>
             </div>
           </div>
           <div className="mt-5 flex justify-end">
             <Button variant="ghost" onClick={() => navigate(createPageUrl("Sessions"))} className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400">
-              Planifier <ArrowRight className="w-4 h-4 ml-2" />
+              {t("dashboard.sessions.button")} <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </div>
         </div>

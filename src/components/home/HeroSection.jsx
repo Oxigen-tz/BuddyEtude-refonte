@@ -4,12 +4,10 @@ import { ArrowRight, PenTool, Users, Sparkles } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext"; 
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
+import { useTranslation, Trans } from "react-i18next";
 import { db } from "@/firebase/config";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 
-// Seuil en dessous duquel on ne montre pas de chiffre exact (peu convaincant),
-// on valorise plutôt l'aspect "communauté naissante" à la place.
 const SOCIAL_PROOF_THRESHOLD = 20;
 
 export default function HeroSection() {
@@ -26,7 +24,7 @@ export default function HeroSection() {
     }
   };
 
-  const [studentCount, setStudentCount] = useState(null); // null = chargement
+  const [studentCount, setStudentCount] = useState(null);
 
   useEffect(() => {
     const q = query(collection(db, "users"), where("profile_complete", "==", true));
@@ -42,7 +40,6 @@ export default function HeroSection() {
 
   return (
     <section className="relative min-h-[90vh] flex items-center overflow-hidden">
-      {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800" />
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-20 left-20 w-72 h-72 bg-white rounded-full blur-3xl" />
@@ -50,7 +47,6 @@ export default function HeroSection() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-300 rounded-full blur-3xl" />
       </div>
 
-      {/* Grid pattern */}
       <div className="absolute inset-0 opacity-5" style={{
         backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
         backgroundSize: '40px 40px'
@@ -106,15 +102,18 @@ export default function HeroSection() {
             )}
           </div>
 
-          {/* Preuve sociale : chiffre réel seulement s'il est assez élevé pour convaincre,
-              sinon on assume la nouveauté au lieu d'afficher un petit nombre. */}
+          {/* 🛠️ CORRIGÉ : les deux variantes de preuve sociale sont maintenant traduites via Trans (balise <bold>) */}
           {showRealCount && (
             <div className="mt-8 inline-flex items-center gap-3 bg-white/10 backdrop-blur-md px-5 py-2.5 rounded-2xl border border-white/20 shadow-sm">
               <div className="w-7 h-7 rounded-full bg-indigo-500/30 flex items-center justify-center text-white">
                 <Users className="w-4 h-4 text-indigo-200" />
               </div>
               <p className="text-sm font-medium text-indigo-100">
-                Rejoins déjà <strong className="text-white font-bold">{studentCount} étudiants</strong> actifs sur la plateforme !
+                <Trans
+                  i18nKey="hero.social.active"
+                  values={{ count: studentCount }}
+                  components={{ bold: <strong className="text-white font-bold" /> }}
+                />
               </p>
             </div>
           )}
@@ -125,7 +124,10 @@ export default function HeroSection() {
                 <Sparkles className="w-4 h-4 text-indigo-200" />
               </div>
               <p className="text-sm font-medium text-indigo-100">
-                Plateforme en <strong className="text-white font-bold">lancement</strong> — rejoins les premiers étudiants !
+                <Trans
+                  i18nKey="hero.social.early"
+                  components={{ bold: <strong className="text-white font-bold" /> }}
+                />
               </p>
             </div>
           )}
@@ -137,8 +139,6 @@ export default function HeroSection() {
           transition={{ duration: 0.8, delay: 0.3 }}
           className="mt-16 grid grid-cols-2 gap-8 max-w-sm mx-auto"
         >
-          {/* On retire "0ms" (faux, impossible à 0) et "∞" (invérifiable) :
-              seules les deux stats vraies et vérifiables par un visiteur restent. */}
           {[
             { value: "100%", labelKey: "free" },
             { value: t('hero.stats.realtime_value'), labelKey: "realtime" },

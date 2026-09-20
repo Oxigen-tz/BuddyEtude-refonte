@@ -3,10 +3,11 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext"; 
 import { motion } from "framer-motion";
-import { useTranslation } from "react-i18next"; // Ajout de i18n
+import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 export default function CTASection() {
-  const { loginWithGoogle } = useAuth(); 
+  const { user, loginWithGoogle } = useAuth(); // 🛠️ CORRIGÉ : on récupère aussi `user`
   const { t } = useTranslation();
 
   return (
@@ -29,14 +30,28 @@ export default function CTASection() {
             <p className="text-lg text-indigo-100 mb-8 max-w-xl mx-auto">
               {t('cta.subtitle')}
             </p>
-            <Button
-              size="lg"
-              onClick={loginWithGoogle} 
-              className="bg-white text-indigo-700 hover:bg-indigo-50 font-semibold text-base px-8 py-6 rounded-xl group"
-            >
-              {t('cta.button')}
-              <ArrowRight className="w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" />
-            </Button>
+
+            {/* 🛠️ CORRIGÉ : bouton conditionnel selon l'état de connexion */}
+            {user ? (
+              <Link to="/Dashboard">
+                <Button
+                  size="lg"
+                  className="bg-white text-indigo-700 hover:bg-indigo-50 font-semibold text-base px-8 py-6 rounded-xl group"
+                >
+                  {t('cta.buttonLoggedIn')}
+                  <ArrowRight className="w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" />
+                </Button>
+              </Link>
+            ) : (
+              <Button
+                size="lg"
+                onClick={loginWithGoogle} 
+                className="bg-white text-indigo-700 hover:bg-indigo-50 font-semibold text-base px-8 py-6 rounded-xl group"
+              >
+                {t('cta.button')}
+                <ArrowRight className="w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" />
+              </Button>
+            )}
           </div>
         </div>
       </motion.div>
