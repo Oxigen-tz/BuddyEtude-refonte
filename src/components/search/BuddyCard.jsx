@@ -51,10 +51,12 @@ export default function BuddyCard({ profile, onRequest, alreadyRequested, isOwnP
   };
 
   return (
-    <div className="border border-border bg-card shadow-sm hover:border-primary/40 transition-all duration-200 rounded-lg overflow-hidden flex flex-col justify-between">
-      <div className="p-5">
+    <div className="border border-border bg-card shadow-sm hover:border-primary/40 hover:shadow-md transition-all duration-200 rounded-lg overflow-hidden flex flex-col justify-between min-h-[280px]">
+      <div className="p-5 flex-1 flex flex-col">
+
+        {/* --- EN-TÊTE : Avatar / Nom / Méta / Signalement --- */}
         <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3">
+          <div className="flex items-start gap-3 min-w-0">
             <Avatar className="h-11 w-11 rounded-md shrink-0">
               <AvatarFallback className="bg-primary/10 text-primary rounded-md text-sm font-bold font-sans">
                 {initials}
@@ -62,17 +64,27 @@ export default function BuddyCard({ profile, onRequest, alreadyRequested, isOwnP
             </Avatar>
             <div className="min-w-0">
               <h3 className="font-bold text-foreground text-base truncate font-serif">{name}</h3>
-              <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-muted-foreground font-sans">
-                {profile.level && <span className="flex items-center gap-1"><GraduationCap className="w-3.5 h-3.5" />{LEVEL_LABELS[profile.level]}</span>}
-                {profile.city && <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{profile.city}</span>}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-xs text-foreground/60 font-sans font-medium">
+                {profile.level && (
+                  <span className="flex items-center gap-1">
+                    <GraduationCap className="w-3.5 h-3.5 shrink-0" />
+                    {LEVEL_LABELS[profile.level]}
+                  </span>
+                )}
+                {profile.city && (
+                  <span className="flex items-center gap-1">
+                    <MapPin className="w-3.5 h-3.5 shrink-0" />
+                    {profile.city}
+                  </span>
+                )}
               </div>
             </div>
           </div>
 
           {!isOwnProfile && (
-            <button 
+            <button
               onClick={() => setReportDialogOpen(true)}
-              className="text-muted-foreground hover:text-destructive transition-colors p-1"
+              className="text-muted-foreground/40 hover:text-destructive transition-colors p-1 shrink-0"
               title="Signaler"
             >
               <AlertTriangle className="w-4 h-4" />
@@ -80,30 +92,47 @@ export default function BuddyCard({ profile, onRequest, alreadyRequested, isOwnP
           )}
         </div>
 
-        {profile.bio && <p className="text-xs text-muted-foreground mt-3 line-clamp-2 leading-relaxed font-sans">{profile.bio}</p>}
+        {/* --- BIO --- */}
+        {profile.bio && (
+          <p className="text-sm text-foreground/70 mt-3 line-clamp-2 leading-relaxed font-sans">
+            {profile.bio}
+          </p>
+        )}
 
-        <div className="mt-4 flex flex-wrap gap-1">
-          {profile.subjects?.slice(0, 4).map((s, idx) => (
-            <Badge key={idx} variant="secondary" className="bg-muted text-muted-foreground font-normal text-[11px] px-2 py-0.5 rounded">
-              {typeof s === "string" ? s : s.name}
-            </Badge>
-          ))}
-        </div>
+        {/* --- MATIÈRES --- */}
+        {profile.subjects?.length > 0 && (
+          <div className="mt-auto pt-4 flex flex-wrap gap-1.5">
+            {profile.subjects.slice(0, 4).map((s, idx) => (
+              <Badge
+                key={idx}
+                variant="secondary"
+                className="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 font-medium text-[11px] px-2.5 py-1 rounded-md"
+              >
+                {typeof s === "string" ? s : s.name}
+              </Badge>
+            ))}
+          </div>
+        )}
       </div>
 
+      {/* --- ACTION --- */}
       {!isOwnProfile && (
-        <div className="px-5 pb-5 pt-0">
+        <div className="px-5 pb-5 pt-3 border-t border-border/60">
           <Button
             size="sm"
             className={`w-full rounded-md font-medium text-xs transition-all ${
-              alreadyRequested 
-                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 cursor-not-allowed hover:bg-emerald-500/10" 
+              alreadyRequested
+                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 cursor-not-allowed hover:bg-emerald-500/10"
                 : "bg-primary text-primary-foreground hover:bg-primary/90"
             }`}
             disabled={alreadyRequested}
             onClick={() => onRequest(profile)}
           >
-            {alreadyRequested ? <><Check className="w-3.5 h-3.5 mr-1.5" /> Demande envoyée</> : <><Send className="w-3.5 h-3.5 mr-1.5" /> Contacter</>}
+            {alreadyRequested ? (
+              <><Check className="w-3.5 h-3.5 mr-1.5" /> Demande envoyée</>
+            ) : (
+              <><Send className="w-3.5 h-3.5 mr-1.5" /> Contacter</>
+            )}
           </Button>
         </div>
       )}
@@ -134,9 +163,9 @@ export default function BuddyCard({ profile, onRequest, alreadyRequested, isOwnP
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">Détails (Optionnel)</label>
-              <Textarea 
-                placeholder="Expliquez-nous brièvement le problème..." 
-                className="rounded-md h-20 bg-background border-border text-xs resize-none p-3" 
+              <Textarea
+                placeholder="Expliquez-nous brièvement le problème..."
+                className="rounded-md h-20 bg-background border-border text-xs resize-none p-3"
                 value={reportDetails}
                 onChange={(e) => setReportDetails(e.target.value)}
               />
