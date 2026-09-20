@@ -51,20 +51,24 @@ export default function BuddyCard({ profile, onRequest, alreadyRequested, isOwnP
   };
 
   return (
-    <div className="border border-border bg-card shadow-sm hover:border-primary/40 hover:shadow-md transition-all duration-200 rounded-lg overflow-hidden flex flex-col justify-between min-h-[280px]">
+    <div className="group bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#282a2c] rounded-2xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col">
+
+      {/* --- LISERÉ D'ACCENT : rompt l'effet bloc rigide --- */}
+      <div className="h-1 w-full bg-gradient-to-r from-indigo-500 via-indigo-400 to-purple-500" />
+
       <div className="p-5 flex-1 flex flex-col">
 
-        {/* --- EN-TÊTE : Avatar / Nom / Méta / Signalement --- */}
+        {/* --- EN-TÊTE --- */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 min-w-0">
-            <Avatar className="h-11 w-11 rounded-md shrink-0">
-              <AvatarFallback className="bg-primary/10 text-primary rounded-md text-sm font-bold font-sans">
+            <Avatar className="h-12 w-12 rounded-xl shrink-0 border border-gray-100 dark:border-[#333537]">
+              <AvatarFallback className="bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl text-sm font-bold font-sans">
                 {initials}
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0">
-              <h3 className="font-bold text-foreground text-base truncate font-serif">{name}</h3>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-xs text-foreground/60 font-sans font-medium">
+              <h3 className="font-bold text-gray-900 dark:text-white text-base truncate font-serif">{name}</h3>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-xs text-gray-500 dark:text-gray-400 font-sans font-medium">
                 {profile.level && (
                   <span className="flex items-center gap-1">
                     <GraduationCap className="w-3.5 h-3.5 shrink-0" />
@@ -84,7 +88,7 @@ export default function BuddyCard({ profile, onRequest, alreadyRequested, isOwnP
           {!isOwnProfile && (
             <button
               onClick={() => setReportDialogOpen(true)}
-              className="text-muted-foreground/40 hover:text-destructive transition-colors p-1 shrink-0"
+              className="text-gray-300 dark:text-gray-600 hover:text-red-500 transition-colors p-1 shrink-0"
               title="Signaler"
             >
               <AlertTriangle className="w-4 h-4" />
@@ -92,21 +96,27 @@ export default function BuddyCard({ profile, onRequest, alreadyRequested, isOwnP
           )}
         </div>
 
-        {/* --- BIO --- */}
-        {profile.bio && (
-          <p className="text-sm text-foreground/70 mt-3 line-clamp-2 leading-relaxed font-sans">
-            {profile.bio}
-          </p>
-        )}
+        {/* --- BIO : bloc distinct, avec repli si vide --- */}
+        <div className="mt-3.5 bg-gray-50 dark:bg-[#131314] rounded-xl p-3.5 border border-transparent dark:border-[#282a2c]">
+          {profile.bio ? (
+            <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2 leading-relaxed font-sans">
+              {profile.bio}
+            </p>
+          ) : (
+            <p className="text-sm text-gray-400 dark:text-gray-600 italic font-sans">
+              Cet étudiant n'a pas encore rédigé de présentation.
+            </p>
+          )}
+        </div>
 
         {/* --- MATIÈRES --- */}
         {profile.subjects?.length > 0 && (
-          <div className="mt-auto pt-4 flex flex-wrap gap-1.5">
+          <div className="mt-4 flex flex-wrap gap-1.5">
             {profile.subjects.slice(0, 4).map((s, idx) => (
               <Badge
                 key={idx}
                 variant="secondary"
-                className="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 font-medium text-[11px] px-2.5 py-1 rounded-md"
+                className="bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-transparent dark:border-indigo-500/20 font-medium text-[11px] px-2.5 py-1 rounded-lg"
               >
                 {typeof s === "string" ? s : s.name}
               </Badge>
@@ -117,21 +127,21 @@ export default function BuddyCard({ profile, onRequest, alreadyRequested, isOwnP
 
       {/* --- ACTION --- */}
       {!isOwnProfile && (
-        <div className="px-5 pb-5 pt-3 border-t border-border/60">
+        <div className="px-5 pb-5 pt-1">
           <Button
             size="sm"
-            className={`w-full rounded-md font-medium text-xs transition-all ${
+            className={`w-full rounded-xl font-medium text-sm py-5 transition-all ${
               alreadyRequested
-                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 cursor-not-allowed hover:bg-emerald-500/10"
-                : "bg-primary text-primary-foreground hover:bg-primary/90"
+                ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 cursor-not-allowed hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
+                : "bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white shadow-sm"
             }`}
             disabled={alreadyRequested}
             onClick={() => onRequest(profile)}
           >
             {alreadyRequested ? (
-              <><Check className="w-3.5 h-3.5 mr-1.5" /> Demande envoyée</>
+              <><Check className="w-4 h-4 mr-1.5" /> Demande envoyée</>
             ) : (
-              <><Send className="w-3.5 h-3.5 mr-1.5" /> Contacter</>
+              <><Send className="w-4 h-4 mr-1.5" /> Contacter</>
             )}
           </Button>
         </div>
@@ -139,20 +149,20 @@ export default function BuddyCard({ profile, onRequest, alreadyRequested, isOwnP
 
       {/* --- MODALE DE SIGNALEMENT --- */}
       <Dialog open={reportDialogOpen} onOpenChange={setReportDialogOpen}>
-        <DialogContent className="rounded-lg bg-card border border-border text-foreground p-6">
+        <DialogContent className="rounded-2xl bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] text-gray-900 dark:text-gray-100 p-6">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold flex items-center gap-2 font-serif">
-              <AlertTriangle className="text-destructive w-5 h-5" /> Signaler un profil
+              <AlertTriangle className="text-red-500 w-5 h-5" /> Signaler un profil
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2 font-sans">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Motif du signalement</label>
+              <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Motif du signalement</label>
               <Select value={reportReason} onValueChange={setReportReason}>
-                <SelectTrigger className="rounded-md bg-background border-border text-xs">
+                <SelectTrigger className="rounded-xl bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-xs">
                   <SelectValue placeholder="Choisir un motif..." />
                 </SelectTrigger>
-                <SelectContent className="bg-card border-border text-foreground">
+                <SelectContent className="dark:bg-[#1e1f20] dark:border-[#333537] dark:text-gray-100 rounded-xl">
                   <SelectItem value="harassment">Harcèlement ou insulte</SelectItem>
                   <SelectItem value="spam">Contenu publicitaire / Spam</SelectItem>
                   <SelectItem value="fake">Faux profil / Usurpation</SelectItem>
@@ -162,18 +172,18 @@ export default function BuddyCard({ profile, onRequest, alreadyRequested, isOwnP
               </Select>
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Détails (Optionnel)</label>
+              <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Détails (Optionnel)</label>
               <Textarea
                 placeholder="Expliquez-nous brièvement le problème..."
-                className="rounded-md h-20 bg-background border-border text-xs resize-none p-3"
+                className="rounded-xl h-20 bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-xs resize-none p-3"
                 value={reportDetails}
                 onChange={(e) => setReportDetails(e.target.value)}
               />
             </div>
           </div>
           <DialogFooter className="gap-2 pt-2">
-            <Button variant="ghost" size="sm" onClick={() => setReportDialogOpen(false)} className="rounded-md text-xs">Annuler</Button>
-            <Button size="sm" className="bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-md text-xs" onClick={handleSendReport} disabled={isReporting}>
+            <Button variant="ghost" size="sm" onClick={() => setReportDialogOpen(false)} className="rounded-xl text-xs">Annuler</Button>
+            <Button size="sm" className="bg-red-500 hover:bg-red-600 text-white rounded-xl text-xs" onClick={handleSendReport} disabled={isReporting}>
               {isReporting && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />} Confirmer
             </Button>
           </DialogFooter>
