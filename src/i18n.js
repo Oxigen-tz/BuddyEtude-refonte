@@ -62,7 +62,7 @@ const resources = {
           button: "Planifier une session"
         }
       },
-      // --- NOUVEAU : TRADUCTIONS DE LA PAGE D'ACCUEIL ---
+      // --- TRADUCTIONS DE LA PAGE D'ACCUEIL ---
       hero: {
         badge: "Tableau blanc collaboratif intégré",
         title1: "Trouvez votre",
@@ -74,9 +74,11 @@ const resources = {
         btn_dashboard: "Accéder à mon espace",
         btn_start: "C'est parti !",
         stats: {
+          // "free" et "realtime" sont vérifiables par le visiteur ; on a retiré
+          // "0ms latence" (faux) et "∞ matières" (invérifiable).
           free: "Gratuit",
-          latency: "Latence dessin",
-          subjects: "Matières"
+          realtime_value: "Live",
+          realtime: "Collaboration"
         }
       },
       features: {
@@ -85,11 +87,11 @@ const resources = {
         items: {
           goals: {
             title: "Objectifs communs",
-            desc: "Trouvez un partenaire qui prépare les mêmes examens ou bloque sur les mêmes chapitres."
+            desc: "Filtrez par examen ou chapitre en cours pour trouver un partenaire qui révise exactement la même chose que vous."
           },
           chat: {
             title: "Chat intégré",
-            desc: "Échangez instantanément, partagez vos doutes et préparez vos sessions en amont."
+            desc: "Messagerie texte avec partage de fichiers et de notes, directement dans l'appli, sans passer par WhatsApp ou Discord."
           },
           whiteboard: {
             title: "Tableau blanc temps réel",
@@ -97,11 +99,11 @@ const resources = {
           },
           matching: {
             title: "Matching intelligent",
-            desc: "Ne perdez plus de temps : notre algorithme filtre par niveau, matière et disponibilité."
+            desc: "Un algorithme de filtrage croise niveau d'études, matière et créneaux de disponibilité pour proposer des binômes compatibles."
           },
           schedule: {
             title: "Sessions planifiées",
-            desc: "Organisez votre emploi du temps, fixez des rendez-vous et tenez vos engagements."
+            desc: "Proposez un créneau, votre binôme confirme, et la session apparaît automatiquement dans votre agenda BuddyEtude."
           },
           subjects: {
             title: "Toutes les matières",
@@ -188,8 +190,8 @@ const resources = {
         btn_start: "Let's get started!",
         stats: {
           free: "Free",
-          latency: "Drawing latency",
-          subjects: "Subjects"
+          realtime_value: "Live",
+          realtime: "Collaboration"
         }
       },
       features: {
@@ -198,11 +200,11 @@ const resources = {
         items: {
           goals: {
             title: "Common goals",
-            desc: "Find a partner preparing for the same exams or struggling with the same chapters."
+            desc: "Filter by exam or chapter to find a partner reviewing exactly the same material as you."
           },
           chat: {
             title: "Integrated chat",
-            desc: "Chat instantly, share your doubts, and prepare your sessions in advance."
+            desc: "Text messaging with file and note sharing, built into the app — no need for WhatsApp or Discord."
           },
           whiteboard: {
             title: "Real-time whiteboard",
@@ -210,11 +212,11 @@ const resources = {
           },
           matching: {
             title: "Smart matching",
-            desc: "Stop wasting time: our algorithm filters by level, subject, and availability."
+            desc: "A filtering algorithm cross-references study level, subject, and availability to suggest compatible buddies."
           },
           schedule: {
             title: "Scheduled sessions",
-            desc: "Organize your schedule, set appointments, and keep your commitments."
+            desc: "Propose a time slot, your buddy confirms it, and the session shows up automatically in your BuddyEtude calendar."
           },
           subjects: {
             title: "All subjects",

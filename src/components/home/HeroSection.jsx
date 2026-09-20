@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Sparkles, PenTool, Users } from "lucide-react"; 
+import { ArrowRight, PenTool, Users, Sparkles } from "lucide-react"; 
 import { useAuth } from "@/lib/AuthContext"; 
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
@@ -8,12 +8,15 @@ import { useTranslation } from "react-i18next";
 import { db } from "@/firebase/config";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 
+// Seuil en dessous duquel on ne montre pas de chiffre exact (peu convaincant),
+// on valorise plutôt l'aspect "communauté naissante" à la place.
+const SOCIAL_PROOF_THRESHOLD = 20;
+
 export default function HeroSection() {
   const { user, loginWithGoogle } = useAuth(); 
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  // Fonction pour gérer la connexion et la redirection de manière fluide
   const handleLogin = async () => {
     try {
       await loginWithGoogle();
@@ -23,11 +26,9 @@ export default function HeroSection() {
     }
   };
 
-  // État pour stocker le nombre réel d'étudiants inscrits
-  const [studentCount, setStudentCount] = useState(0);
+  const [studentCount, setStudentCount] = useState(null); // null = chargement
 
   useEffect(() => {
-    // Écoute en temps réel des profils complets dans Firestore
     const q = query(collection(db, "users"), where("profile_complete", "==", true));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setStudentCount(snapshot.size);
@@ -35,6 +36,9 @@ export default function HeroSection() {
 
     return () => unsubscribe();
   }, []);
+
+  const showRealCount = studentCount !== null && studentCount >= SOCIAL_PROOF_THRESHOLD;
+  const showEarlyBadge = studentCount !== null && studentCount < SOCIAL_PROOF_THRESHOLD;
 
   return (
     <section className="relative min-h-[90vh] flex items-center overflow-hidden">
@@ -45,7 +49,7 @@ export default function HeroSection() {
         <div className="absolute bottom-20 right-20 w-96 h-96 bg-purple-300 rounded-full blur-3xl" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-300 rounded-full blur-3xl" />
       </div>
-      
+
       {/* Grid pattern */}
       <div className="absolute inset-0 opacity-5" style={{
         backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
@@ -102,27 +106,42 @@ export default function HeroSection() {
             )}
           </div>
 
-          {/* Badge social proof avec le nombre réel d'étudiants */}
-          <div className="mt-8 inline-flex items-center gap-3 bg-white/10 backdrop-blur-md px-5 py-2.5 rounded-2xl border border-white/20 shadow-sm">
-            <div className="w-7 h-7 rounded-full bg-indigo-500/30 flex items-center justify-center text-white">
-              <Users className="w-4 h-4 text-indigo-200" />
+          {/* Preuve sociale : chiffre réel seulement s'il est assez élevé pour convaincre,
+              sinon on assume la nouveauté au lieu d'afficher un petit nombre. */}
+          {showRealCount && (
+            <div className="mt-8 inline-flex items-center gap-3 bg-white/10 backdrop-blur-md px-5 py-2.5 rounded-2xl border border-white/20 shadow-sm">
+              <div className="w-7 h-7 rounded-full bg-indigo-500/30 flex items-center justify-center text-white">
+                <Users className="w-4 h-4 text-indigo-200" />
+              </div>
+              <p className="text-sm font-medium text-indigo-100">
+                Rejoins déjà <strong className="text-white font-bold">{studentCount} étudiants</strong> actifs sur la plateforme !
+              </p>
             </div>
-            <p className="text-sm font-medium text-indigo-100">
-              Rejoins déjà <strong className="text-white font-bold">{studentCount} étudiants</strong> actifs sur la plateforme !
-            </p>
-          </div>
+          )}
+
+          {showEarlyBadge && (
+            <div className="mt-8 inline-flex items-center gap-3 bg-white/10 backdrop-blur-md px-5 py-2.5 rounded-2xl border border-white/20 shadow-sm">
+              <div className="w-7 h-7 rounded-full bg-indigo-500/30 flex items-center justify-center text-white">
+                <Sparkles className="w-4 h-4 text-indigo-200" />
+              </div>
+              <p className="text-sm font-medium text-indigo-100">
+                Plateforme en <strong className="text-white font-bold">lancement</strong> — rejoins les premiers étudiants !
+              </p>
+            </div>
+          )}
         </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.3 }}
-          className="mt-16 grid grid-cols-3 gap-8 max-w-lg mx-auto"
+          className="mt-16 grid grid-cols-2 gap-8 max-w-sm mx-auto"
         >
+          {/* On retire "0ms" (faux, impossible à 0) et "∞" (invérifiable) :
+              seules les deux stats vraies et vérifiables par un visiteur restent. */}
           {[
             { value: "100%", labelKey: "free" },
-            { value: "0ms", labelKey: "latency" },
-            { value: "∞", labelKey: "subjects" },
+            { value: t('hero.stats.realtime_value'), labelKey: "realtime" },
           ].map((stat) => (
             <div key={stat.labelKey} className="text-center">
               <div className="text-3xl font-bold text-white">{stat.value}</div>

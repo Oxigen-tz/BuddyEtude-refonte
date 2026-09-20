@@ -5,12 +5,13 @@ import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { HexColorPicker } from "react-colorful";
 import { 
-  ArrowLeft, Eraser, Pen, Trash2, Download, Circle, Palette, X, Plus, Undo2
+  X, Eraser, Pen, Trash2, Download, Circle, Palette, Plus, Undo2, Type
 } from "lucide-react";
 
 const CANVAS_WIDTH = 1200;
 const CANVAS_HEIGHT = 800;
 const BRUSH_SIZES = [2, 6, 12, 24];
+const FONT_SIZES = { 2: "16px", 6: "24px", 12: "36px", 24: "64px" }; // Tailles de texte dynamiques
 const MAX_HISTORY = 25;
 
 export default function Whiteboard() {
@@ -22,13 +23,17 @@ export default function Whiteboard() {
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [lineWidth, setLineWidth] = useState(BRUSH_SIZES[1]);
-  const [tool, setTool] = useState("pen");
+  const [tool, setTool] = useState("pen"); // 'pen', 'eraser', 'text'
   const [isCustomColorOpen, setIsCustomColorOpen] = useState(false);
+  
+  // 📝 État pour l'outil Texte
+  const [textInput, setTextInput] = useState({ visible: false, x: 0, y: 0, text: "" });
+  const textInputRef = useRef(null);
 
-  // Pile d'historique pour le undo (tableau de dataURL)
+  // Pile d'historique pour le undo
   const historyRef = useRef([]);
   const [canUndo, setCanUndo] = useState(false);
-  const isRestoringRef = useRef(false); // évite de re-sauvegarder pendant une restauration
+  const isRestoringRef = useRef(false);
 
   // 🌙 Détecter en direct si on est en mode clair ou sombre
   const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.classList.contains("dark"));
@@ -59,11 +64,11 @@ export default function Whiteboard() {
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Synchronisation Firebase (Avec fond TRANSPARENT)
+  // Synchronisation Firebase
   useEffect(() => {
     const docRef = doc(db, "whiteboards", sessionId);
     const unsub = onSnapshot(docRef, (docSnap) => {
-      if (docSnap.exists() && canvasRef.current) {
+      if (docSnap.exists() && canvasRef.current && !isDrawing && !isRestoringRef.current) {
         const data = docSnap.data();
         const canvas = canvasRef.current;
         const ctx = canvas.getContext("2d");
@@ -78,7 +83,7 @@ export default function Whiteboard() {
       }
     });
     return () => unsub();
-  }, [sessionId]);
+  }, [sessionId, isDrawing]);
 
   const getCanvasCoordinates = (e) => {
     const canvas = canvasRef.current;
@@ -91,7 +96,6 @@ export default function Whiteboard() {
     return { x: x * scaleX, y: y * scaleY };
   };
 
-  // Sauvegarde l'état actuel du canvas dans l'historique (appelé AVANT de commencer un nouveau trait)
   const pushHistory = () => {
     if (isRestoringRef.current) return;
     const canvas = canvasRef.current;
@@ -104,7 +108,37 @@ export default function Whiteboard() {
     setCanUndo(historyRef.current.length > 0);
   };
 
+  // 📝 Valider le texte et le dessiner
+  const finalizeText = async () => {
+    if (!textInput.visible) return;
+    if (textInput.text.trim()) {
+      pushHistory();
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext("2d");
+      
+      ctx.globalCompositeOperation = "source-over";
+      ctx.font = `600 ${FONT_SIZES[lineWidth] || "24px"} Inter, sans-serif`;
+      ctx.fillStyle = color;
+      ctx.textBaseline = "top";
+      ctx.fillText(textInput.text, textInput.x, textInput.y);
+      
+      await saveToFirestore();
+    }
+    setTextInput({ visible: false, x: 0, y: 0, text: "" });
+  };
+
   const startDrawing = (e) => {
+    if (tool === "text") {
+      if (textInput.visible) {
+        finalizeText();
+      } else {
+        const { x, y } = getCanvasCoordinates(e);
+        setTextInput({ visible: true, x, y, text: "" });
+        setTimeout(() => textInputRef.current?.focus(), 50);
+      }
+      return;
+    }
+
     pushHistory();
     const { x, y } = getCanvasCoordinates(e);
     const ctx = canvasRef.current.getContext("2d");
@@ -114,7 +148,7 @@ export default function Whiteboard() {
   };
 
   const draw = (e) => {
-    if (!isDrawing) return;
+    if (!isDrawing || tool === "text") return;
     const { x, y } = getCanvasCoordinates(e);
     const ctx = canvasRef.current.getContext("2d");
     ctx.lineTo(x, y);
@@ -150,7 +184,6 @@ export default function Whiteboard() {
     await saveToFirestore();
   };
 
-  // ↩️ UNDO : restaure le dernier état sauvegardé
   const undoLastStroke = useCallback(async () => {
     if (historyRef.current.length === 0) return;
     const canvas = canvasRef.current;
@@ -177,7 +210,6 @@ export default function Whiteboard() {
     }
   }, [sessionId]);
 
-  // Raccourci clavier Ctrl+Z / Cmd+Z
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
@@ -191,7 +223,7 @@ export default function Whiteboard() {
 
   const clearBoard = async () => {
     if(!window.confirm("Voulez-vous vraiment tout effacer ?")) return;
-    pushHistory(); // permet d'annuler un effacement total
+    pushHistory(); 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -223,20 +255,20 @@ export default function Whiteboard() {
     }
   };
 
-  // 🔙 RETOUR AU CHAT : navigation directe et explicite vers Messages
   const handleBack = () => {
-    navigate("/Messages"); // Modifie "/Messages" si ta route s'appelle différemment (ex: "/Dashboard")
+    navigate("/Messages");
   };
 
   return (
     <div className="fixed inset-0 bg-slate-50 dark:bg-[#131314] z-[9999] flex flex-col transition-colors duration-300" 
-         style={{ backgroundImage: "radial-gradient(currentColor 1px, transparent 1px)", backgroundSize: "24px 24px", color: "var(--tw-prose-body, rgba(148, 163, 184, 0.2))" }}>
+         style={{ backgroundImage: "radial-gradient(currentColor 1px, transparent 1px)", backgroundSize: "24px 24px" }}>
       
       {/* EN TÊTE */}
       <div className="bg-white/80 dark:bg-[#1e1f20]/90 backdrop-blur-md border-b border-gray-200 dark:border-[#333537] px-6 py-3 flex items-center justify-between shadow-sm transition-colors duration-300">
         <div className="flex items-center gap-4">
+          {/* RETOUR 3: Bouton de fermeture plus clair */}
           <Button variant="ghost" onClick={handleBack} className="hover:bg-gray-100 dark:hover:bg-[#282a2c] text-gray-700 dark:text-gray-300 rounded-xl">
-            <ArrowLeft className="w-5 h-5 mr-2" /> Retour au Chat
+            <X className="w-5 h-5 mr-2" /> Fermer le tableau
           </Button>
           <div className="h-6 w-px bg-gray-300 dark:bg-[#333537] hidden md:block"></div>
           <h2 className="font-bold text-gray-800 dark:text-gray-100 hidden md:block">
@@ -244,25 +276,26 @@ export default function Whiteboard() {
           </h2>
         </div>
         <div className="flex items-center gap-2">
+          {/* RETOUR 2: Bouton 'Défaire' plus explicite */}
           <Button 
             onClick={undoLastStroke} 
             disabled={!canUndo}
             variant="outline" 
             className="border-gray-200 dark:border-[#333537] text-gray-700 dark:text-gray-300 rounded-xl disabled:opacity-40"
-            title="Annuler (Ctrl+Z)"
+            title="Défaire le dernier trait (Ctrl+Z)"
           >
-            <Undo2 className="w-4 h-4 mr-2" /> Annuler
+            <Undo2 className="w-4 h-4 mr-2" /> Défaire
           </Button>
           <Button onClick={downloadBoard} variant="outline" className="border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 rounded-xl transition-colors">
-            <Download className="w-4 h-4 mr-2" /> Exporter (PNG)
+            <Download className="w-4 h-4 mr-2" /> Exporter
           </Button>
         </div>
       </div>
 
       {/* ZONE DE DESSIN */}
       <div className="flex-1 overflow-auto flex justify-center items-center p-4 md:p-8 relative">
-        
         <div className="relative shadow-2xl rounded-xl ring-1 ring-gray-200 dark:ring-[#333537] overflow-hidden bg-white dark:bg-[#1e1f20] transition-colors duration-300">
+          
           <canvas
             ref={canvasRef}
             width={CANVAS_WIDTH}
@@ -272,8 +305,36 @@ export default function Whiteboard() {
             onMouseUp={stopDrawing}
             onMouseOut={stopDrawing}
             style={{ width: "100%", maxWidth: `${CANVAS_WIDTH}px`, aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`, touchAction: "none" }}
-            className="cursor-crosshair" 
+            className={tool === "text" ? "cursor-text" : "cursor-crosshair"} 
           />
+
+          {/* INPUT TEXTE FLOTTANT */}
+          {textInput.visible && (
+            <input
+              ref={textInputRef}
+              type="text"
+              value={textInput.text}
+              onChange={(e) => setTextInput({ ...textInput, text: e.target.value })}
+              onBlur={finalizeText}
+              onKeyDown={(e) => { if (e.key === "Enter") finalizeText(); }}
+              placeholder="Écrivez ici..."
+              style={{
+                position: "absolute",
+                left: `${(textInput.x / CANVAS_WIDTH) * 100}%`,
+                top: `${(textInput.y / CANVAS_HEIGHT) * 100}%`,
+                color: color,
+                fontSize: "1.2rem", // Taille standard pour l'interface de saisie
+                fontWeight: "600",
+                background: "transparent",
+                border: "1px dashed #6366f1", // Bordure indigo visible
+                borderRadius: "4px",
+                outline: "none",
+                minWidth: "150px",
+                padding: "2px 4px",
+                zIndex: 50,
+              }}
+            />
+          )}
         </div>
 
         {isCustomColorOpen && (
@@ -286,7 +347,7 @@ export default function Whiteboard() {
             </div>
             
             <div className="custom-picker">
-              <HexColorPicker color={color} onChange={(newColor) => { setColor(newColor); setTool("pen"); }} />
+              <HexColorPicker color={color} onChange={(newColor) => { setColor(newColor); setTool(tool === "eraser" ? "pen" : tool); }} />
             </div>
             
             <div className="flex items-center gap-2 mt-1">
@@ -303,23 +364,6 @@ export default function Whiteboard() {
                 <Plus className="w-4 h-4" />
               </Button>
             </div>
-
-            {savedColors.length > 0 && (
-              <div className="pt-3 mt-1 border-t border-gray-100 dark:border-[#333537]">
-                <span className="text-xs font-medium text-gray-400 dark:text-gray-500 mb-2 block px-1">Vos favoris</span>
-                <div className="flex flex-wrap gap-2 px-1">
-                  {savedColors.map(c => (
-                    <button
-                      key={c}
-                      onClick={() => { setColor(c); setTool("pen"); }}
-                      className={`w-6 h-6 rounded-md shadow-sm border transition-all hover:scale-110 ${color === c ? 'border-gray-900 dark:border-white ring-2 ring-gray-900/20 dark:ring-white/20' : 'border-gray-200 dark:border-[#333537]'}`}
-                      style={{ backgroundColor: c }}
-                      title={c}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         )}
       </div>
@@ -328,10 +372,14 @@ export default function Whiteboard() {
       <div className="absolute bottom-6 md:bottom-8 left-1/2 -translate-x-1/2 bg-white/95 dark:bg-[#1e1f20]/95 backdrop-blur-xl shadow-2xl border border-gray-200 dark:border-[#333537] p-2 md:p-3 rounded-2xl flex items-center gap-3 md:gap-5 max-w-[95vw] transition-colors duration-300">
         
         <div className="flex items-center gap-1 bg-gray-100/50 dark:bg-[#131314]/50 p-1 rounded-xl shrink-0 transition-colors duration-300">
-          <button onClick={() => { setTool("pen"); setIsCustomColorOpen(false); }} className={`p-2.5 md:p-3 rounded-lg transition-all ${tool === "pen" && !isCustomColorOpen ? "bg-indigo-600 dark:bg-indigo-500 text-white shadow-md" : "text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-[#282a2c]"}`}>
+          <button onClick={() => { setTool("pen"); setIsCustomColorOpen(false); }} className={`p-2.5 md:p-3 rounded-lg transition-all ${tool === "pen" && !isCustomColorOpen ? "bg-indigo-600 dark:bg-indigo-500 text-white shadow-md" : "text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-[#282a2c]"}`} title="Stylo">
             <Pen className="w-5 h-5" />
           </button>
-          <button onClick={() => { setTool("eraser"); setIsCustomColorOpen(false); }} className={`p-2.5 md:p-3 rounded-lg transition-all ${tool === "eraser" ? "bg-white dark:bg-[#282a2c] text-gray-900 dark:text-white shadow-md ring-1 ring-gray-200 dark:ring-[#333537]" : "text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-[#282a2c]"}`}>
+          {/* RETOUR 1 : AJOUT DE L'OUTIL TEXTE */}
+          <button onClick={() => { setTool("text"); setIsCustomColorOpen(false); }} className={`p-2.5 md:p-3 rounded-lg transition-all ${tool === "text" && !isCustomColorOpen ? "bg-indigo-600 dark:bg-indigo-500 text-white shadow-md" : "text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-[#282a2c]"}`} title="Texte">
+            <Type className="w-5 h-5" />
+          </button>
+          <button onClick={() => { setTool("eraser"); setIsCustomColorOpen(false); }} className={`p-2.5 md:p-3 rounded-lg transition-all ${tool === "eraser" ? "bg-white dark:bg-[#282a2c] text-gray-900 dark:text-white shadow-md ring-1 ring-gray-200 dark:ring-[#333537]" : "text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-[#282a2c]"}`} title="Gomme">
             <Eraser className="w-5 h-5" />
           </button>
         </div>
@@ -340,7 +388,7 @@ export default function Whiteboard() {
 
         <div className={`flex items-center gap-1.5 shrink-0 transition-opacity ${tool === "eraser" ? "opacity-30 pointer-events-none" : "opacity-100"}`}>
           {PRESET_COLORS.map((c) => (
-            <button key={c} onClick={() => { setColor(c); setTool("pen"); setIsCustomColorOpen(false); }} className={`w-7 h-7 md:w-8 md:h-8 rounded-full border-2 transition-all ${color === c && !isCustomColorOpen ? "border-gray-900 dark:border-white scale-110 shadow-lg" : "border-transparent hover:scale-110 shadow-sm"}`} style={{ backgroundColor: c }} />
+            <button key={c} onClick={() => { setColor(c); if(tool === "eraser") setTool("pen"); setIsCustomColorOpen(false); }} className={`w-7 h-7 md:w-8 md:h-8 rounded-full border-2 transition-all ${color === c && !isCustomColorOpen ? "border-gray-900 dark:border-white scale-110 shadow-lg" : "border-transparent hover:scale-110 shadow-sm"}`} style={{ backgroundColor: c }} />
           ))}
           
           <button 
@@ -363,7 +411,7 @@ export default function Whiteboard() {
 
         <div className="w-px h-8 bg-gray-200 dark:bg-[#333537] shrink-0 transition-colors duration-300"></div>
 
-        <button onClick={clearBoard} className="p-2.5 md:p-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-colors shrink-0" title="Effacer le tableau">
+        <button onClick={clearBoard} className="p-2.5 md:p-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-colors shrink-0" title="Effacer tout le tableau">
           <Trash2 className="w-5 h-5" />
         </button>
       </div>
