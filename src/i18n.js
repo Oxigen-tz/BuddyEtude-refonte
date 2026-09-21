@@ -62,7 +62,6 @@ const resources = {
           button: "Planifier une session"
         }
       },
-      // --- TRADUCTIONS DE LA PAGE D'ACCUEIL ---
       hero: {
         badge: "Tableau blanc collaboratif intégré",
         title1: "Trouvez votre",
@@ -74,11 +73,13 @@ const resources = {
         btn_dashboard: "Accéder à mon espace",
         btn_start: "C'est parti !",
         stats: {
-          // "free" et "realtime" sont vérifiables par le visiteur ; on a retiré
-          // "0ms latence" (faux) et "∞ matières" (invérifiable).
           free: "Gratuit",
           realtime_value: "Live",
           realtime: "Collaboration"
+        },
+        social: {
+          early: "Plateforme en <bold>lancement</bold> — rejoins les premiers étudiants !",
+          active: "Rejoins déjà <bold>{{count}} étudiants</bold> actifs sur la plateforme !"
         }
       },
       features: {
@@ -114,7 +115,21 @@ const resources = {
       cta: {
         title: "Prêt à trouver votre binôme ?",
         subtitle: "Rejoignez BuddyEtude gratuitement et commencez à étudier plus efficacement dès aujourd'hui.",
-        button: "Créer mon compte"
+        button: "Créer mon compte",
+        buttonLoggedIn: "Accéder à mon tableau de bord"
+      },
+      footer: {
+        tagline: "Créé par un étudiant, pour les étudiants. Notre mission est de rendre l'entraide académique accessible à tous, partout en France, grâce à des outils collaboratifs puissants.",
+        platform: "Plateforme",
+        about: "À propos de nous",
+        findBuddy: "Trouver un binôme",
+        referral: "Programme de parrainage",
+        soon: "Bientôt",
+        support: "Support & Légal",
+        legal: "Mentions Légales & CGU",
+        privacy: "Politique de Confidentialité",
+        rights: "Tous droits réservés",
+        systemsOperational: "Systèmes opérationnels"
       }
     }
   },
@@ -177,7 +192,6 @@ const resources = {
           button: "Schedule a session"
         }
       },
-      // --- ENGLISH LANDING PAGE TRANSLATIONS ---
       hero: {
         badge: "Integrated collaborative whiteboard",
         title1: "Find your ideal",
@@ -192,6 +206,10 @@ const resources = {
           free: "Free",
           realtime_value: "Live",
           realtime: "Collaboration"
+        },
+        social: {
+          early: "Platform is <bold>launching</bold> — join the first students!",
+          active: "Join <bold>{{count}} students</bold> already active on the platform!"
         }
       },
       features: {
@@ -227,7 +245,21 @@ const resources = {
       cta: {
         title: "Ready to find your buddy?",
         subtitle: "Join BuddyEtude for free and start studying more effectively today.",
-        button: "Create my account"
+        button: "Create my account",
+        buttonLoggedIn: "Go to my dashboard"
+      },
+      footer: {
+        tagline: "Created by a student, for students. Our mission is to make academic peer support accessible to everyone, everywhere in France, through powerful collaborative tools.",
+        platform: "Platform",
+        about: "About us",
+        findBuddy: "Find a buddy",
+        referral: "Referral program",
+        soon: "Coming soon",
+        support: "Support & Legal",
+        legal: "Legal Notice & Terms",
+        privacy: "Privacy Policy",
+        rights: "All rights reserved",
+        systemsOperational: "All systems operational"
       }
     }
   }
