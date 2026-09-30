@@ -7,6 +7,7 @@ import { HexColorPicker } from "react-colorful";
 import { 
   X, Eraser, Pen, Trash2, Download, Circle, Palette, Plus, Undo2, Type
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const CANVAS_WIDTH = 1200;
 const CANVAS_HEIGHT = 800;
@@ -17,6 +18,7 @@ const MAX_HISTORY = 25;
 export default function Whiteboard() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const queryParams = new URLSearchParams(location.search);
   const sessionId = queryParams.get("sessionId") || "demo-board";
 
@@ -233,7 +235,7 @@ export default function Whiteboard() {
   }, [undoLastStroke]);
 
   const clearBoard = async () => {
-    if(!window.confirm("Voulez-vous vraiment tout effacer ?")) return;
+    if(!window.confirm(t('whiteboard.clearConfirm'))) return;
     pushHistory(); 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
@@ -278,11 +280,11 @@ export default function Whiteboard() {
       <div className="bg-white/80 dark:bg-[#1e1f20]/90 backdrop-blur-md border-b border-gray-200 dark:border-[#333537] px-6 py-3 flex items-center justify-between shadow-sm transition-colors duration-300">
         <div className="flex items-center gap-4">
           <Button variant="ghost" onClick={handleBack} className="hover:bg-gray-100 dark:hover:bg-[#282a2c] text-gray-700 dark:text-gray-300 rounded-xl">
-            <X className="w-5 h-5 mr-2" /> Fermer le tableau
+            <X className="w-5 h-5 mr-2" /> {t('whiteboard.closeBoard')}
           </Button>
           <div className="h-6 w-px bg-gray-300 dark:bg-[#333537] hidden md:block"></div>
           <h2 className="font-bold text-gray-800 dark:text-gray-100 hidden md:block">
-            {isDarkMode ? "Tableau Noir Interactif" : "Tableau Blanc Interactif"}
+            {isDarkMode ? t('whiteboard.titleDark') : t('whiteboard.titleLight')}
           </h2>
         </div>
         <div className="flex items-center gap-2">
@@ -291,12 +293,12 @@ export default function Whiteboard() {
             disabled={!canUndo}
             variant="outline" 
             className="border-gray-200 dark:border-[#333537] text-gray-700 dark:text-gray-300 rounded-xl disabled:opacity-40"
-            title="Défaire le dernier trait (Ctrl+Z)"
+            title={t('whiteboard.undoTitle')}
           >
-            <Undo2 className="w-4 h-4 mr-2" /> Défaire
+            <Undo2 className="w-4 h-4 mr-2" /> {t('whiteboard.undo')}
           </Button>
           <Button onClick={downloadBoard} variant="outline" className="border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 rounded-xl transition-colors">
-            <Download className="w-4 h-4 mr-2" /> Exporter
+            <Download className="w-4 h-4 mr-2" /> {t('whiteboard.export')}
           </Button>
         </div>
       </div>
@@ -329,7 +331,7 @@ export default function Whiteboard() {
               onChange={(e) => setTextInput({ ...textInput, text: e.target.value })}
               onBlur={finalizeText}
               onKeyDown={(e) => { if (e.key === "Enter") finalizeText(); }}
-              placeholder="Écrivez ici..."
+              placeholder={t('whiteboard.textPlaceholder')}
               style={{
                 position: "absolute",
                 left: `${(textInput.x / CANVAS_WIDTH) * 100}%`,
@@ -352,7 +354,7 @@ export default function Whiteboard() {
         {isCustomColorOpen && (
           <div className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-white/95 dark:bg-[#1e1f20]/95 backdrop-blur-xl p-4 rounded-3xl shadow-2xl border border-gray-100 dark:border-[#333537] z-50 flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-5 duration-300 min-w-[250px]">
             <div className="flex items-center justify-between gap-2 px-1">
-              <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">Couleur personnalisée</span>
+              <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">{t('whiteboard.customColor')}</span>
               <button onClick={() => setIsCustomColorOpen(false)} className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
                 <X className="w-4 h-4" />
               </button>
@@ -384,13 +386,13 @@ export default function Whiteboard() {
       <div className="absolute bottom-6 md:bottom-8 left-1/2 -translate-x-1/2 bg-white/95 dark:bg-[#1e1f20]/95 backdrop-blur-xl shadow-2xl border border-gray-200 dark:border-[#333537] p-2 md:p-3 rounded-2xl flex items-center gap-3 md:gap-5 max-w-[95vw] transition-colors duration-300">
         
         <div className="flex items-center gap-1 bg-gray-100/50 dark:bg-[#131314]/50 p-1 rounded-xl shrink-0 transition-colors duration-300">
-          <button onClick={() => { setTool("pen"); setIsCustomColorOpen(false); }} className={`p-2.5 md:p-3 rounded-lg transition-all ${tool === "pen" && !isCustomColorOpen ? "bg-indigo-600 dark:bg-indigo-500 text-white shadow-md" : "text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-[#282a2c]"}`} title="Stylo">
+          <button onClick={() => { setTool("pen"); setIsCustomColorOpen(false); }} className={`p-2.5 md:p-3 rounded-lg transition-all ${tool === "pen" && !isCustomColorOpen ? "bg-indigo-600 dark:bg-indigo-500 text-white shadow-md" : "text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-[#282a2c]"}`} title={t('whiteboard.tools.pen')}>
             <Pen className="w-5 h-5" />
           </button>
-          <button onClick={() => { setTool("text"); setIsCustomColorOpen(false); }} className={`p-2.5 md:p-3 rounded-lg transition-all ${tool === "text" && !isCustomColorOpen ? "bg-indigo-600 dark:bg-indigo-500 text-white shadow-md" : "text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-[#282a2c]"}`} title="Texte">
+          <button onClick={() => { setTool("text"); setIsCustomColorOpen(false); }} className={`p-2.5 md:p-3 rounded-lg transition-all ${tool === "text" && !isCustomColorOpen ? "bg-indigo-600 dark:bg-indigo-500 text-white shadow-md" : "text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-[#282a2c]"}`} title={t('whiteboard.tools.text')}>
             <Type className="w-5 h-5" />
           </button>
-          <button onClick={() => { setTool("eraser"); setIsCustomColorOpen(false); }} className={`p-2.5 md:p-3 rounded-lg transition-all ${tool === "eraser" ? "bg-white dark:bg-[#282a2c] text-gray-900 dark:text-white shadow-md ring-1 ring-gray-200 dark:ring-[#333537]" : "text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-[#282a2c]"}`} title="Gomme">
+          <button onClick={() => { setTool("eraser"); setIsCustomColorOpen(false); }} className={`p-2.5 md:p-3 rounded-lg transition-all ${tool === "eraser" ? "bg-white dark:bg-[#282a2c] text-gray-900 dark:text-white shadow-md ring-1 ring-gray-200 dark:ring-[#333537]" : "text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-[#282a2c]"}`} title={t('whiteboard.tools.eraser')}>
             <Eraser className="w-5 h-5" />
           </button>
         </div>
@@ -422,7 +424,7 @@ export default function Whiteboard() {
 
         <div className="w-px h-8 bg-gray-200 dark:bg-[#333537] shrink-0 transition-colors duration-300"></div>
 
-        <button onClick={clearBoard} className="p-2.5 md:p-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-colors shrink-0" title="Effacer tout le tableau">
+        <button onClick={clearBoard} className="p-2.5 md:p-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-colors shrink-0" title={t('whiteboard.tools.clearAll')}>
           <Trash2 className="w-5 h-5" />
         </button>
       </div>

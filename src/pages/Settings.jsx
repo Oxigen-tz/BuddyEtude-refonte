@@ -8,9 +8,11 @@ import {
   User, Palette, Settings2, Moon, Sun, 
   Mail, CheckCircle2, ChevronRight, Bell, Shield 
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function Settings() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("account");
   
   // Gestion du thème
@@ -23,28 +25,28 @@ export default function Settings() {
       // 🛠️ CORRECTION : On utilise "theme" pour correspondre à App.jsx
       localStorage.setItem("theme", "dark");
       setIsDarkMode(true);
-      toast.success("Mode sombre activé");
+      toast.success(t('settings.appearance.darkToast'));
     } else {
       root.classList.remove("dark");
       // 🛠️ CORRECTION : On utilise "theme" pour correspondre à App.jsx
       localStorage.setItem("theme", "light");
       setIsDarkMode(false);
-      toast.success("Mode clair activé");
+      toast.success(t('settings.appearance.lightToast'));
     }
   };
 
   const TABS = [
-    { id: "account", label: "Mon Compte", icon: User },
-    { id: "appearance", label: "Apparence", icon: Palette },
-    { id: "preferences", label: "Préférences", icon: Settings2 },
+    { id: "account", label: t('settings.tabs.account'), icon: User },
+    { id: "appearance", label: t('settings.tabs.appearance'), icon: Palette },
+    { id: "preferences", label: t('settings.tabs.preferences'), icon: Settings2 },
   ];
 
   return (
     <div className="w-full animate-in fade-in duration-500">
       
       <div className="mb-10">
-        <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white tracking-tight">Paramètres</h1>
-        <p className="text-base text-gray-500 dark:text-gray-400 mt-2">Consultez vos informations et personnalisez votre expérience.</p>
+        <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white tracking-tight">{t('settings.title')}</h1>
+        <p className="text-base text-gray-500 dark:text-gray-400 mt-2">{t('settings.subtitle')}</p>
       </div>
 
       <div className="flex flex-col md:flex-row gap-8 lg:gap-12">
@@ -82,11 +84,11 @@ export default function Settings() {
           {activeTab === "account" && (
             <div className="animate-in slide-in-from-right-4 duration-300">
               <div className="bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] rounded-3xl p-8 md:p-12 shadow-sm transition-colors duration-300">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-8">Informations du compte</h2>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-8">{t('settings.account.title')}</h2>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   <div className="space-y-3">
-                    <label className="text-sm font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1">Adresse Email</label>
+                    <label className="text-sm font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1">{t('settings.account.email')}</label>
                     <div className="relative">
                       <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                       <Input 
@@ -98,12 +100,12 @@ export default function Settings() {
                   </div>
 
                   <div className="space-y-3">
-                    <label className="text-sm font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1">Nom complet</label>
+                    <label className="text-sm font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1">{t('settings.account.fullName')}</label>
                     <div className="relative">
                       <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                       <Input 
                         disabled 
-                        value={user?.displayName || user?.full_name || "Étudiant"} 
+                        value={user?.displayName || user?.full_name || t('settings.account.defaultStudent')} 
                         className="pl-12 py-7 bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-600 dark:text-gray-300 rounded-2xl cursor-not-allowed text-base border-dashed" 
                       />
                     </div>
@@ -113,7 +115,7 @@ export default function Settings() {
                 <div className="mt-10 p-5 rounded-2xl bg-indigo-50/30 dark:bg-indigo-500/5 border border-indigo-100/50 dark:border-indigo-500/10">
                   <p className="text-sm text-indigo-700 dark:text-indigo-400 flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4" /> 
-                    Ces informations sont synchronisées avec votre compte Google
+                    {t('settings.account.syncNotice')}
                   </p>
                 </div>
               </div>
@@ -124,8 +126,8 @@ export default function Settings() {
           {activeTab === "appearance" && (
             <div className="animate-in slide-in-from-right-4 duration-300">
               <div className="bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] rounded-3xl p-8 md:p-12 shadow-sm transition-colors duration-300">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Thème de l'application</h2>
-                <p className="text-base text-gray-500 dark:text-gray-400 mb-10">Choisissez l'ambiance visuelle qui vous convient le mieux.</p>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{t('settings.appearance.title')}</h2>
+                <p className="text-base text-gray-500 dark:text-gray-400 mb-10">{t('settings.appearance.subtitle')}</p>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                   {/* Mode Clair */}
@@ -136,8 +138,8 @@ export default function Settings() {
                     <div className="w-full h-40 bg-gray-50 rounded-2xl border border-gray-200 mb-6 flex items-center justify-center transition-transform group-hover:scale-[1.02]">
                        <Sun className="w-12 h-12 text-amber-500" />
                     </div>
-                    <h3 className="font-bold text-xl text-gray-900 dark:text-gray-100">Mode Clair</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Luminosité maximale pour une concentration diurne.</p>
+                    <h3 className="font-bold text-xl text-gray-900 dark:text-gray-100">{t('settings.appearance.light')}</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">{t('settings.appearance.lightDesc')}</p>
                     {!isDarkMode && <div className="absolute top-6 right-6 bg-indigo-600 rounded-full p-1"><CheckCircle2 className="w-5 h-5 text-white" /></div>}
                   </button>
 
@@ -149,8 +151,8 @@ export default function Settings() {
                     <div className="w-full h-40 bg-[#131314] rounded-2xl border border-[#333537] mb-6 flex items-center justify-center transition-transform group-hover:scale-[1.02]">
                        <Moon className="w-12 h-12 text-indigo-400" />
                     </div>
-                    <h3 className="font-bold text-xl text-gray-900 dark:text-gray-100">Mode Sombre</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Style élégant et reposant, idéal pour les sessions nocturnes.</p>
+                    <h3 className="font-bold text-xl text-gray-900 dark:text-gray-100">{t('settings.appearance.dark')}</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">{t('settings.appearance.darkDesc')}</p>
                     {isDarkMode && <div className="absolute top-6 right-6 bg-indigo-500 rounded-full p-1"><CheckCircle2 className="w-5 h-5 text-white" /></div>}
                   </button>
                 </div>
@@ -162,27 +164,27 @@ export default function Settings() {
           {activeTab === "preferences" && (
             <div className="animate-in slide-in-from-right-4 duration-300">
               <div className="bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] rounded-3xl p-8 md:p-12 shadow-sm transition-colors duration-300">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-10">Préférences Générales</h2>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-10">{t('settings.preferences.title')}</h2>
                 
                 <div className="space-y-12">
                   
                   {/* Section Notifications */}
                   <div>
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-6">
-                      <Bell className="w-5 h-5 text-indigo-500" /> Notifications
+                      <Bell className="w-5 h-5 text-indigo-500" /> {t('settings.preferences.notifications')}
                     </h3>
                     <div className="space-y-8">
                       <div className="flex items-center justify-between gap-8">
                         <div className="flex-1">
-                          <p className="font-semibold text-gray-900 dark:text-gray-100">Alertes de messagerie</p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Recevoir une notification lors d'un nouveau message.</p>
+                          <p className="font-semibold text-gray-900 dark:text-gray-100">{t('settings.preferences.messageAlerts')}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('settings.preferences.messageAlertsDesc')}</p>
                         </div>
                         <Switch defaultChecked className="data-[state=checked]:bg-indigo-600" />
                       </div>
                       <div className="flex items-center justify-between gap-8">
                         <div className="flex-1">
-                          <p className="font-semibold text-gray-900 dark:text-gray-100">Rappels de calendrier</p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Être prévenu avant le début d'une session d'étude.</p>
+                          <p className="font-semibold text-gray-900 dark:text-gray-100">{t('settings.preferences.calendarReminders')}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('settings.preferences.calendarRemindersDesc')}</p>
                         </div>
                         <Switch defaultChecked className="data-[state=checked]:bg-indigo-600" />
                       </div>
@@ -194,20 +196,20 @@ export default function Settings() {
                   {/* Section Confidentialité */}
                   <div>
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-6">
-                      <Shield className="w-5 h-5 text-emerald-500" /> Confidentialité
+                      <Shield className="w-5 h-5 text-emerald-500" /> {t('settings.preferences.privacy')}
                     </h3>
                     <div className="space-y-8">
                       <div className="flex items-center justify-between gap-8">
                         <div className="flex-1">
-                          <p className="font-semibold text-gray-900 dark:text-gray-100">Visibilité du profil</p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Permettre aux autres étudiants de vous trouver via la recherche.</p>
+                          <p className="font-semibold text-gray-900 dark:text-gray-100">{t('settings.preferences.profileVisibility')}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('settings.preferences.profileVisibilityDesc')}</p>
                         </div>
                         <Switch defaultChecked className="data-[state=checked]:bg-indigo-600" />
                       </div>
                       <div className="flex items-center justify-between gap-8">
                         <div className="flex-1">
-                          <p className="font-semibold text-gray-900 dark:text-gray-100">Statut de connexion</p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Afficher quand vous êtes en train de travailler sur le site.</p>
+                          <p className="font-semibold text-gray-900 dark:text-gray-100">{t('settings.preferences.onlineStatus')}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('settings.preferences.onlineStatusDesc')}</p>
                         </div>
                         <Switch defaultChecked className="data-[state=checked]:bg-indigo-600" />
                       </div>

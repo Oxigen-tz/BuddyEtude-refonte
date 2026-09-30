@@ -17,10 +17,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { useTranslation } from "react-i18next";
 
 export default function Sessions() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({
     title: "", buddy_email: "", subject: "", date: "", time: "",
@@ -44,7 +46,7 @@ export default function Sessions() {
         if (data.from_email === user.email) list.push({ email: data.to_email, name: data.to_name });
         else if (data.to_email === user.email) list.push({ email: data.from_email, name: data.from_name });
       });
-      const unique = list.filter((v, i, a) => a.findIndex(t => t.email === v.email) === i);
+      const unique = list.filter((v, i, a) => a.findIndex(item => item.email === v.email) === i);
       setBuddies(unique);
     });
 
@@ -79,17 +81,17 @@ export default function Sessions() {
       await addDoc(collection(db, "sessions"), {
         ...form,
         organizer_email: user.email,
-        organizer_name: user.displayName || "Moi",
-        buddy_name: buddy?.name || "Binôme",
+        organizer_name: user.displayName || t('sessions.defaultOrganizer'),
+        buddy_name: buddy?.name || t('sessions.defaultBuddy'),
         participants: [user.email, form.buddy_email],
         status: "planned",
         createdAt: serverTimestamp(),
       });
       setShowCreate(false);
       setForm({ title: "", buddy_email: "", subject: "", date: "", time: "", duration_minutes: 60, mode: "en_ligne", location: "", notes: "" });
-      toast.success("Session planifiée !");
+      toast.success(t('sessions.toast.created'));
     } catch (error) {
-      toast.error("Erreur lors de la création");
+      toast.error(t('sessions.toast.createError'));
     } finally {
       setIsCreating(false);
     }
@@ -98,9 +100,9 @@ export default function Sessions() {
   const updateStatus = async (id, status) => {
     try {
       await updateDoc(doc(db, "sessions", id), { status });
-      toast.success("Statut mis à jour");
+      toast.success(t('sessions.toast.statusUpdated'));
     } catch (error) {
-      toast.error("Erreur");
+      toast.error(t('sessions.toast.statusError'));
     }
   };
 
@@ -117,8 +119,8 @@ export default function Sessions() {
             <Calendar className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Sessions d'étude</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Planifiez et suivez vos sessions</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('sessions.title')}</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t('sessions.subtitle')}</p>
           </div>
         </div>
         <Button 
@@ -126,7 +128,7 @@ export default function Sessions() {
           className="bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded-xl font-medium shadow-sm"
           disabled={buddies.length === 0}
         >
-          <Plus className="w-4 h-4 mr-2" /> Nouvelle session
+          <Plus className="w-4 h-4 mr-2" /> {t('sessions.newSession')}
         </Button>
       </div>
 
@@ -135,8 +137,8 @@ export default function Sessions() {
         <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20 rounded-2xl mb-8 transition-colors duration-300">
           <div className="p-6 text-center">
             <Users className="w-10 h-10 text-amber-500 dark:text-amber-400 mx-auto mb-3" />
-            <p className="text-amber-800 dark:text-amber-300 font-medium">Vous n'avez pas encore de binôme accepté.</p>
-            <p className="text-amber-600 dark:text-amber-400/80 text-sm mt-1">Allez dans l'onglet Recherche pour trouver un partenaire !</p>
+            <p className="text-amber-800 dark:text-amber-300 font-medium">{t('sessions.noBuddyAlert.title')}</p>
+            <p className="text-amber-600 dark:text-amber-400/80 text-sm mt-1">{t('sessions.noBuddyAlert.desc')}</p>
           </div>
         </div>
       )}
@@ -144,7 +146,7 @@ export default function Sessions() {
       {/* --- SESSIONS À VENIR --- */}
       <div className="mb-10">
         <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-          <Clock className="w-5 h-5 text-amber-500 dark:text-amber-400" /> Prochaines sessions ({planned.length})
+          <Clock className="w-5 h-5 text-amber-500 dark:text-amber-400" /> {t('sessions.upcoming')} ({planned.length})
         </h2>
         
         {loading ? (
@@ -154,7 +156,7 @@ export default function Sessions() {
           </div>
         ) : planned.length === 0 ? (
           <p className="text-gray-400 dark:text-gray-500 text-sm py-10 text-center bg-white dark:bg-[#1e1f20] rounded-2xl border border-dashed border-gray-200 dark:border-[#333537] transition-colors duration-300">
-            Aucune session prévue
+            {t('sessions.noUpcoming')}
           </p>
         ) : (
           <div className="grid md:grid-cols-2 gap-5">
@@ -175,7 +177,7 @@ export default function Sessions() {
       {completed.length > 0 && (
         <div>
           <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-            <Check className="w-5 h-5 text-emerald-500 dark:text-emerald-400" /> Historique ({completed.length})
+            <Check className="w-5 h-5 text-emerald-500 dark:text-emerald-400" /> {t('sessions.history')} ({completed.length})
           </h2>
           <div className="grid md:grid-cols-2 gap-5 opacity-75">
             {completed.map(s => <SessionCard key={s.id} session={s} userEmail={user?.email} />)}
@@ -187,25 +189,25 @@ export default function Sessions() {
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="rounded-2xl max-w-lg dark:bg-[#1e1f20] dark:border-[#333537] dark:text-gray-100 p-6">
           <DialogHeader>
-            <DialogTitle className="text-xl">Nouvelle session d'étude</DialogTitle>
+            <DialogTitle className="text-xl">{t('sessions.createDialog.title')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             
             <div className="space-y-2">
-              <Label className="dark:text-gray-300">Titre de la session</Label>
+              <Label className="dark:text-gray-300">{t('sessions.createDialog.titleLabel')}</Label>
               <Input 
                 value={form.title} 
                 onChange={(e) => setForm({ ...form, title: e.target.value })} 
-                placeholder="Ex: Révision Algèbre" 
+                placeholder={t('sessions.createDialog.titlePlaceholder')} 
                 className="bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-white rounded-xl" 
               />
             </div>
             
             <div className="space-y-2">
-              <Label className="dark:text-gray-300">Choisir un binôme</Label>
+              <Label className="dark:text-gray-300">{t('sessions.createDialog.buddyLabel')}</Label>
               <Select value={form.buddy_email} onValueChange={(v) => setForm({ ...form, buddy_email: v })}>
                 <SelectTrigger className="rounded-xl bg-white dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-white">
-                  <SelectValue placeholder="Sélectionnez un binôme" />
+                  <SelectValue placeholder={t('sessions.createDialog.buddyPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent className="dark:bg-[#1e1f20] dark:border-[#333537] dark:text-gray-100">
                   {buddies.map(b => (
@@ -219,7 +221,7 @@ export default function Sessions() {
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="dark:text-gray-300">Date</Label>
+                <Label className="dark:text-gray-300">{t('sessions.createDialog.dateLabel')}</Label>
                 <Input 
                   type="date" 
                   value={form.date} 
@@ -228,7 +230,7 @@ export default function Sessions() {
                 />
               </div>
               <div className="space-y-2">
-                <Label className="dark:text-gray-300">Heure</Label>
+                <Label className="dark:text-gray-300">{t('sessions.createDialog.timeLabel')}</Label>
                 <Input 
                   type="time" 
                   value={form.time} 
@@ -240,7 +242,7 @@ export default function Sessions() {
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="dark:text-gray-300">Durée (min)</Label>
+                <Label className="dark:text-gray-300">{t('sessions.createDialog.durationLabel')}</Label>
                 <Input 
                   type="number" 
                   value={form.duration_minutes} 
@@ -249,14 +251,14 @@ export default function Sessions() {
                 />
               </div>
               <div className="space-y-2">
-                <Label className="dark:text-gray-300">Mode</Label>
+                <Label className="dark:text-gray-300">{t('sessions.createDialog.modeLabel')}</Label>
                 <Select value={form.mode} onValueChange={(v) => setForm({ ...form, mode: v })}>
                   <SelectTrigger className="rounded-xl bg-white dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-white">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="dark:bg-[#1e1f20] dark:border-[#333537] dark:text-gray-100">
-                    <SelectItem value="en_ligne" className="focus:bg-gray-100 dark:focus:bg-[#282a2c] cursor-pointer">En ligne (Tableau blanc)</SelectItem>
-                    <SelectItem value="presentiel" className="focus:bg-gray-100 dark:focus:bg-[#282a2c] cursor-pointer">Présentiel</SelectItem>
+                    <SelectItem value="en_ligne" className="focus:bg-gray-100 dark:focus:bg-[#282a2c] cursor-pointer">{t('sessions.createDialog.modeOnline')}</SelectItem>
+                    <SelectItem value="presentiel" className="focus:bg-gray-100 dark:focus:bg-[#282a2c] cursor-pointer">{t('sessions.createDialog.modeInPerson')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -269,14 +271,14 @@ export default function Sessions() {
               onClick={() => setShowCreate(false)} 
               className="rounded-xl border-gray-200 dark:border-[#333537] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#282a2c] flex-1 sm:flex-none"
             >
-              Annuler
+              {t('sessions.createDialog.cancel')}
             </Button>
             <Button 
               className="bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded-xl flex-1 sm:flex-none shadow-sm"
               disabled={!form.title || !form.buddy_email || !form.date || isCreating}
               onClick={handleCreateSession}
             >
-              {isCreating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : "Planifier la session"}
+              {isCreating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : t('sessions.createDialog.submit')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -287,6 +289,7 @@ export default function Sessions() {
 
 // Composant Carte de Session (Refondu avec des div simples)
 function SessionCard({ session, userEmail, onUpdateStatus, onJoinWhiteboard }) {
+  const { t } = useTranslation();
   const isOrganizer = session.organizer_email === userEmail;
   const buddyName = isOrganizer ? session.buddy_name : session.organizer_name;
 
@@ -298,10 +301,10 @@ function SessionCard({ session, userEmail, onUpdateStatus, onJoinWhiteboard }) {
         <div className="flex items-start justify-between mb-4">
           <div>
             <h3 className="font-bold text-gray-900 dark:text-white text-lg leading-tight">{session.title}</h3>
-            <p className="text-sm text-indigo-600 dark:text-indigo-400 font-medium mt-1">Avec {buddyName}</p>
+            <p className="text-sm text-indigo-600 dark:text-indigo-400 font-medium mt-1">{t('sessions.with', { name: buddyName })}</p>
           </div>
           <Badge className={`border-0 ${session.status === "completed" ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400"}`}>
-            {session.status === "planned" ? "À venir" : "Terminée"}
+            {session.status === "planned" ? t('sessions.status.upcoming') : t('sessions.status.completed')}
           </Badge>
         </div>
         
@@ -317,9 +320,9 @@ function SessionCard({ session, userEmail, onUpdateStatus, onJoinWhiteboard }) {
           </div>
           <div className="flex items-center gap-2">
             {session.mode === "en_ligne" ? (
-              <><Monitor className="w-4 h-4 text-indigo-500 dark:text-indigo-400" /> <span className="text-indigo-600 dark:text-indigo-400 font-medium">En ligne</span></>
+              <><Monitor className="w-4 h-4 text-indigo-500 dark:text-indigo-400" /> <span className="text-indigo-600 dark:text-indigo-400 font-medium">{t('sessions.mode.online')}</span></>
             ) : (
-              <><MapPin className="w-4 h-4 text-gray-400 dark:text-gray-500" /> <span>Présentiel</span></>
+              <><MapPin className="w-4 h-4 text-gray-400 dark:text-gray-500" /> <span>{t('sessions.mode.inperson')}</span></>
             )}
           </div>
         </div>
@@ -332,7 +335,7 @@ function SessionCard({ session, userEmail, onUpdateStatus, onJoinWhiteboard }) {
                 onClick={onJoinWhiteboard}
                 className="w-full bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded-xl font-medium py-5 shadow-sm"
               >
-                <Presentation className="w-4 h-4 mr-2" /> Rejoindre le tableau blanc
+                <Presentation className="w-4 h-4 mr-2" /> {t('sessions.joinWhiteboard')}
               </Button>
             )}
             <div className="flex gap-2">
@@ -342,7 +345,7 @@ function SessionCard({ session, userEmail, onUpdateStatus, onJoinWhiteboard }) {
                 className="flex-1 rounded-xl text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-500/20 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 bg-transparent"
                 onClick={() => onUpdateStatus(session.id, "completed")}
               >
-                Terminée
+                {t('sessions.markCompleted')}
               </Button>
               <Button 
                 variant="outline" 
@@ -350,7 +353,7 @@ function SessionCard({ session, userEmail, onUpdateStatus, onJoinWhiteboard }) {
                 className="flex-1 rounded-xl text-red-500 dark:text-red-400 border-red-100 dark:border-red-500/20 hover:bg-red-50 dark:hover:bg-red-500/10 bg-transparent"
                 onClick={() => onUpdateStatus(session.id, "cancelled")}
               >
-                Annuler
+                {t('sessions.cancel')}
               </Button>
             </div>
           </div>

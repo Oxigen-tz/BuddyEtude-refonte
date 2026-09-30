@@ -10,24 +10,26 @@ import { toast } from "sonner";
 import { db } from "@/firebase/config";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "@/lib/AuthContext";
+import { useTranslation } from "react-i18next";
 
-const LEVEL_LABELS = {
-  college: "Collège", lycee: "Lycée", prepa: "Prépa", bts_iut: "BTS/IUT",
-  licence: "Licence", master: "Master", doctorat: "Doctorat", autre: "Autre"
-};
+// Valeurs techniques uniquement : le libellé vient de buddyCard.levels.<value>
+// via t(), résolu au rendu (un objet hors composant ne peut pas appeler t()).
+const LEVEL_VALUES = ["college", "lycee", "prepa", "bts_iut", "licence", "master", "doctorat", "autre"];
+const REPORT_REASON_VALUES = ["harassment", "spam", "fake", "inappropriate", "other"];
 
 export default function BuddyCard({ profile, onRequest, alreadyRequested, isOwnProfile }) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [reportDetails, setReportDetails] = useState("");
   const [isReporting, setIsReporting] = useState(false);
 
-  const name = profile.display_name || profile.full_name || "Étudiant";
+  const name = profile.display_name || profile.full_name || t('buddyCard.defaultStudent');
   const initials = name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
 
   const handleSendReport = async () => {
-    if (!reportReason) return toast.error("Veuillez choisir un motif");
+    if (!reportReason) return toast.error(t('buddyCard.reportDialog.missingReason'));
     setIsReporting(true);
     try {
       await addDoc(collection(db, "reports"), {
@@ -39,12 +41,12 @@ export default function BuddyCard({ profile, onRequest, alreadyRequested, isOwnP
         status: "pending",
         createdAt: serverTimestamp(),
       });
-      toast.success("Signalement envoyé. Nous allons étudier le profil.");
+      toast.success(t('buddyCard.reportDialog.success'));
       setReportDialogOpen(false);
       setReportReason("");
       setReportDetails("");
     } catch (error) {
-      toast.error("Erreur lors du signalement");
+      toast.error(t('buddyCard.reportDialog.error'));
     } finally {
       setIsReporting(false);
     }
@@ -72,7 +74,7 @@ export default function BuddyCard({ profile, onRequest, alreadyRequested, isOwnP
                 {profile.level && (
                   <span className="flex items-center gap-1">
                     <GraduationCap className="w-3.5 h-3.5 shrink-0" />
-                    {LEVEL_LABELS[profile.level]}
+                    {t(`buddyCard.levels.${profile.level}`)}
                   </span>
                 )}
                 {profile.city && (
@@ -89,7 +91,7 @@ export default function BuddyCard({ profile, onRequest, alreadyRequested, isOwnP
             <button
               onClick={() => setReportDialogOpen(true)}
               className="text-gray-300 dark:text-gray-600 hover:text-red-500 transition-colors p-1 shrink-0"
-              title="Signaler"
+              title={t('buddyCard.report')}
             >
               <AlertTriangle className="w-4 h-4" />
             </button>
@@ -104,7 +106,7 @@ export default function BuddyCard({ profile, onRequest, alreadyRequested, isOwnP
             </p>
           ) : (
             <p className="text-sm text-gray-400 dark:text-gray-600 italic font-sans">
-              Cet étudiant n'a pas encore rédigé de présentation.
+              {t('buddyCard.noBio')}
             </p>
           )}
         </div>
@@ -139,9 +141,9 @@ export default function BuddyCard({ profile, onRequest, alreadyRequested, isOwnP
             onClick={() => onRequest(profile)}
           >
             {alreadyRequested ? (
-              <><Check className="w-4 h-4 mr-1.5" /> Demande envoyée</>
+              <><Check className="w-4 h-4 mr-1.5" /> {t('buddyCard.requestSent')}</>
             ) : (
-              <><Send className="w-4 h-4 mr-1.5" /> Contacter</>
+              <><Send className="w-4 h-4 mr-1.5" /> {t('buddyCard.contact')}</>
             )}
           </Button>
         </div>
@@ -152,29 +154,29 @@ export default function BuddyCard({ profile, onRequest, alreadyRequested, isOwnP
         <DialogContent className="rounded-2xl bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] text-gray-900 dark:text-gray-100 p-6">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold flex items-center gap-2 font-serif">
-              <AlertTriangle className="text-red-500 w-5 h-5" /> Signaler un profil
+              <AlertTriangle className="text-red-500 w-5 h-5" /> {t('buddyCard.reportDialog.title')}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2 font-sans">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Motif du signalement</label>
+              <label className="text-xs font-medium text-gray-500 dark:text-gray-400">{t('buddyCard.reportDialog.reasonLabel')}</label>
               <Select value={reportReason} onValueChange={setReportReason}>
                 <SelectTrigger className="rounded-xl bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-xs">
-                  <SelectValue placeholder="Choisir un motif..." />
+                  <SelectValue placeholder={t('buddyCard.reportDialog.reasonPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent className="dark:bg-[#1e1f20] dark:border-[#333537] dark:text-gray-100 rounded-xl">
-                  <SelectItem value="harassment">Harcèlement ou insulte</SelectItem>
-                  <SelectItem value="spam">Contenu publicitaire / Spam</SelectItem>
-                  <SelectItem value="fake">Faux profil / Usurpation</SelectItem>
-                  <SelectItem value="inappropriate">Contenu inapproprié</SelectItem>
-                  <SelectItem value="other">Autre</SelectItem>
+                  {REPORT_REASON_VALUES.map(value => (
+                    <SelectItem key={value} value={value}>
+                      {t(`buddyCard.reportDialog.reasons.${value}`)}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Détails (Optionnel)</label>
+              <label className="text-xs font-medium text-gray-500 dark:text-gray-400">{t('buddyCard.reportDialog.detailsLabel')}</label>
               <Textarea
-                placeholder="Expliquez-nous brièvement le problème..."
+                placeholder={t('buddyCard.reportDialog.detailsPlaceholder')}
                 className="rounded-xl h-20 bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-xs resize-none p-3"
                 value={reportDetails}
                 onChange={(e) => setReportDetails(e.target.value)}
@@ -182,9 +184,9 @@ export default function BuddyCard({ profile, onRequest, alreadyRequested, isOwnP
             </div>
           </div>
           <DialogFooter className="gap-2 pt-2">
-            <Button variant="ghost" size="sm" onClick={() => setReportDialogOpen(false)} className="rounded-xl text-xs">Annuler</Button>
+            <Button variant="ghost" size="sm" onClick={() => setReportDialogOpen(false)} className="rounded-xl text-xs">{t('buddyCard.reportDialog.cancel')}</Button>
             <Button size="sm" className="bg-red-500 hover:bg-red-600 text-white rounded-xl text-xs" onClick={handleSendReport} disabled={isReporting}>
-              {isReporting && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />} Confirmer
+              {isReporting && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />} {t('buddyCard.reportDialog.confirm')}
             </Button>
           </DialogFooter>
         </DialogContent>

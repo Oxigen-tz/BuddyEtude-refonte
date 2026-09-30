@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Send, MessageSquare, Loader2, Paperclip, FileText, PenTool, X, Edit2, Trash2, Check, UserPlus, AlertTriangle } from "lucide-react";
-import { toast } from "sonner"; 
+import { toast } from "sonner";
+import { useTranslation, Trans } from "react-i18next";
 
 const BANNED_EXTENSIONS = [
   ".exe", ".msi", ".bat", ".cmd", ".sh", ".vbs", ".js", ".com", ".scr", ".dll", ".sys"
@@ -18,6 +19,7 @@ const BANNED_EXTENSIONS = [
 export default function Messages() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [buddies, setBuddies] = useState([]);
   const [activeChat, setActiveChat] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -94,10 +96,10 @@ export default function Messages() {
   const handleAcceptRequest = async (requestId) => {
     try {
       await updateDoc(doc(db, "requests", requestId), { status: "accepted" });
-      toast.success("Demande acceptée ! Vous pouvez maintenant discuter.");
+      toast.success(t('messages.toast.accepted'));
       setActiveChat(prev => ({ ...prev, isPending: false }));
     } catch (error) {
-      toast.error("Erreur lors de l'acceptation.");
+      toast.error(t('messages.toast.acceptError'));
     }
   };
 
@@ -105,10 +107,10 @@ export default function Messages() {
     if (!activeChat?.requestId) return;
     try {
       await deleteDoc(doc(db, "requests", activeChat.requestId));
-      toast.success("Demande refusée.");
+      toast.success(t('messages.toast.rejected'));
       setActiveChat(null);
     } catch (error) {
-      toast.error("Erreur lors du refus.");
+      toast.error(t('messages.toast.rejectError'));
     } finally {
       setShowRejectModal(false);
     }
@@ -140,7 +142,7 @@ export default function Messages() {
       setNewMessage(""); 
       setSelectedFile(null);
     } catch (error) { 
-      toast.error("Erreur lors de l'envoi.");
+      toast.error(t('messages.toast.sendError'));
     } finally { 
       setIsSending(false); 
     }
@@ -150,9 +152,9 @@ export default function Messages() {
     if (!messageToDelete) return;
     try {
       await deleteDoc(doc(db, "messages", messageToDelete));
-      toast.success("Message supprimé");
+      toast.success(t('messages.toast.deleted'));
     } catch (error) {
-      toast.error("Impossible de supprimer le message");
+      toast.error(t('messages.toast.deleteError'));
     } finally {
       setMessageToDelete(null); 
     }
@@ -172,9 +174,9 @@ export default function Messages() {
       });
       setEditingMessageId(null);
       setEditMessageText("");
-      toast.success("Message modifié");
+      toast.success(t('messages.toast.edited'));
     } catch (error) {
-      toast.error("Impossible de modifier le message");
+      toast.error(t('messages.toast.editError'));
     }
   };
 
@@ -186,11 +188,11 @@ export default function Messages() {
         <div className="w-full md:w-[320px] shrink-0 rounded-2xl flex flex-col bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] shadow-sm overflow-hidden transition-colors duration-300">
           <div className="p-5 border-b border-gray-50 dark:border-[#333537] bg-gray-50/50 dark:bg-[#131314]/30">
             <h2 className="font-bold text-lg text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <MessageSquare className="w-5 h-5 text-indigo-600 dark:text-indigo-400" /> Mes Contacts
+              <MessageSquare className="w-5 h-5 text-indigo-600 dark:text-indigo-400" /> {t('messages.contacts')}
             </h2>
           </div>
           <div className="overflow-y-auto flex-1 p-3 space-y-1.5">
-            {buddies.length === 0 ? <p className="text-center text-sm text-gray-400 p-4">Aucune conversation</p> : 
+            {buddies.length === 0 ? <p className="text-center text-sm text-gray-400 p-4">{t('messages.noConversation')}</p> : 
               buddies.map(buddy => (
                 <button key={buddy.email} onClick={() => setActiveChat(buddy)} className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all ${activeChat?.email === buddy.email ? "bg-indigo-50 dark:bg-indigo-500/10 shadow-sm" : "hover:bg-gray-50 dark:hover:bg-[#282a2c]"}`}>
                   <Avatar className="h-12 w-12"><AvatarFallback className="bg-indigo-100 dark:bg-[#282a2c] text-indigo-700 dark:text-indigo-400 font-bold">{buddy.name[0]}</AvatarFallback></Avatar>
@@ -198,7 +200,7 @@ export default function Messages() {
                   
                   {buddy.isPending && (
                     <span className="ml-auto text-[10px] uppercase tracking-wider font-bold bg-indigo-600 text-white px-2 py-1 rounded-full">
-                      Nouveau
+                      {t('messages.new')}
                     </span>
                   )}
                 </button>
@@ -218,16 +220,20 @@ export default function Messages() {
                   <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
                     <UserPlus className="w-10 h-10 text-indigo-600 dark:text-indigo-400" />
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Nouvelle demande</h3>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{t('messages.pendingRequest.title')}</h3>
                   <p className="text-gray-500 dark:text-gray-400 mb-8">
-                    <strong className="text-gray-900 dark:text-gray-100">{activeChat.name}</strong> souhaite réviser avec vous. Acceptez pour lancer la messagerie.
+                    <Trans
+                      i18nKey="messages.pendingRequest.desc"
+                      values={{ name: activeChat.name }}
+                      components={{ bold: <strong className="text-gray-900 dark:text-gray-100" /> }}
+                    />
                   </p>
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
                     <Button onClick={() => handleAcceptRequest(activeChat.requestId)} className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl px-6 h-12">
-                      <Check className="w-5 h-5 mr-2" /> Accepter
+                      <Check className="w-5 h-5 mr-2" /> {t('messages.pendingRequest.accept')}
                     </Button>
                     <Button onClick={() => setShowRejectModal(true)} variant="outline" className="border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900/50 dark:hover:bg-red-900/20 rounded-xl px-6 h-12">
-                      <X className="w-5 h-5 mr-2" /> Refuser
+                      <X className="w-5 h-5 mr-2" /> {t('messages.pendingRequest.reject')}
                     </Button>
                   </div>
                 </div>
@@ -241,14 +247,14 @@ export default function Messages() {
                    <Avatar className="h-12 w-12"><AvatarFallback className="bg-indigo-100 dark:bg-[#282a2c] text-indigo-700 dark:text-indigo-400 font-bold text-lg">{activeChat.name[0]}</AvatarFallback></Avatar>
                    <div className="flex-1">
                      <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100 leading-tight">{activeChat.name}</h3>
-                     <p className="text-sm text-gray-500 dark:text-gray-400">Binôme d'étude</p>
+                     <p className="text-sm text-gray-500 dark:text-gray-400">{t('messages.studyBuddy')}</p>
                    </div>
                    <Button 
                     variant="outline" 
                     onClick={() => navigate(`${createPageUrl("Whiteboard")}?sessionId=${[user.email, activeChat.email].sort().join("_")}`)}
                     className="border-indigo-200 dark:border-[#333537] text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-[#282a2c] dark:bg-[#1e1f20] rounded-xl py-5 px-5"
                    >
-                     <PenTool className="w-5 h-5 mr-2" /> Ouvrir le Tableau Blanc
+                     <PenTool className="w-5 h-5 mr-2" /> {t('messages.openWhiteboard')}
                    </Button>
                 </div>
                 
@@ -260,8 +266,8 @@ export default function Messages() {
                         
                         {isMe && editingMessageId !== msg.id && (
                           <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
-                            <button onClick={() => startEditing(msg)} className="p-1.5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-full hover:bg-gray-100 dark:hover:bg-[#282a2c] transition-colors" title="Modifier"><Edit2 className="w-4 h-4" /></button>
-                            <button onClick={() => setMessageToDelete(msg.id)} className="p-1.5 text-gray-400 hover:text-red-500 rounded-full hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors" title="Supprimer">
+                            <button onClick={() => startEditing(msg)} className="p-1.5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-full hover:bg-gray-100 dark:hover:bg-[#282a2c] transition-colors" title={t('messages.edit')}><Edit2 className="w-4 h-4" /></button>
+                            <button onClick={() => setMessageToDelete(msg.id)} className="p-1.5 text-gray-400 hover:text-red-500 rounded-full hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors" title={t('messages.delete')}>
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
@@ -274,7 +280,7 @@ export default function Messages() {
                             ) : (
                               <a href={msg.fileUrl} target="_blank" rel="noreferrer" className={`flex items-center gap-3 p-3 rounded-xl ${isMe ? "bg-indigo-700/50 text-white" : "bg-gray-100 dark:bg-[#1e1f20] text-gray-700 dark:text-gray-300"}`}>
                                 <FileText className="w-5 h-5" />
-                                <span className="truncate max-w-[200px] font-medium">{msg.fileName || "Document"}</span>
+                                <span className="truncate max-w-[200px] font-medium">{msg.fileName || t('messages.fileDefaultName')}</span>
                               </a>
                             )
                           )}
@@ -295,7 +301,7 @@ export default function Messages() {
                             msg.text && (
                               <span className="leading-relaxed relative">
                                 {msg.text}
-                                {msg.isEdited && <span className="text-[10px] opacity-60 ml-2 italic">(modifié)</span>}
+                                {msg.isEdited && <span className="text-[10px] opacity-60 ml-2 italic">{t('messages.edited')}</span>}
                               </span>
                             )
                           )}
@@ -321,7 +327,7 @@ export default function Messages() {
                   <Input 
                     value={newMessage} 
                     onChange={(e) => setNewMessage(e.target.value)} 
-                    placeholder={`Écrire un message à ${activeChat.name}...`} 
+                    placeholder={t('messages.inputPlaceholder', { name: activeChat.name })} 
                     className="h-12 rounded-xl bg-gray-50 dark:bg-[#282a2c] dark:text-gray-100 dark:placeholder-gray-500 border-transparent flex-1 text-base px-5 focus-visible:ring-indigo-500/50" 
                   />
                   <Button type="submit" disabled={(!newMessage.trim() && !selectedFile) || isSending} className="h-12 w-12 p-0 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded-xl shrink-0 transition-colors">
@@ -335,8 +341,8 @@ export default function Messages() {
               <div className="w-20 h-20 bg-gray-50 dark:bg-[#131314] rounded-full flex items-center justify-center mb-6">
                 <MessageSquare className="w-10 h-10 opacity-50" />
               </div>
-              <p className="text-lg font-medium text-gray-900 dark:text-gray-100">Vos messages</p>
-              <p className="text-sm mt-1">Sélectionnez un contact à gauche pour afficher la discussion.</p>
+              <p className="text-lg font-medium text-gray-900 dark:text-gray-100">{t('messages.emptyState.title')}</p>
+              <p className="text-sm mt-1">{t('messages.emptyState.desc')}</p>
             </div>
           )}
         </div>
@@ -351,16 +357,16 @@ export default function Messages() {
             <div className="w-12 h-12 bg-red-50 dark:bg-red-500/10 rounded-full flex items-center justify-center mb-4">
               <AlertTriangle className="w-6 h-6 text-red-500" />
             </div>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Refuser la demande ?</h3>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{t('messages.rejectModal.title')}</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-8 leading-relaxed">
-              Cette action est définitive. Vous ne pourrez plus discuter avec cette personne à moins qu'une nouvelle demande ne soit envoyée.
+              {t('messages.rejectModal.desc')}
             </p>
             <div className="flex gap-3 justify-end">
               <Button variant="ghost" onClick={() => setShowRejectModal(false)} className="text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#282a2c] rounded-xl font-medium">
-                Annuler
+                {t('messages.rejectModal.cancel')}
               </Button>
               <Button onClick={confirmRejectRequest} className="bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium">
-                Oui, refuser
+                {t('messages.rejectModal.confirm')}
               </Button>
             </div>
           </div>
@@ -376,16 +382,16 @@ export default function Messages() {
             <div className="w-12 h-12 bg-red-50 dark:bg-red-500/10 rounded-full flex items-center justify-center mb-4">
               <Trash2 className="w-6 h-6 text-red-500" />
             </div>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Supprimer ce message ?</h3>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{t('messages.deleteModal.title')}</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-8 leading-relaxed">
-              Êtes-vous sûr de vouloir supprimer ce message ? Il sera effacé pour vous et pour votre interlocuteur de manière irréversible.
+              {t('messages.deleteModal.desc')}
             </p>
             <div className="flex gap-3 justify-end">
               <Button variant="ghost" onClick={() => setMessageToDelete(null)} className="text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#282a2c] rounded-xl font-medium">
-                Annuler
+                {t('messages.deleteModal.cancel')}
               </Button>
               <Button onClick={confirmDeleteMessage} className="bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium">
-                Supprimer
+                {t('messages.deleteModal.confirm')}
               </Button>
             </div>
           </div>

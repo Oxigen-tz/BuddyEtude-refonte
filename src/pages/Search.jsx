@@ -15,27 +15,17 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { useTranslation, Trans } from "react-i18next";
 
-const LEVEL_OPTIONS = [
-  { value: "all", label: "Tous les niveaux" },
-  { value: "college", label: "Collège" },
-  { value: "lycee", label: "Lycée" },
-  { value: "prepa", label: "Prépa" },
-  { value: "bts_iut", label: "BTS / IUT" },
-  { value: "licence", label: "Licence" },
-  { value: "master", label: "Master" },
-  { value: "doctorat", label: "Doctorat" },
-];
-
-const TYPE_OPTIONS = [
-  { value: "all", label: "En ligne & Présentiel" },
-  { value: "online", label: "En ligne uniquement" },
-  { value: "inperson", label: "Présentiel uniquement" },
-];
+// On ne garde ici que les valeurs techniques ; le libellé affiché vient de
+// search.levels.<value> / search.types.<value> via t(), résolu au rendu.
+const LEVEL_VALUES = ["all", "college", "lycee", "prepa", "bts_iut", "licence", "master", "doctorat"];
+const TYPE_VALUES = ["all", "online", "inperson"];
 
 export default function Search() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   
   const [search, setSearch] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("");
@@ -81,15 +71,15 @@ export default function Search() {
         <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20">
           <Lock className="w-8 h-8" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">Connexion requise</h2>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">{t('search.loginRequired.title')}</h2>
         <p className="text-gray-500 dark:text-gray-400 text-sm mb-8 leading-relaxed">
-          Tu dois être connecté à ton compte BuddyEtude pour accéder à la recherche de binômes et contacter des étudiants.
+          {t('search.loginRequired.desc')}
         </p>
         <Button 
           onClick={() => navigate("/")} 
           className="w-full bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white py-6 rounded-xl font-medium shadow-sm transition-all"
         >
-          Retourner à l'accueil / Se connecter
+          {t('search.loginRequired.button')}
         </Button>
       </div>
     );
@@ -141,7 +131,7 @@ export default function Search() {
     
     setIsSending(true);
     try {
-      let defaultSubject = "Général";
+      let defaultSubject = t('search.defaultSubject');
       if (Array.isArray(requestDialog.subjects) && requestDialog.subjects.length > 0) {
         defaultSubject = typeof requestDialog.subjects[0] === "string" 
           ? requestDialog.subjects[0] 
@@ -150,7 +140,7 @@ export default function Search() {
 
       await addDoc(collection(db, "requests"), {
         from_email: user.email,
-        from_name: user.displayName || user.full_name || "Étudiant",
+        from_name: user.displayName || user.full_name || t('search.defaultStudent'),
         to_email: requestDialog.email,
         to_name: requestDialog.display_name || requestDialog.full_name,
         message: requestMessage,
@@ -159,11 +149,11 @@ export default function Search() {
         createdAt: serverTimestamp(),
       });
 
-      toast.success("Demande envoyée avec succès !");
+      toast.success(t('search.toast.success'));
       setRequestDialog(null);
       setRequestMessage("");
     } catch (error) {
-      toast.error("Impossible d'envoyer la demande");
+      toast.error(t('search.toast.error'));
     } finally {
       setIsSending(false);
     }
@@ -209,8 +199,8 @@ export default function Search() {
           <Users className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Trouver un binôme</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Filtrez les profils pour trouver le partenaire d'étude idéal</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">{t('search.title')}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('search.subtitle')}</p>
         </div>
       </div>
 
@@ -224,7 +214,7 @@ export default function Search() {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Rechercher par nom ou école..."
+              placeholder={t('search.searchPlaceholder')}
               className="pl-11 h-[50px] rounded-xl border-gray-200 dark:border-[#333537] bg-gray-50 dark:bg-[#131314] text-gray-900 dark:text-gray-100 focus-visible:ring-indigo-500/50"
             />
           </div>
@@ -234,7 +224,7 @@ export default function Search() {
               fetchOptions={searchSubjects}
               value={subjectFilter}
               onChange={setSubjectFilter}
-              placeholder="Filtrer par matière (ex: Droit, Cinéma...)"
+              placeholder={t('search.subjectPlaceholder')}
               icon={BookOpen}
             />
           </div>
@@ -247,7 +237,7 @@ export default function Search() {
               fetchOptions={searchFrenchCities}
               value={cityFilter}
               onChange={setCityFilter}
-              placeholder="Filtrer par ville..."
+              placeholder={t('search.cityPlaceholder')}
               icon={MapPin}
             />
           </div>
@@ -258,9 +248,9 @@ export default function Search() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="dark:bg-[#1e1f20] dark:border-[#333537] dark:text-gray-100 rounded-xl">
-              {LEVEL_OPTIONS.map(l => (
-                <SelectItem key={l.value} value={l.value} className="focus:bg-indigo-50 dark:focus:bg-indigo-500/10 cursor-pointer rounded-lg">
-                  {l.label}
+              {LEVEL_VALUES.map(value => (
+                <SelectItem key={value} value={value} className="focus:bg-indigo-50 dark:focus:bg-indigo-500/10 cursor-pointer rounded-lg">
+                  {t(`search.levels.${value}`)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -272,9 +262,9 @@ export default function Search() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="dark:bg-[#1e1f20] dark:border-[#333537] dark:text-gray-100 rounded-xl">
-              {TYPE_OPTIONS.map(t => (
-                <SelectItem key={t.value} value={t.value} className="focus:bg-indigo-50 dark:focus:bg-indigo-500/10 cursor-pointer rounded-lg">
-                  {t.label}
+              {TYPE_VALUES.map(value => (
+                <SelectItem key={value} value={value} className="focus:bg-indigo-50 dark:focus:bg-indigo-500/10 cursor-pointer rounded-lg">
+                  {t(`search.types.${value}`)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -294,16 +284,16 @@ export default function Search() {
           <div className="w-16 h-16 bg-gray-50 dark:bg-[#131314] rounded-full flex items-center justify-center mx-auto mb-4">
             <SearchIcon className="w-6 h-6 text-gray-400 dark:text-gray-500" />
           </div>
-          <p className="text-gray-900 dark:text-white text-lg font-bold">Aucun profil ne correspond</p>
+          <p className="text-gray-900 dark:text-white text-lg font-bold">{t('search.noResults.title')}</p>
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-2 max-w-sm mx-auto">
-            Essayez d'élargir votre recherche en retirant certains filtres ou en modifiant vos mots-clés.
+            {t('search.noResults.desc')}
           </p>
           <Button 
             variant="outline" 
             onClick={resetFilters}
             className="mt-6 rounded-xl border-gray-200 dark:border-[#333537] hover:bg-gray-50 dark:hover:bg-[#282a2c]"
           >
-            Réinitialiser les filtres
+            {t('search.noResults.reset')}
           </Button>
         </div>
       ) : (
@@ -324,15 +314,19 @@ export default function Search() {
       <Dialog open={!!requestDialog} onOpenChange={() => setRequestDialog(null)}>
         <DialogContent className="rounded-3xl sm:rounded-3xl dark:bg-[#1e1f20] dark:border-[#333537] dark:text-gray-100 p-8">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">Proposer une session</DialogTitle>
+            <DialogTitle className="text-2xl font-bold">{t('search.requestDialog.title')}</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-            Envoyez un petit mot à <strong className="text-indigo-600 dark:text-indigo-400 font-semibold">{requestDialog?.display_name || requestDialog?.full_name}</strong> pour vous présenter et proposer d'étudier ensemble.
+            <Trans
+              i18nKey="search.requestDialog.desc"
+              values={{ name: requestDialog?.display_name || requestDialog?.full_name }}
+              components={{ bold: <strong className="text-indigo-600 dark:text-indigo-400 font-semibold" /> }}
+            />
           </p>
           <Textarea
             value={requestMessage}
             onChange={(e) => setRequestMessage(e.target.value)}
-            placeholder="Bonjour ! J'ai vu que tu préparais aussi les mêmes examens..."
+            placeholder={t('search.requestDialog.placeholder')}
             className="h-32 mt-6 resize-none bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-gray-100 focus-visible:ring-indigo-500/50 rounded-2xl p-4"
           />
           <DialogFooter className="mt-8 flex gap-3 sm:gap-4">
@@ -341,7 +335,7 @@ export default function Search() {
               onClick={() => setRequestDialog(null)} 
               className="rounded-xl border-gray-200 dark:border-[#333537] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#282a2c] flex-1 sm:flex-none py-6 font-medium"
             >
-              Annuler
+              {t('search.requestDialog.cancel')}
             </Button>
             <Button
               className="bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded-sm flex-1 sm:flex-none py-6 font-medium"
@@ -349,7 +343,7 @@ export default function Search() {
               onClick={handleSendRequest}
             >
               {isSending ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
-              Envoyer ma demande
+              {t('search.requestDialog.send')}
             </Button>
           </DialogFooter>
         </DialogContent>

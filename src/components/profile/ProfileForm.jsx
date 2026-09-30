@@ -7,26 +7,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { X, Plus, Save, Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
-const LEVELS = [
-  { value: "college", label: "Collège" }, { value: "lycee", label: "Lycée" },
-  { value: "prepa", label: "Prépa" }, { value: "bts_iut", label: "BTS / IUT" },
-  { value: "licence", label: "Licence" }, { value: "master", label: "Master" },
-  { value: "doctorat", label: "Doctorat" }, { value: "autre", label: "Autre" },
-];
+// Valeurs techniques uniquement : le libellé de niveau vient de
+// buddyCard.levels.<value> (même liste que la carte de profil, une seule
+// source de vérité), résolu au rendu.
+const LEVEL_VALUES = ["college", "lycee", "prepa", "bts_iut", "licence", "master", "doctorat", "autre"];
+const STYLE_VALUES = ["visuel", "auditif", "pratique", "lecture", "mixte"];
+const SUBJECT_LEVEL_VALUES = ["debutant", "intermediaire", "avance"];
 
-const STYLES = [
-  { value: "visuel", label: "Visuel" }, { value: "auditif", label: "Auditif" },
-  { value: "pratique", label: "Pratique" }, { value: "lecture", label: "Lecture" },
-  { value: "mixte", label: "Mixte" },
-];
-
-const SUBJECT_LEVELS = [
-  { value: "debutant", label: "💡 Débutant (Besoin d'aide)" },
-  { value: "intermediaire", label: "🤝 Intermédiaire (Je gère)" },
-  { value: "avance", label: "🚀 Avancé (Je peux aider)" },
-];
-
+// ⚠️ Ces valeurs sont écrites telles quelles en base (form.availability).
+// On les garde en français pour ne pas casser les profils déjà enregistrés ;
+// seul l'affichage passe par profileForm.availabilityLabels.<valeur>.
 const AVAILABILITIES = ["Matin", "Après-midi", "Soir", "Week-end"];
 
 const POPULAR_SUBJECTS = ["Mathématiques", "Physique", "Chimie", "SVT", "Anglais", "Informatique", "Économie"];
@@ -42,6 +34,7 @@ const ALL_SUBJECTS = [
 ];
 
 export default function ProfileForm({ profile, onSave, saving }) {
+  const { t } = useTranslation();
   const [form, setForm] = useState({
     display_name: "", bio: "", school: "", level: "",
     subjects: [], goals: [], availability: [], study_style: "",
@@ -108,7 +101,7 @@ export default function ProfileForm({ profile, onSave, saving }) {
     onSave({ ...form, profile_complete: true });
   };
 
-  const getLevelLabel = (val) => SUBJECT_LEVELS.find(l => l.value === val)?.label || val;
+  const getLevelLabel = (val) => t(`profileForm.subjectLevels.${val}`, val);
 
   const filteredSuggestions = newSubjectName.trim() === "" 
     ? [] 
@@ -122,54 +115,58 @@ export default function ProfileForm({ profile, onSave, saving }) {
       
       {/* Informations générales */}
       <div className="space-y-5">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Informations générales</h3>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('profileForm.sections.general')}</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="space-y-2">
-            <Label className="dark:text-gray-300">Nom affiché</Label>
+            <Label className="dark:text-gray-300">{t('profileForm.displayName')}</Label>
             <Input 
               value={form.display_name} 
               onChange={(e) => setForm({ ...form, display_name: e.target.value })} 
-              placeholder="Ex: Thomas D." 
+              placeholder={t('profileForm.displayNamePlaceholder')} 
               className="bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-gray-100 rounded-xl"
             />
           </div>
           <div className="space-y-2">
-            <Label className="dark:text-gray-300">Ville</Label>
+            <Label className="dark:text-gray-300">{t('profileForm.city')}</Label>
             <Input 
               value={form.city} 
               onChange={(e) => setForm({ ...form, city: e.target.value })} 
-              placeholder="Ex: Nantes, Paris..." 
+              placeholder={t('profileForm.cityPlaceholder')} 
               className="bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-gray-100 rounded-xl"
             />
           </div>
         </div>
         <div className="space-y-2">
-          <Label className="dark:text-gray-300">Bio</Label>
+          <Label className="dark:text-gray-300">{t('profileForm.bio')}</Label>
           <Textarea 
             value={form.bio} 
             onChange={(e) => setForm({ ...form, bio: e.target.value })} 
             className="h-24 bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-gray-100 rounded-xl" 
-            placeholder="Présentez-vous en quelques mots..." 
+            placeholder={t('profileForm.bioPlaceholder')} 
           />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="space-y-2">
-            <Label className="dark:text-gray-300">Établissement</Label>
+            <Label className="dark:text-gray-300">{t('profileForm.school')}</Label>
             <Input 
               value={form.school} 
               onChange={(e) => setForm({ ...form, school: e.target.value })} 
-              placeholder="Ex: CESI, Université..." 
+              placeholder={t('profileForm.schoolPlaceholder')} 
               className="bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-gray-100 rounded-xl"
             />
           </div>
           <div className="space-y-2">
-            <Label className="dark:text-gray-300">Niveau d'études</Label>
+            <Label className="dark:text-gray-300">{t('profileForm.level')}</Label>
             <Select value={form.level} onValueChange={(v) => setForm({ ...form, level: v })}>
               <SelectTrigger className="bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-gray-100 rounded-xl">
-                <SelectValue placeholder="Sélectionnez" />
+                <SelectValue placeholder={t('profileForm.levelPlaceholder')} />
               </SelectTrigger>
               <SelectContent className="dark:bg-[#1e1f20] dark:border-[#333537] dark:text-gray-100">
-                {LEVELS.map(l => <SelectItem key={l.value} value={l.value} className="focus:bg-gray-100 dark:focus:bg-[#282a2c] cursor-pointer">{l.label}</SelectItem>)}
+                {LEVEL_VALUES.map(value => (
+                  <SelectItem key={value} value={value} className="focus:bg-gray-100 dark:focus:bg-[#282a2c] cursor-pointer">
+                    {t(`buddyCard.levels.${value}`)}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -177,9 +174,8 @@ export default function ProfileForm({ profile, onSave, saving }) {
       </div>
 
       {/* Matières & Niveaux */}
-      {/* On remplace bg-indigo-50/50 par une couleur sombre adaptée */}
       <div className="space-y-4 bg-indigo-50/50 dark:bg-[#131314] p-5 rounded-2xl border border-indigo-50 dark:border-[#333537] transition-colors duration-300">
-        <h3 className="text-lg font-semibold text-indigo-900 dark:text-indigo-400">Matières & Niveaux</h3>
+        <h3 className="text-lg font-semibold text-indigo-900 dark:text-indigo-400">{t('profileForm.sections.subjectsLevels')}</h3>
         
         <div className="flex flex-wrap gap-2 mb-4">
           {form.subjects.map(s => (
@@ -202,7 +198,7 @@ export default function ProfileForm({ profile, onSave, saving }) {
               }} 
               onFocus={() => setShowSuggestions(true)}
               onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-              placeholder="Ex: Mathématiques, Management..." 
+              placeholder={t('profileForm.subjectPlaceholder')} 
             />
             
             {showSuggestions && filteredSuggestions.length > 0 && (
@@ -228,17 +224,21 @@ export default function ProfileForm({ profile, onSave, saving }) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="dark:bg-[#1e1f20] dark:border-[#333537] dark:text-gray-100">
-              {SUBJECT_LEVELS.map(l => <SelectItem key={l.value} value={l.value} className="focus:bg-gray-100 dark:focus:bg-[#282a2c] cursor-pointer">{l.label}</SelectItem>)}
+              {SUBJECT_LEVEL_VALUES.map(value => (
+                <SelectItem key={value} value={value} className="focus:bg-gray-100 dark:focus:bg-[#282a2c] cursor-pointer">
+                  {t(`profileForm.subjectLevels.${value}`)}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
 
           <Button type="button" className="bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded-xl" onClick={() => addSubject(newSubjectName, newSubjectLevel)}>
-            <Plus className="w-4 h-4 mr-1" /> Ajouter
+            <Plus className="w-4 h-4 mr-1" /> {t('profileForm.add')}
           </Button>
         </div>
         
         <div className="pt-2">
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Suggestions rapides (ajoutées en "Intermédiaire") :</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{t('profileForm.quickSuggestions')}</p>
           <div className="flex flex-wrap gap-1.5">
             {POPULAR_SUBJECTS.map(s => (
               <button key={s} type="button" onClick={() => addSubject(s, "intermediaire")}
@@ -252,7 +252,7 @@ export default function ProfileForm({ profile, onSave, saving }) {
 
       {/* Objectifs */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Objectifs</h3>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('profileForm.sections.goals')}</h3>
         <div className="flex flex-wrap gap-2">
           {(Array.isArray(form.goals) ? form.goals : []).map(g => (
             <Badge key={g} variant="secondary" className="bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-transparent dark:border-purple-500/20 px-3 py-1.5 gap-1.5">
@@ -265,7 +265,7 @@ export default function ProfileForm({ profile, onSave, saving }) {
             value={newGoal} 
             onChange={(e) => setNewGoal(e.target.value)} 
             onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addGoal())} 
-            placeholder="Ex: Préparer un concours..." 
+            placeholder={t('profileForm.goalPlaceholder')} 
             className="bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-gray-100 rounded-xl"
           />
           <Button type="button" variant="outline" onClick={addGoal} className="rounded-xl border-gray-200 dark:border-[#333537] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#282a2c]">
@@ -276,20 +276,24 @@ export default function ProfileForm({ profile, onSave, saving }) {
 
       {/* Préférences */}
       <div className="space-y-5">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Préférences</h3>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('profileForm.sections.preferences')}</h3>
         <div className="space-y-2">
-          <Label className="dark:text-gray-300">Style d'apprentissage</Label>
+          <Label className="dark:text-gray-300">{t('profileForm.studyStyle')}</Label>
           <Select value={form.study_style} onValueChange={(v) => setForm({ ...form, study_style: v })}>
             <SelectTrigger className="bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-gray-100 rounded-xl">
-              <SelectValue placeholder="Sélectionnez" />
+              <SelectValue placeholder={t('profileForm.levelPlaceholder')} />
             </SelectTrigger>
             <SelectContent className="dark:bg-[#1e1f20] dark:border-[#333537] dark:text-gray-100">
-              {STYLES.map(s => <SelectItem key={s.value} value={s.value} className="focus:bg-gray-100 dark:focus:bg-[#282a2c] cursor-pointer">{s.label}</SelectItem>)}
+              {STYLE_VALUES.map(value => (
+                <SelectItem key={value} value={value} className="focus:bg-gray-100 dark:focus:bg-[#282a2c] cursor-pointer">
+                  {t(`profileForm.styles.${value}`)}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-3">
-          <Label className="dark:text-gray-300">Disponibilités</Label>
+          <Label className="dark:text-gray-300">{t('profileForm.availability')}</Label>
           <div className="flex flex-wrap gap-2">
             {AVAILABILITIES.map(slot => {
               const isSelected = Array.isArray(form.availability) && form.availability.includes(slot);
@@ -304,7 +308,7 @@ export default function ProfileForm({ profile, onSave, saving }) {
                       : "bg-gray-100 dark:bg-[#131314] text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-[#282a2c] border border-transparent dark:border-[#333537]"
                   }`}
                 >
-                  {slot}
+                  {t(`profileForm.availabilityLabels.${slot}`, slot)}
                 </button>
               )
             })}
@@ -313,18 +317,18 @@ export default function ProfileForm({ profile, onSave, saving }) {
         
         {/* Switchers avec fonds sombres */}
         <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-[#131314] border border-transparent dark:border-[#333537] rounded-xl transition-colors duration-300">
-          <div><p className="text-sm font-medium text-gray-900 dark:text-gray-100">Sessions en ligne</p></div>
+          <div><p className="text-sm font-medium text-gray-900 dark:text-gray-100">{t('profileForm.sessionsOnline')}</p></div>
           <Switch checked={form.is_online} onCheckedChange={(v) => setForm({ ...form, is_online: v })} />
         </div>
         <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-[#131314] border border-transparent dark:border-[#333537] rounded-xl transition-colors duration-300">
-          <div><p className="text-sm font-medium text-gray-900 dark:text-gray-100">Sessions en présentiel</p></div>
+          <div><p className="text-sm font-medium text-gray-900 dark:text-gray-100">{t('profileForm.sessionsInPerson')}</p></div>
           <Switch checked={form.is_in_person} onCheckedChange={(v) => setForm({ ...form, is_in_person: v })} />
         </div>
       </div>
 
       <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 py-6 rounded-xl text-base font-semibold text-white shadow-sm" disabled={saving}>
         {saving ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Save className="w-5 h-5 mr-2" />}
-        Enregistrer mon profil
+        {t('profileForm.save')}
       </Button>
     </form>
   );

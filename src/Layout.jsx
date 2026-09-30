@@ -13,18 +13,20 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
+// On ne stocke plus que la clé de page ici : le libellé affiché vient
+// de layout.nav.<page> via t(), résolu au moment du rendu.
 const navItems = [
-  { name: "Tableau de bord", page: "Dashboard", icon: LayoutDashboard },
-  { name: "Rechercher", page: "Search", icon: Search },
-  { name: "Messages", page: "Messages", icon: MessageSquare },
-  { name: "Sessions", page: "Sessions", icon: Calendar },
-  { name: "Mon profil", page: "Profile", icon: User },
+  { navKey: "Dashboard", page: "Dashboard", icon: LayoutDashboard },
+  { navKey: "Search", page: "Search", icon: Search },
+  { navKey: "Messages", page: "Messages", icon: MessageSquare },
+  { navKey: "Sessions", page: "Sessions", icon: Calendar },
+  { navKey: "Profile", page: "Profile", icon: User },
 ];
 
 export default function Layout({ children, currentPageName }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   // 🔔 États pour gérer les notifications
@@ -49,14 +51,14 @@ export default function Layout({ children, currentPageName }) {
           
           newNotifs.push({
             id: change.doc.id,
-            title: "Demande acceptée 🎉",
-            message: `${data.to_name} a accepté votre demande de binôme !`,
+            title: t('layout.notifications.acceptedTitle'),
+            message: t('layout.notifications.acceptedBody', { name: data.to_name }),
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           });
 
-          toast.success(`🎉 Bonne nouvelle !`, {
-            description: `${data.to_name} a accepté votre demande !`,
-            action: { label: "Voir", onClick: () => navigate(createPageUrl("Messages")) }
+          toast.success(t('layout.notifications.acceptedToast'), {
+            description: t('layout.notifications.acceptedBody', { name: data.to_name }),
+            action: { label: t('layout.notifications.view'), onClick: () => navigate(createPageUrl("Messages")) }
           });
         }
       });
@@ -66,7 +68,7 @@ export default function Layout({ children, currentPageName }) {
       }
     });
     return () => unsub();
-  }, [user, navigate]);
+  }, [user, navigate, t]);
 
   const initials = (user?.displayName || user?.full_name || "U").split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
 
@@ -78,17 +80,17 @@ export default function Layout({ children, currentPageName }) {
   const NotificationsPanel = () => (
     <div className="absolute bottom-16 left-4 md:bottom-24 md:left-64 w-80 bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] shadow-xl rounded-2xl z-50 overflow-hidden transition-all animate-in fade-in slide-in-from-bottom-4">
       <div className="p-4 border-b border-gray-100 dark:border-[#333537] flex justify-between items-center bg-gray-50 dark:bg-[#131314]">
-        <h3 className="font-bold text-gray-900 dark:text-white">Notifications</h3>
+        <h3 className="font-bold text-gray-900 dark:text-white">{t('layout.notifications.title')}</h3>
         {notifications.length > 0 && (
           <button onClick={clearNotifications} className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">
-            Tout marquer comme lu
+            {t('layout.notifications.markAllRead')}
           </button>
         )}
       </div>
       <div className="max-h-80 overflow-y-auto p-2">
         {notifications.length === 0 ? (
           <div className="p-6 text-center text-gray-500 dark:text-gray-400 text-sm">
-            Aucune nouvelle notification.
+            {t('layout.notifications.empty')}
           </div>
         ) : (
           notifications.map((notif, idx) => (
@@ -136,7 +138,7 @@ export default function Layout({ children, currentPageName }) {
                 }`}
               >
                 <item.icon className={`w-5 h-5 ${isActive ? "text-indigo-600 dark:text-indigo-400" : ""}`} />
-                {item.name}
+                {t(`layout.nav.${item.navKey}`)}
               </Link>
             );
           })}
@@ -151,7 +153,7 @@ export default function Layout({ children, currentPageName }) {
             className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all w-full text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-[#282a2c]"
           >
             <Globe className="w-5 h-5" />
-            {isFr ? "English" : "Français"}
+            {isFr ? "English" : t('layout.language')}
           </button>
           
           {/* 🔔 BOUTON NOTIFICATIONS DESKTOP */}
@@ -172,7 +174,7 @@ export default function Layout({ children, currentPageName }) {
                 </span>
               )}
             </div>
-            Notifications
+            {t('layout.notifications.title')}
           </button>
 
           {showNotifications && <NotificationsPanel />}
@@ -186,7 +188,7 @@ export default function Layout({ children, currentPageName }) {
             }`}
           >
             <SettingsIcon className={`w-5 h-5 ${currentPageName === "Settings" ? "text-indigo-600 dark:text-indigo-400" : ""}`} />
-            Paramètres
+            {t(`layout.nav.Settings`)}
           </Link>
 
           <div className="flex items-center gap-3 px-4 py-2 mt-2">
@@ -203,7 +205,7 @@ export default function Layout({ children, currentPageName }) {
           
           <Button variant="ghost" onClick={logout} className="w-full justify-start gap-3 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl mt-1">
             <LogOut className="w-5 h-5" />
-            Déconnexion
+            {t('layout.logout')}
           </Button>
         </div>
       </aside>
@@ -247,7 +249,7 @@ export default function Layout({ children, currentPageName }) {
             {navItems.map((item) => (
               <Link key={item.page} to={createPageUrl(item.page)} onClick={() => setMobileMenuOpen(false)} className={`flex items-center gap-3 px-4 py-4 rounded-xl font-medium ${currentPageName === item.page ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400" : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#282a2c]"}`}>
                 <item.icon className="w-5 h-5" />
-                {item.name}
+                {t(`layout.nav.${item.navKey}`)}
               </Link>
             ))}
 
@@ -257,15 +259,15 @@ export default function Layout({ children, currentPageName }) {
               className="flex items-center gap-3 px-4 py-4 rounded-xl font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#282a2c]"
             >
               <Globe className="w-5 h-5" />
-              {isFr ? "English" : "Français"}
+              {isFr ? "English" : t('layout.language')}
             </button>
 
             <Link to={createPageUrl("Settings")} onClick={() => setMobileMenuOpen(false)} className={`flex items-center gap-3 px-4 py-4 rounded-xl font-medium ${currentPageName === "Settings" ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400" : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#282a2c]"}`}>
               <SettingsIcon className="w-5 h-5" />
-              Paramètres
+              {t(`layout.nav.Settings`)}
             </Link>
             <Button onClick={logout} className="mt-auto bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20">
-              <LogOut className="w-5 h-5 mr-2" /> Déconnexion
+              <LogOut className="w-5 h-5 mr-2" /> {t('layout.logout')}
             </Button>
           </nav>
         )}
