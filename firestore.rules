@@ -30,8 +30,10 @@ service cloud.firestore {
 
     // ---------------------------------------------------------------- Profils
     match /users/{userId} {
-      // Lisible par tout utilisateur connecté (recherche de binômes)
-      allow read: if signedIn();
+      // Son propre profil, ou un profil visible (réglage "Visibilité du profil" de Settings.jsx).
+      // La recherche filtre donc sur profile_visible == true, sinon Firestore refuse la requête.
+      allow read: if signedIn()
+        && (request.auth.uid == userId || resource.data.profile_visible == true);
       // On n'écrit que son propre profil, et on ne peut pas y mettre l'email de quelqu'un d'autre
       // (les demandes de binôme sont envoyées à l'email affiché sur le profil)
       allow create, update: if signedIn()
@@ -64,17 +66,32 @@ service cloud.firestore {
 
     // ---------------------------------------------------------------- Messages
     match /messages/{messageId} {
-      allow read: if signedIn() && myEmail() in resource.data.participants;
+      // unreadBy ⊂ participants (vérifié à la création) : la seconde condition permet la requête
+      // "mes messages non lus" (where unreadBy array-contains moi) sans ouvrir d'accès supplémentaire
+      allow read: if signedIn()
+        && (myEmail() in resource.data.participants
+            || myEmail() in resource.data.get('unreadBy', []));
 
       allow create: if signedIn()
         && request.resource.data.senderEmail == myEmail()
         && myEmail() in request.resource.data.participants
-        && isPair(request.resource.data.participants, request.resource.data.chatId);
+        && isPair(request.resource.data.participants, request.resource.data.chatId)
+        // Non lu uniquement par l'autre participant
+        && request.resource.data.get('unreadBy', []).toSet()
+             .difference(request.resource.data.participants.toSet().difference([myEmail()].toSet()))
+             .size() == 0;
 
-      // Modifier ou supprimer : uniquement ses propres messages, et seulement le texte
+      // L'auteur modifie son texte
       allow update: if signedIn()
         && resource.data.senderEmail == myEmail()
         && onlyChanges(['text', 'isEdited']);
+
+      // Le destinataire marque le message comme lu : il ne peut que se retirer de unreadBy
+      allow update: if signedIn()
+        && myEmail() in resource.data.participants
+        && onlyChanges(['unreadBy'])
+        && request.resource.data.unreadBy == resource.data.unreadBy.removeAll([myEmail()]);
+
       allow delete: if signedIn() && resource.data.senderEmail == myEmail();
     }
 

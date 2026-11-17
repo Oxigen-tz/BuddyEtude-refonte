@@ -16,6 +16,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useTranslation, Trans } from "react-i18next";
+import { createPageUrl } from "@/utils";
+import { useRequests, buildRelations } from "@/hooks/useRequests";
 
 // On ne garde ici que les valeurs techniques ; le libellé affiché vient de
 // search.levels.<value> / search.types.<value> via t(), résolu au rendu.
@@ -49,16 +51,25 @@ export default function Search() {
   const [requestMessage, setRequestMessage] = useState("");
   
   const [profiles, setProfiles] = useState([]);
-  const [myRequests, setMyRequests] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+
+  // Demandes dans les deux sens : permet d'afficher "Déjà binôme" / "Vous a envoyé une demande"
+  // au lieu de proposer une nouvelle demande (avant, on pouvait créer deux demandes croisées)
+  const requests = useRequests(user?.email);
+  const relations = buildRelations(requests, user?.email);
 
   useEffect(() => {
     if (!user?.email) return;
 
     const myEmail = user.email.toLowerCase();
 
-    const qProfiles = query(collection(db, "users"), where("profile_complete", "==", true));
+    // profile_visible == true est exigé par les règles Firestore (réglage de visibilité)
+    const qProfiles = query(
+      collection(db, "users"),
+      where("profile_complete", "==", true),
+      where("profile_visible", "==", true)
+    );
     const unsubProfiles = onSnapshot(
       qProfiles,
       (snapshot) => {
@@ -68,9 +79,7 @@ export default function Search() {
           .filter(p => p.id !== user.uid)
           .filter(p => (p.email || "").toLowerCase() !== myEmail)
           // On masque les profils vides ou inexploitables
-          .filter(hasUsableProfile)
-          // Respecte le réglage "Visibilité du profil" (Paramètres)
-          .filter(p => p.profile_visible !== false);
+          .filter(hasUsableProfile);
         setProfiles(pList);
         setIsLoading(false);
       },
@@ -82,21 +91,7 @@ export default function Search() {
       }
     );
 
-    const qRequests = query(collection(db, "requests"), where("from_email", "==", user.email));
-    const unsubRequests = onSnapshot(
-      qRequests,
-      (snapshot) => {
-        setMyRequests(snapshot.docs.map(d => d.data()));
-      },
-      (error) => {
-        console.error("Erreur de chargement des demandes:", error);
-      }
-    );
-
-    return () => {
-      unsubProfiles();
-      unsubRequests();
-    };
+    return () => unsubProfiles();
   }, [user]);
 
   // Si l'utilisateur n'est pas connecté, on bloque l'accès avec un écran propre
@@ -162,13 +157,13 @@ export default function Search() {
     }
   };
 
-  const sentToEmails = myRequests.map(r => r.to_email);
+  const openConversation = (email) => navigate(`${createPageUrl("Messages")}?chat=${encodeURIComponent(email)}`);
 
   const handleSendRequest = async () => {
     if (!requestDialog || !user) return;
 
-    // Garde-fous : jamais de demande à soi-même, ni de doublon
-    if (requestDialog.email === user.email || sentToEmails.includes(requestDialog.email)) {
+    // Garde-fous : jamais de demande à soi-même, ni de doublon (dans un sens ou dans l'autre)
+    if (requestDialog.email === user.email || relations.has(requestDialog.email)) {
       setRequestDialog(null);
       setRequestMessage("");
       return;
@@ -347,7 +342,8 @@ export default function Search() {
               key={p.id}
               profile={p}
               onRequest={(profile) => setRequestDialog(profile)}
-              alreadyRequested={sentToEmails.includes(p.email)}
+              onOpenConversation={() => openConversation(p.email)}
+              relation={relations.get(p.email)?.status || null}
               isOwnProfile={p.id === user.uid || p.email === user.email}
             />
           ))}

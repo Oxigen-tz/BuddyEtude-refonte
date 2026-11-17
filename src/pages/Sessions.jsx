@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { 
-  Calendar, Plus, Clock, MapPin, Monitor, Users, Check, 
+  Calendar, Plus, Clock, MapPin, Monitor, Users, Check, AlertCircle,
   Loader2, Presentation
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useTranslation } from "react-i18next";
+import { parseSessionStart, parseSessionEnd, sessionStartTime as startTime, isSessionOver } from "@/lib/sessions";
 
 const EMPTY_FORM = {
   title: "", buddy_email: "", subject: "", date: "", time: "",
@@ -26,21 +27,6 @@ const EMPTY_FORM = {
 // Anciennes sessions : organizer_name valait "Moi" / "Me" (user.displayName n'existait pas).
 const LEGACY_PLACEHOLDER_NAMES = ["Moi", "Me"];
 
-// "2026-09-16" + "23:21" → Date locale, sans décalage de fuseau horaire
-const parseSessionStart = (session) => {
-  if (!session?.date) return null;
-  const [y, m, d] = session.date.split("-").map(Number);
-  const [hh, mm] = (session.time || "00:00").split(":").map(Number);
-  const start = new Date(y, (m || 1) - 1, d || 1, hh || 0, mm || 0);
-  return Number.isNaN(start.getTime()) ? null : start;
-};
-
-const parseSessionEnd = (session) => {
-  const start = parseSessionStart(session);
-  if (!start) return null;
-  return new Date(start.getTime() + (Number(session.duration_minutes) || 60) * 60000);
-};
-
 // Identifiant du tableau blanc d'un binôme : même calcul que le chatId de Messages.jsx
 const getPairBoardId = (session) => {
   const emails = Array.isArray(session.participants) && session.participants.length === 2
@@ -48,8 +34,6 @@ const getPairBoardId = (session) => {
     : [session.organizer_email, session.buddy_email];
   return [...emails].sort().join("_");
 };
-
-const startTime = (session) => parseSessionStart(session)?.getTime() ?? 0;
 
 const todayISO = () => {
   const now = new Date();
@@ -176,7 +160,12 @@ export default function Sessions() {
   };
 
   // Prochaines sessions : la plus proche en premier. Historique : la plus récente en premier.
-  const planned = sessions.filter(s => s.status === "planned").sort((a, b) => startTime(a) - startTime(b));
+  // Une session "planned" dont l'heure de fin est passée n'est plus "à venir" : elle part dans
+  // "À clôturer" (avant, elle restait mêlée aux prochaines sessions avec un badge "passée")
+  const now = new Date();
+  const allPlanned = sessions.filter(s => s.status === "planned");
+  const planned = allPlanned.filter(s => !isSessionOver(s, now)).sort((a, b) => startTime(a) - startTime(b));
+  const toClose = allPlanned.filter(s => isSessionOver(s, now)).sort((a, b) => startTime(b) - startTime(a));
   const completed = sessions.filter(s => s.status === "completed").sort((a, b) => startTime(b) - startTime(a));
 
   const canSubmit = form.title.trim() && form.buddy_email && form.date && form.time
@@ -250,6 +239,21 @@ export default function Sessions() {
           </div>
         )}
       </div>
+
+      {/* --- SESSIONS PASSÉES À CLÔTURER --- */}
+      {toClose.length > 0 && (
+        <div className="mb-10">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-red-500 dark:text-red-400" /> {t('sessions.toClose')} ({toClose.length})
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{t('sessions.toCloseDesc')}</p>
+          <div className="grid md:grid-cols-2 gap-5">
+            {toClose.map(s => (
+              <SessionCard key={s.id} session={s} userEmail={user?.email} onUpdateStatus={updateStatus} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* --- SESSIONS TERMINÉES --- */}
       {completed.length > 0 && (
@@ -450,7 +454,8 @@ function SessionCard({ session, userEmail, onUpdateStatus, onJoinWhiteboard }) {
         {/* Actions */}
         {session.status === "planned" && (
           <div className="mt-6 flex flex-col gap-3">
-            {session.mode === "en_ligne" && (
+            {/* Pas de tableau blanc pour une session déjà passée (section "À clôturer") */}
+            {session.mode === "en_ligne" && onJoinWhiteboard && (
               <Button 
                 onClick={onJoinWhiteboard}
                 className="w-full bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded-xl font-medium py-5 shadow-sm"

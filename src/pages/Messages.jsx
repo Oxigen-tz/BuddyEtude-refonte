@@ -1,14 +1,16 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { db, storage } from "../firebase/config";
-import { collection, query, where, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, deleteDoc } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, arrayRemove } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { useAuth } from "@/lib/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useRequests, buildRelations } from "@/hooks/useRequests";
+import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 import { createPageUrl } from "@/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Send, MessageSquare, Loader2, Paperclip, FileText, PenTool, X, Edit2, Trash2, Check, UserPlus, AlertTriangle } from "lucide-react";
+import { Send, MessageSquare, Loader2, Paperclip, FileText, PenTool, X, Edit2, Trash2, Check, UserPlus, UserMinus, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation, Trans } from "react-i18next";
 
@@ -34,8 +36,32 @@ export default function Messages() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [buddies, setBuddies] = useState([]);
-  const [activeChat, setActiveChat] = useState(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Contacts = binômes (demande acceptée) + demandes reçues en attente, dans les deux sens.
+  // useRequests regroupe les demandes croisées : une même personne n'apparaît qu'une fois.
+  const requests = useRequests(user?.email);
+  const buddies = useMemo(() => {
+    const relations = buildRelations(requests, user?.email);
+    return [...relations.entries()]
+      .filter(([, r]) => r.status === "buddy" || r.status === "received")
+      .map(([email, r]) => ({
+        email,
+        name: r.name,
+        requestIds: r.requestIds,
+        isPending: r.status === "received",
+        pendingRequestId: requests.incoming.find((x) => x.from_email === email && x.status === "pending")?.id,
+      }))
+      // Demandes en attente en haut, puis ordre alphabétique
+      .sort((a, b) => Number(b.isPending) - Number(a.isPending) || a.name.localeCompare(b.name));
+  }, [requests, user?.email]);
+
+  const unread = useUnreadMessages(user?.email);
+
+  // On mémorise l'email du contact ouvert (et non l'objet) : la fiche se met à jour d'elle-même
+  // quand la demande est acceptée, et se ferme si le binôme est retiré
+  const [activeEmail, setActiveEmail] = useState(null);
+  const activeChat = buddies.find((b) => b.email === activeEmail) || null;
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
@@ -46,67 +72,31 @@ export default function Messages() {
 
   // États pour contrôler l'affichage de nos pop-ups sur mesure
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [messageToDelete, setMessageToDelete] = useState(null);
 
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
+  // ?chat=<email> (depuis la recherche ou une notification) : ouvre directement la conversation
+  const chatParam = searchParams.get("chat");
   useEffect(() => {
-    if (!user?.email) return;
+    if (!chatParam || requests.loading) return;
+    if (buddies.some((b) => b.email === chatParam)) setActiveEmail(chatParam);
+    // On retire le paramètre pour qu'un retour arrière ne rouvre pas la conversation
+    setSearchParams((params) => { params.delete("chat"); return params; }, { replace: true });
+  }, [chatParam, requests.loading, buddies, setSearchParams]);
 
-    let toList = [];
-    let fromList = [];
-
-    const updateBuddies = () => {
-      const combined = [...toList, ...fromList]
-        // Jamais soi-même, jamais de contact sans email
-        .filter(b => b.email && b.email !== user.email);
-
-      // Si une même personne apparaît deux fois (demande en attente + conversation acceptée),
-      // on garde la conversation acceptée en premier. Le tri est stable.
-      combined.sort((a, b) => Number(a.isPending) - Number(b.isPending));
-
-      const unique = combined.filter(
-        (buddy, i, arr) => arr.findIndex(other => other.email === buddy.email) === i
-      );
-      setBuddies(unique);
-    };
-
-    const unsubTo = onSnapshot(query(collection(db, "requests"), where("to_email", "==", user.email)), (snap) => {
-      toList = snap.docs.map(d => {
-        const data = d.data();
-        if (data.from_email === user.email) return null;
-        if (data.status === "accepted" || data.status === "pending") {
-          return { email: data.from_email, name: data.from_name || data.from_email, requestId: d.id, isPending: data.status === "pending" };
-        }
-        return null;
-      }).filter(Boolean);
-      updateBuddies();
-    }, (error) => console.error("Erreur de chargement des contacts:", error));
-
-    const unsubFrom = onSnapshot(query(collection(db, "requests"), where("from_email", "==", user.email)), (snap) => {
-      fromList = snap.docs.map(d => {
-        const data = d.data();
-        if (data.to_email === user.email) return null;
-        if (data.status === "accepted") {
-          return { email: data.to_email, name: data.to_name || data.to_email, requestId: d.id, isPending: false };
-        }
-        return null;
-      }).filter(Boolean);
-      updateBuddies();
-    }, (error) => console.error("Erreur de chargement des contacts:", error));
-
-    return () => { unsubTo(); unsubFrom(); };
-  }, [user]);
+  const activeIsPending = activeChat?.isPending;
 
   // Écoute des messages avec le correctif anti-saut de page (block: "nearest")
   useEffect(() => {
     // On vide la conversation précédente : sinon ses messages restaient affichés
     // le temps que ceux du nouveau contact arrivent
     setMessages([]);
-    if (!user?.email || !activeChat || activeChat.isPending) return;
+    if (!user?.email || !activeEmail || activeIsPending !== false) return;
 
-    const chatId = [user.email, activeChat.email].sort().join("_");
+    const chatId = [user.email, activeEmail].sort().join("_");
     // Le filtre "participants" est exigé par les règles Firestore : une requête n'est autorisée
     // que si Firestore peut prouver que chaque résultat nous concerne.
     const q = query(
@@ -120,7 +110,16 @@ export default function Messages() {
       const rawMessages = snapshot.docs.map(d => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) }));
       const sortedMessages = rawMessages.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
       setMessages(sortedMessages);
-      
+
+      // Conversation ouverte = messages lus : on se retire de unreadBy
+      // (pastilles de la liste de contacts et du menu latéral)
+      snapshot.docs
+        .filter((d) => (d.data().unreadBy || []).includes(user.email))
+        .forEach((d) => {
+          updateDoc(d.ref, { unreadBy: arrayRemove(user.email) })
+            .catch((error) => console.warn("Message non marqué comme lu :", error));
+        });
+
       // 🛠️ CORRECTIF : Évite que toute la page web ne saute vers le bas au chargement du chat
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -129,14 +128,14 @@ export default function Messages() {
       console.error("Erreur de chargement des messages:", error);
     });
     return () => unsub();
-  }, [activeChat, user]);
+  }, [activeEmail, activeIsPending, user]);
 
   // --- ACTIONS DES DEMANDES ---
-  const handleAcceptRequest = async (requestId) => {
+  const handleAcceptRequest = async () => {
+    if (!activeChat?.pendingRequestId) return;
     try {
-      await updateDoc(doc(db, "requests", requestId), { status: "accepted" });
+      await updateDoc(doc(db, "requests", activeChat.pendingRequestId), { status: "accepted" });
       toast.success(t('messages.toast.accepted'));
-      setActiveChat(prev => ({ ...prev, isPending: false }));
     } catch (error) {
       console.error(error);
       toast.error(t('messages.toast.acceptError'));
@@ -144,16 +143,32 @@ export default function Messages() {
   };
 
   const confirmRejectRequest = async () => {
-    if (!activeChat?.requestId) return;
+    if (!activeChat?.pendingRequestId) return;
     try {
-      await deleteDoc(doc(db, "requests", activeChat.requestId));
+      await deleteDoc(doc(db, "requests", activeChat.pendingRequestId));
       toast.success(t('messages.toast.rejected'));
-      setActiveChat(null);
+      setActiveEmail(null);
     } catch (error) {
       console.error(error);
       toast.error(t('messages.toast.rejectError'));
     } finally {
       setShowRejectModal(false);
+    }
+  };
+
+  // Retirer un binôme : on supprime toutes les demandes entre nous (il peut y en avoir deux,
+  // croisées). Les messages restent en base mais la conversation disparaît de la liste.
+  const confirmRemoveBuddy = async () => {
+    if (!activeChat) return;
+    try {
+      await Promise.all(activeChat.requestIds.map((id) => deleteDoc(doc(db, "requests", id))));
+      toast.success(t('messages.toast.buddyRemoved', { name: activeChat.name }));
+      setActiveEmail(null);
+    } catch (error) {
+      console.error(error);
+      toast.error(t('messages.toast.buddyRemoveError'));
+    } finally {
+      setShowRemoveModal(false);
     }
   };
 
@@ -199,6 +214,8 @@ export default function Messages() {
       await addDoc(collection(db, "messages"), {
         chatId, text: newMessage.trim(), senderEmail: user.email,
         participants: [user.email, activeChat.email].sort(),
+        // Non lu par le destinataire jusqu'à ce qu'il ouvre la conversation
+        unreadBy: [activeChat.email],
         createdAt: serverTimestamp(), fileUrl, fileType, fileName
       });
 
@@ -215,7 +232,13 @@ export default function Messages() {
   const confirmDeleteMessage = async () => {
     if (!messageToDelete) return;
     try {
+      const message = messages.find((m) => m.id === messageToDelete);
       await deleteDoc(doc(db, "messages", messageToDelete));
+      // La pièce jointe restait dans Storage après la suppression du message
+      if (message?.fileUrl) {
+        deleteObject(ref(storage, message.fileUrl))
+          .catch((error) => console.warn("Pièce jointe non supprimée :", error));
+      }
       toast.success(t('messages.toast.deleted'));
     } catch (error) {
       console.error(error);
@@ -259,18 +282,29 @@ export default function Messages() {
           </div>
           <div className="overflow-y-auto flex-1 p-3 space-y-1.5">
             {buddies.length === 0 ? <p className="text-center text-sm text-gray-400 p-4">{t('messages.noConversation')}</p> : 
-              buddies.map(buddy => (
-                <button key={buddy.email} onClick={() => setActiveChat(buddy)} className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all ${activeChat?.email === buddy.email ? "bg-indigo-50 dark:bg-indigo-500/10 shadow-sm" : "hover:bg-gray-50 dark:hover:bg-[#282a2c]"}`}>
-                  <Avatar className="h-12 w-12"><AvatarFallback className="bg-indigo-100 dark:bg-[#282a2c] text-indigo-700 dark:text-indigo-400 font-bold">{getInitial(buddy.name)}</AvatarFallback></Avatar>
-                  <span className={`font-semibold text-left truncate ${activeChat?.email === buddy.email ? "text-indigo-900 dark:text-indigo-300" : "text-gray-700 dark:text-gray-300"}`}>{buddy.name}</span>
-                  
-                  {buddy.isPending && (
-                    <span className="ml-auto text-[10px] uppercase tracking-wider font-bold bg-indigo-600 text-white px-2 py-1 rounded-full">
-                      {t('messages.new')}
-                    </span>
-                  )}
-                </button>
-              ))
+              buddies.map(buddy => {
+                const unreadCount = unread.byEmail[buddy.email] || 0;
+                const isActive = activeChat?.email === buddy.email;
+                return (
+                  <button key={buddy.email} onClick={() => setActiveEmail(buddy.email)} className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all ${isActive ? "bg-indigo-50 dark:bg-indigo-500/10 shadow-sm" : "hover:bg-gray-50 dark:hover:bg-[#282a2c]"}`}>
+                    <Avatar className="h-12 w-12"><AvatarFallback className="bg-indigo-100 dark:bg-[#282a2c] text-indigo-700 dark:text-indigo-400 font-bold">{getInitial(buddy.name)}</AvatarFallback></Avatar>
+                    <span className={`text-left truncate ${unreadCount > 0 ? "font-bold" : "font-semibold"} ${isActive ? "text-indigo-900 dark:text-indigo-300" : "text-gray-700 dark:text-gray-300"}`}>{buddy.name}</span>
+
+                    {buddy.isPending ? (
+                      <span className="ml-auto text-[10px] uppercase tracking-wider font-bold bg-indigo-600 text-white px-2 py-1 rounded-full">
+                        {t('messages.new')}
+                      </span>
+                    ) : unreadCount > 0 && (
+                      <span
+                        className="ml-auto min-w-[1.5rem] h-6 px-1.5 text-xs font-bold bg-red-500 text-white rounded-full flex items-center justify-center"
+                        aria-label={t('messages.unreadCount', { count: unreadCount })}
+                      >
+                        {unreadCount > 99 ? "99+" : unreadCount}
+                      </span>
+                    )}
+                  </button>
+                );
+              })
             }
           </div>
         </div>
@@ -295,7 +329,7 @@ export default function Messages() {
                     />
                   </p>
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    <Button onClick={() => handleAcceptRequest(activeChat.requestId)} className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl px-6 h-12">
+                    <Button onClick={handleAcceptRequest} className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl px-6 h-12">
                       <Check className="w-5 h-5 mr-2" /> {t('messages.pendingRequest.accept')}
                     </Button>
                     <Button onClick={() => setShowRejectModal(true)} variant="outline" className="border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900/50 dark:hover:bg-red-900/20 rounded-xl px-6 h-12">
@@ -320,7 +354,16 @@ export default function Messages() {
                     onClick={() => navigate(`${createPageUrl("Whiteboard")}?sessionId=${encodeURIComponent([user.email, activeChat.email].sort().join("_"))}`)}
                     className="border-indigo-200 dark:border-[#333537] text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-[#282a2c] dark:bg-[#1e1f20] rounded-xl py-5 px-5"
                    >
-                     <PenTool className="w-5 h-5 mr-2" /> {t('messages.openWhiteboard')}
+                     <PenTool className="w-5 h-5 mr-2" /> <span className="hidden sm:inline">{t('messages.openWhiteboard')}</span>
+                   </Button>
+                   <Button
+                    variant="ghost"
+                    onClick={() => setShowRemoveModal(true)}
+                    aria-label={t('messages.removeBuddy')}
+                    title={t('messages.removeBuddy')}
+                    className="text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl h-11 w-11 p-0 shrink-0"
+                   >
+                     <UserMinus className="w-5 h-5" />
                    </Button>
                 </div>
                 
@@ -433,6 +476,31 @@ export default function Messages() {
               </Button>
               <Button onClick={confirmRejectRequest} className="bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium">
                 {t('messages.rejectModal.confirm')}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================================================== */}
+      {/* MODALE : RETIRER UN BINÔME                         */}
+      {/* ==================================================== */}
+      {showRemoveModal && activeChat && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in p-4">
+          <div role="dialog" aria-modal="true" className="bg-white dark:bg-[#1e1f20] rounded-3xl p-6 shadow-2xl w-full max-w-sm border border-gray-100 dark:border-[#333537] animate-in zoom-in-95">
+            <div className="w-12 h-12 bg-red-50 dark:bg-red-500/10 rounded-full flex items-center justify-center mb-4">
+              <UserMinus className="w-6 h-6 text-red-500" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{t('messages.removeModal.title', { name: activeChat.name })}</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-8 leading-relaxed">
+              {t('messages.removeModal.desc')}
+            </p>
+            <div className="flex gap-3 justify-end">
+              <Button variant="ghost" onClick={() => setShowRemoveModal(false)} className="text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#282a2c] rounded-xl font-medium">
+                {t('messages.removeModal.cancel')}
+              </Button>
+              <Button onClick={confirmRemoveBuddy} className="bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium">
+                {t('messages.removeModal.confirm')}
               </Button>
             </div>
           </div>

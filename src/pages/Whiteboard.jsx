@@ -31,9 +31,18 @@ const BRUSH_SIZES = [2, 6, 12, 24];
 const FONT_SIZES = { 2: "16px", 6: "24px", 12: "36px", 24: "64px" };
 const MAX_HISTORY = 25;
 
-// Un document Firestore ne peut pas dépasser 1 Mio. Le tableau est stocké comme une image PNG
+// Un document Firestore ne peut pas dépasser 1 Mio. Le tableau est stocké comme une image
 // encodée en base64 : au-delà de cette taille, l'écriture échouait sans aucun message.
 const MAX_IMAGE_LENGTH = 950000;
+
+// WebP sans perte (qualité 1) : 1,6 à 2,2 fois plus léger que le PNG pour un même tableau
+// (mesuré sous Chrome), donc environ deux fois plus de dessin avant la limite d'1 Mio.
+// Pas de WebP avec perte : le tableau étant ré-encodé à chaque trait, la qualité se dégraderait.
+// Les navigateurs qui ne savent pas encoder en WebP renvoient du PNG : on le détecte.
+const encodeCanvas = (canvas) => {
+  const webp = canvas.toDataURL("image/webp", 1);
+  return webp.startsWith("data:image/webp") ? webp : canvas.toDataURL("image/png");
+};
 
 export default function Whiteboard() {
   const location = useLocation();
@@ -103,11 +112,16 @@ export default function Whiteboard() {
   });
 
   // --- ÉCRITURE ---
-  const saveToFirestore = useCallback(async () => {
+  // Une seule écriture à la fois : Firestore n'accepte qu'environ 1 écriture/seconde sur un même
+  // document. Les traits terminés pendant une sauvegarde sont regroupés dans la suivante.
+  const saveInFlightRef = useRef(false);
+  const saveAgainRef = useRef(false);
+
+  const writeBoard = useCallback(async () => {
     const canvas = canvasRef.current;
     if (!canvas || !isValidBoard) return false;
 
-    const imageBase64 = canvas.toDataURL("image/png");
+    const imageBase64 = encodeCanvas(canvas);
     if (imageBase64.length > MAX_IMAGE_LENGTH) {
       toast.error(t('whiteboard.tooLarge'));
       return false;
@@ -127,6 +141,24 @@ export default function Whiteboard() {
     }
     // participants est dérivé de sessionId et de l'email : il change en même temps qu'eux
   }, [sessionId, isValidBoard, user?.email, t]);
+
+  const saveToFirestore = useCallback(async () => {
+    if (saveInFlightRef.current) {
+      saveAgainRef.current = true;
+      return true;
+    }
+    saveInFlightRef.current = true;
+    try {
+      let ok;
+      do {
+        saveAgainRef.current = false;
+        ok = await writeBoard();
+      } while (ok && saveAgainRef.current);
+      return ok;
+    } finally {
+      saveInFlightRef.current = false;
+    }
+  }, [writeBoard]);
 
   // --- LECTURE ---
   const applyRemoteImage = useCallback((image) => {

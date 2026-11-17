@@ -105,10 +105,14 @@ const resources = {
           inviteTitle: "Nouvelle invitation 👋",
           inviteBody: "{{name}} souhaite réviser avec vous !",
           inviteToast: "Nouvelle demande de {{name}} !",
-          view: "Voir"
+          view: "Voir",
+          sessionTitle: "Nouvelle session 📅",
+          sessionBody: "{{name}} a planifié « {{title}} » avec vous.",
+          sessionToast: "Nouvelle session planifiée !"
         },
         language: "English",
         logout: "Déconnexion",
+        unreadMessages: "{{count}} message(s) non lu(s)",
         menu: "Menu"
       },
       dashboard: {
@@ -269,6 +273,8 @@ const resources = {
         noBio: "Cet étudiant n'a pas encore rédigé de présentation.",
         report: "Signaler",
         requestSent: "Demande envoyée",
+        openChat: "Ouvrir la conversation",
+        answerRequest: "Répondre à sa demande",
         contact: "Contacter",
         levels: {
           college: "Collège",
@@ -307,6 +313,14 @@ const resources = {
         new: "Nouveau",
         studyBuddy: "Binôme d'étude",
         openWhiteboard: "Ouvrir le Tableau Blanc",
+        removeBuddy: "Retirer ce binôme",
+        unreadCount: "{{count}} message(s) non lu(s)",
+        removeModal: {
+          title: "Retirer {{name}} de vos binômes ?",
+          desc: "La conversation disparaîtra de votre liste et vous ne pourrez plus planifier de session ensemble. Vous pourrez renvoyer une demande plus tard.",
+          cancel: "Annuler",
+          confirm: "Retirer"
+        },
         edited: "(modifié)",
         edit: "Modifier",
         delete: "Supprimer",
@@ -333,7 +347,9 @@ const resources = {
           edited: "Message modifié",
           editError: "Impossible de modifier le message",
           fileNotAllowed: "Ce type de fichier n'est pas autorisé.",
-          fileTooLarge: "Fichier trop volumineux (10 Mo maximum)."
+          fileTooLarge: "Fichier trop volumineux (10 Mo maximum).",
+          buddyRemoved: "{{name}} a été retiré(e) de vos binômes.",
+          buddyRemoveError: "Impossible de retirer ce binôme."
         },
         rejectModal: {
           title: "Refuser la demande ?",
@@ -355,6 +371,8 @@ const resources = {
         newSession: "Nouvelle session",
         upcoming: "Prochaines sessions",
         noUpcoming: "Aucune session prévue",
+        toClose: "À clôturer",
+        toCloseDesc: "Ces sessions sont passées : indiquez si elles ont eu lieu.",
         history: "Historique",
         with: "Avec {{name}}",
         joinWhiteboard: "Rejoindre le tableau blanc",
@@ -478,6 +496,19 @@ const resources = {
       },
       // --- NOUVEAU : PAGE PARAMÈTRES ---
       settings: {
+        danger: {
+          title: "Supprimer mon compte",
+          desc: "Efface définitivement votre profil, vos messages (et leurs fichiers) et vos demandes de binôme. Vos sessions prévues seront annulées. Les messages que vos binômes vous ont envoyés restent dans leur propre historique.",
+          button: "Supprimer mon compte",
+          modalTitle: "Supprimer définitivement votre compte ?",
+          modalDesc: "Cette action est irréversible. Google vous demandera de vous reconnecter pour confirmer qu'il s'agit bien de vous.",
+          typeToConfirm: "Tapez {{word}} pour confirmer",
+          confirmWord: "SUPPRIMER",
+          cancel: "Annuler",
+          confirm: "Supprimer définitivement",
+          reauthCancelled: "Suppression annulée : la reconnexion Google n'a pas abouti.",
+          error: "La suppression a échoué. Réessayez ou écrivez à contact@buddyetude.fr."
+        },
         title: "Paramètres",
         subtitle: "Consultez vos informations et personnalisez votre expérience.",
         tabs: {
@@ -639,10 +670,14 @@ const resources = {
           inviteTitle: "New invitation 👋",
           inviteBody: "{{name}} wants to study with you!",
           inviteToast: "New request from {{name}}!",
-          view: "View"
+          view: "View",
+          sessionTitle: "New session 📅",
+          sessionBody: "{{name}} scheduled \"{{title}}\" with you.",
+          sessionToast: "New session scheduled!"
         },
         language: "Français",
         logout: "Logout",
+        unreadMessages: "{{count}} unread message(s)",
         menu: "Menu"
       },
       dashboard: {
@@ -803,6 +838,8 @@ const resources = {
         noBio: "This student hasn't written a bio yet.",
         report: "Report",
         requestSent: "Request sent",
+        openChat: "Open conversation",
+        answerRequest: "Answer their request",
         contact: "Contact",
         levels: {
           college: "Middle school",
@@ -841,6 +878,14 @@ const resources = {
         new: "New",
         studyBuddy: "Study buddy",
         openWhiteboard: "Open Whiteboard",
+        removeBuddy: "Remove this buddy",
+        unreadCount: "{{count}} unread message(s)",
+        removeModal: {
+          title: "Remove {{name}} from your buddies?",
+          desc: "The conversation will disappear from your list and you will no longer be able to schedule sessions together. You can send a new request later.",
+          cancel: "Cancel",
+          confirm: "Remove"
+        },
         edited: "(edited)",
         edit: "Edit",
         delete: "Delete",
@@ -867,7 +912,9 @@ const resources = {
           edited: "Message edited",
           editError: "Couldn't edit the message",
           fileNotAllowed: "This file type is not allowed.",
-          fileTooLarge: "File too large (10 MB maximum)."
+          fileTooLarge: "File too large (10 MB maximum).",
+          buddyRemoved: "{{name}} has been removed from your buddies.",
+          buddyRemoveError: "Could not remove this buddy."
         },
         rejectModal: {
           title: "Decline the request?",
@@ -889,6 +936,8 @@ const resources = {
         newSession: "New session",
         upcoming: "Upcoming sessions",
         noUpcoming: "No session planned",
+        toClose: "To close",
+        toCloseDesc: "These sessions are over: tell us whether they took place.",
         history: "History",
         with: "With {{name}}",
         joinWhiteboard: "Join the whiteboard",
@@ -1012,6 +1061,19 @@ const resources = {
       },
       // --- NEW: SETTINGS PAGE ---
       settings: {
+        danger: {
+          title: "Delete my account",
+          desc: "Permanently erases your profile, your messages (and their files) and your buddy requests. Your planned sessions will be cancelled. Messages your buddies sent you stay in their own history.",
+          button: "Delete my account",
+          modalTitle: "Permanently delete your account?",
+          modalDesc: "This cannot be undone. Google will ask you to sign in again to confirm it's really you.",
+          typeToConfirm: "Type {{word}} to confirm",
+          confirmWord: "DELETE",
+          cancel: "Cancel",
+          confirm: "Delete permanently",
+          reauthCancelled: "Deletion cancelled: the Google sign-in did not complete.",
+          error: "Deletion failed. Try again or write to contact@buddyetude.fr."
+        },
         title: "Settings",
         subtitle: "View your information and personalize your experience.",
         tabs: {

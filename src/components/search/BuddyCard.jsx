@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { MapPin, GraduationCap, Send, Check, AlertTriangle, Loader2 } from "lucide-react";
+import { MapPin, GraduationCap, Send, Check, AlertTriangle, Loader2, MessageSquare, Inbox } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -14,7 +14,8 @@ import { useTranslation } from "react-i18next";
 
 const REPORT_REASON_VALUES = ["harassment", "spam", "fake", "inappropriate", "other"];
 
-export default function BuddyCard({ profile, onRequest, alreadyRequested, isOwnProfile }) {
+// relation : null (aucune), "sent" (demande envoyée), "received" (demande reçue), "buddy" (binôme)
+export default function BuddyCard({ profile, onRequest, onOpenConversation, relation, isOwnProfile }) {
   const { user } = useAuth();
   const { t } = useTranslation();
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
@@ -128,22 +129,42 @@ export default function BuddyCard({ profile, onRequest, alreadyRequested, isOwnP
       {/* --- ACTION --- */}
       {!isOwnProfile && (
         <div className="px-5 pb-5 pt-1">
-          <Button
-            size="sm"
-            className={`w-full rounded-xl font-medium text-sm py-5 transition-all ${
-              alreadyRequested
-                ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 cursor-not-allowed hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
-                : "bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white shadow-sm"
-            }`}
-            disabled={alreadyRequested}
-            onClick={() => onRequest(profile)}
-          >
-            {alreadyRequested ? (
-              <><Check className="w-4 h-4 mr-1.5" /> {t('buddyCard.requestSent')}</>
-            ) : (
-              <><Send className="w-4 h-4 mr-1.5" /> {t('buddyCard.contact')}</>
-            )}
-          </Button>
+          {relation === "buddy" ? (
+            // Déjà binôme : on ouvre directement la conversation
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full rounded-xl font-medium text-sm py-5 border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 bg-transparent"
+              onClick={onOpenConversation}
+            >
+              <MessageSquare className="w-4 h-4 mr-1.5" /> {t('buddyCard.openChat')}
+            </Button>
+          ) : relation === "received" ? (
+            // Il/elle nous a déjà écrit : on répond à sa demande plutôt que d'en créer une seconde
+            <Button
+              size="sm"
+              className="w-full rounded-xl font-medium text-sm py-5 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white shadow-sm"
+              onClick={onOpenConversation}
+            >
+              <Inbox className="w-4 h-4 mr-1.5" /> {t('buddyCard.answerRequest')}
+            </Button>
+          ) : relation === "sent" ? (
+            <Button
+              size="sm"
+              disabled
+              className="w-full rounded-xl font-medium text-sm py-5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 disabled:opacity-100"
+            >
+              <Check className="w-4 h-4 mr-1.5" /> {t('buddyCard.requestSent')}
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              className="w-full rounded-xl font-medium text-sm py-5 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white shadow-sm"
+              onClick={() => onRequest(profile)}
+            >
+              <Send className="w-4 h-4 mr-1.5" /> {t('buddyCard.contact')}
+            </Button>
+          )}
         </div>
       )}
 

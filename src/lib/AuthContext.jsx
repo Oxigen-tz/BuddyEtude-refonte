@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { auth } from '../firebase/config'; 
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
-import { syncUserProfile } from '../firebase/services'; 
+import { syncUserProfile, ensureProfileDefaults } from '../firebase/services';
 
 const AuthContext = createContext();
 
@@ -28,6 +28,8 @@ export const AuthProvider = ({ children }) => {
           photoURL: firebaseUser.photoURL
         });
         setIsAuthenticated(true);
+        // Sans attendre : ne doit pas retarder l'affichage de l'app
+        ensureProfileDefaults(firebaseUser.uid);
       } else {
         setUser(null);
         setIsAuthenticated(false);

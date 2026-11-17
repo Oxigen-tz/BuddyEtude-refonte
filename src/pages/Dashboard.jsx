@@ -6,16 +6,18 @@ import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Search, UserPlus, Calendar, Sparkles, Check, X, ArrowRight } from "lucide-react";
 import { db } from "../firebase/config";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs, getDoc, doc } from "firebase/firestore";
+import { parseSessionStart, sessionStartTime, isSessionOver } from "@/lib/sessions";
 
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [isProfileComplete, setIsProfileComplete] = useState(false);
   const [hasBuddy, setHasBuddy] = useState(false);
-  
+  const [upcomingSessions, setUpcomingSessions] = useState([]);
+
   const [hasLaunchedSession, setHasLaunchedSession] = useState(localStorage.getItem("tuto_step3") === "true");
   const [showTutorial, setShowTutorial] = useState(localStorage.getItem("tuto_hidden") !== "true");
 
@@ -26,21 +28,39 @@ export default function Dashboard() {
 
     const checkUserProgress = async () => {
       try {
-        const userQuery = query(collection(db, "users"), where("email", "==", user.email));
-        const userSnap = await getDocs(userQuery);
-        if (!userSnap.empty) {
-          const userData = userSnap.docs[0].data();
-          setIsProfileComplete(!!userData.profile_complete);
+        // Lecture directe de son propre profil : une requête sur "users" filtrée par email serait
+        // refusée par les règles (elles ne laissent lister que les profils visibles)
+        const userSnap = await getDoc(doc(db, "users", user.uid));
+        if (userSnap.exists()) {
+          setIsProfileComplete(!!userSnap.data().profile_complete);
         }
 
         const reqQueryTo = query(collection(db, "requests"), where("to_email", "==", user.email), where("status", "==", "accepted"));
         // Une demande envoyée mais pas encore acceptée ne fait pas de vous un binôme
         const reqQueryFrom = query(collection(db, "requests"), where("from_email", "==", user.email), where("status", "==", "accepted"));
         
-        const [toSnap, fromSnap] = await Promise.all([getDocs(reqQueryTo), getDocs(reqQueryFrom)]);
+        const sessionsQuery = query(collection(db, "sessions"), where("participants", "array-contains", user.email));
+
+        const [toSnap, fromSnap, sessionsSnap] = await Promise.all([
+          getDocs(reqQueryTo), getDocs(reqQueryFrom), getDocs(sessionsQuery)
+        ]);
         if (!toSnap.empty || !fromSnap.empty) {
           setHasBuddy(true);
         }
+
+        const allSessions = sessionsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        // Étape 3 du tutoriel validée dès qu'une session existe (pas seulement après un clic)
+        if (allSessions.length > 0) {
+          localStorage.setItem("tuto_step3", "true");
+          setHasLaunchedSession(true);
+        }
+        const now = new Date();
+        setUpcomingSessions(
+          allSessions
+            .filter((s) => s.status === "planned" && !isSessionOver(s, now))
+            .sort((a, b) => sessionStartTime(a) - sessionStartTime(b))
+            .slice(0, 3)
+        );
       } catch (error) {
         console.error("Erreur progression :", error);
       }
@@ -164,9 +184,31 @@ export default function Dashboard() {
             </div>
             <div>
               <h3 className="font-semibold text-foreground text-lg">{t("dashboard.sessions.title")}</h3>
-              <p className="text-muted-foreground text-sm mt-1 leading-relaxed">
-                {t("dashboard.sessions.desc")}
-              </p>
+              {upcomingSessions.length === 0 ? (
+                <p className="text-muted-foreground text-sm mt-1 leading-relaxed">
+                  {t("dashboard.sessions.desc")}
+                </p>
+              ) : (
+                // Les vraies prochaines sessions (avant : un simple texte d'invitation)
+                <ul className="mt-2 space-y-2">
+                  {upcomingSessions.map((s) => {
+                    const start = parseSessionStart(s);
+                    const withName = s.organizer_email === user?.email ? s.buddy_name : s.organizer_name;
+                    return (
+                      <li key={s.id} className="text-sm">
+                        <span className="font-medium text-foreground">{s.title}</span>
+                        <span className="text-muted-foreground">
+                          {" · "}
+                          {start
+                            ? start.toLocaleString(i18n.language, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
+                            : s.date}
+                          {withName ? ` · ${withName}` : ""}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </div>
           </div>
           <div className="mt-5 flex justify-end">

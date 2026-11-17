@@ -5,6 +5,7 @@ import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { createPageUrl } from "@/utils";
 import { useAuth } from "@/lib/AuthContext";
 import { getRequestAlertsEnabled } from "@/lib/preferences";
+import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
@@ -34,6 +35,18 @@ export default function Layout({ children, currentPageName }) {
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
 
+  // Pastille "messages non lus" sur l'entrée Messages du menu
+  const unread = useUnreadMessages(user?.email);
+  const renderUnreadBadge = (page) =>
+    page === "Messages" && unread.total > 0 ? (
+      <span
+        className="ml-auto min-w-[1.25rem] h-5 px-1.5 text-[11px] font-bold bg-red-500 text-white rounded-full flex items-center justify-center"
+        aria-label={t('layout.unreadMessages', { count: unread.total })}
+      >
+        {unread.total > 99 ? "99+" : unread.total}
+      </span>
+    ) : null;
+
   // 🌐 Bascule de langue
   const toggleLanguage = () => {
     const newLang = i18n.language.startsWith('fr') ? 'en' : 'fr';
@@ -45,14 +58,14 @@ export default function Layout({ children, currentPageName }) {
 
     const formatTime = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    const notify = ({ id, type, title, message, toastTitle }) => {
+    const notify = ({ id, type, title, message, toastTitle, target = "Messages" }) => {
       // Réglage "Alertes de demandes" (page Paramètres) : s'il est coupé, on ne notifie pas
       if (!getRequestAlertsEnabled()) return;
 
-      setNotifications(prev => [{ id, type, title, message, time: formatTime() }, ...prev]);
+      setNotifications(prev => [{ id, type, title, message, target, time: formatTime() }, ...prev]);
       toast.success(toastTitle, {
         description: message,
-        action: { label: t('layout.notifications.view'), onClick: () => navigate(createPageUrl("Messages")) }
+        action: { label: t('layout.notifications.view'), onClick: () => navigate(createPageUrl(target)) }
       });
     };
 
@@ -63,6 +76,7 @@ export default function Layout({ children, currentPageName }) {
     // à chaque chargement de page.
     let acceptedReady = false;
     let inviteReady = false;
+    let sessionsReady = false;
 
     const unsubAccepted = onSnapshot(
       query(collection(db, "requests"), where("from_email", "==", user.email), where("status", "==", "accepted")),
@@ -105,7 +119,29 @@ export default function Layout({ children, currentPageName }) {
       (error) => console.error("Erreur notifications (invitations):", error)
     );
 
-    return () => { unsubAccepted(); unsubInvites(); };
+    // Nouvelle session planifiée par le binôme : avant, il ne la découvrait qu'en ouvrant Sessions
+    const unsubSessions = onSnapshot(
+      query(collection(db, "sessions"), where("participants", "array-contains", user.email)),
+      (snapshot) => {
+        if (!sessionsReady) { sessionsReady = true; return; }
+        snapshot.docChanges().forEach((change) => {
+          if (change.type !== "added") return;
+          const data = change.doc.data();
+          if (data.organizer_email === user.email || data.status !== "planned") return;
+          notify({
+            id: `session-${change.doc.id}`,
+            type: "session",
+            title: t('layout.notifications.sessionTitle'),
+            message: t('layout.notifications.sessionBody', { name: data.organizer_name || data.organizer_email, title: data.title }),
+            toastTitle: t('layout.notifications.sessionToast'),
+            target: "Sessions",
+          });
+        });
+      },
+      (error) => console.error("Erreur notifications (sessions):", error)
+    );
+
+    return () => { unsubAccepted(); unsubInvites(); unsubSessions(); };
   }, [user, navigate, t]);
 
   const initials = (user?.displayName || user?.full_name || "U").split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
@@ -139,13 +175,15 @@ export default function Layout({ children, currentPageName }) {
             <div
               key={notif.id}
               className="p-3 mb-1 hover:bg-gray-50 dark:hover:bg-[#282a2c] rounded-xl cursor-pointer transition-colors"
-              onClick={() => { setShowNotifications(false); navigate(createPageUrl("Messages")); }}
+              onClick={() => { setShowNotifications(false); navigate(createPageUrl(notif.target || "Messages")); }}
             >
               <div className="flex gap-3">
                 <div className="mt-1">
                   {notif.type === "invite"
                     ? <UserPlus className="w-5 h-5 text-indigo-500" />
-                    : <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
+                    : notif.type === "session"
+                      ? <Calendar className="w-5 h-5 text-amber-500" />
+                      : <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
                 </div>
                 <div>
                   <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{notif.title}</p>
@@ -189,6 +227,7 @@ export default function Layout({ children, currentPageName }) {
               >
                 <item.icon className={`w-5 h-5 ${isActive ? "text-indigo-600 dark:text-indigo-400" : ""}`} />
                 {t(`layout.nav.${item.navKey}`)}
+                {renderUnreadBadge(item.page)}
               </Link>
             );
           })}
@@ -291,9 +330,13 @@ export default function Layout({ children, currentPageName }) {
                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                aria-label={t('layout.menu')}
                aria-expanded={mobileMenuOpen}
-               className="text-gray-900 dark:text-gray-100"
+               className="relative text-gray-900 dark:text-gray-100"
              >
                {mobileMenuOpen ? <X /> : <Menu />}
+               {/* Sur mobile, le menu est replié : on signale les messages non lus sur son bouton */}
+               {!mobileMenuOpen && unread.total > 0 && (
+                 <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-red-500 border-2 border-white dark:border-[#1e1f20]" />
+               )}
              </button>
            </div>
         </header>
@@ -307,6 +350,7 @@ export default function Layout({ children, currentPageName }) {
               <Link key={item.page} to={createPageUrl(item.page)} onClick={() => setMobileMenuOpen(false)} className={`flex items-center gap-3 px-4 py-4 rounded-xl font-medium ${currentPageName === item.page ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400" : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#282a2c]"}`}>
                 <item.icon className="w-5 h-5" />
                 {t(`layout.nav.${item.navKey}`)}
+                {renderUnreadBadge(item.page)}
               </Link>
             ))}
 

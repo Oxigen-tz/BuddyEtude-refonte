@@ -76,7 +76,9 @@ export default function Profile() {
         ...formData, 
         email: user.email, 
         photo_url: formData.photo_url || profile?.photo_url || user.photoURL || "",
-        profile_complete: true, 
+        profile_complete: true,
+        // Toujours présent : la recherche (et les règles Firestore) filtrent sur ce champ
+        profile_visible: profile?.profile_visible !== false,
         updatedAt: new Date().toISOString() 
       };
       const wasComplete = Boolean(profile?.profile_complete);

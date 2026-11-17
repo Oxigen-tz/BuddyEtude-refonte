@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { db } from "../firebase/config";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { db, auth, storage } from "../firebase/config";
+import { doc, getDoc, setDoc, deleteDoc, collection, query, where, getDocs, writeBatch } from "firebase/firestore";
+import { ref, deleteObject } from "firebase/storage";
+import { reauthenticateWithPopup, GoogleAuthProvider, deleteUser } from "firebase/auth";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/AuthContext";
 import { getRequestAlertsEnabled, setRequestAlertsEnabled } from "@/lib/preferences";
 import { Input } from "@/components/ui/input";
@@ -8,8 +11,17 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { 
   User, Palette, Settings2, Moon, Sun, 
-  Mail, CheckCircle2, ChevronRight, Bell, Shield 
+  Mail, CheckCircle2, ChevronRight, Bell, Shield, Trash2, AlertTriangle, Loader2
 } from "lucide-react";
+
+// Supprime des documents par lots (une écriture groupée Firestore est limitée à 500 opérations)
+const deleteInBatches = async (refs) => {
+  for (let i = 0; i < refs.length; i += 450) {
+    const batch = writeBatch(db);
+    refs.slice(i, i + 450).forEach((r) => batch.delete(r));
+    await batch.commit();
+  }
+};
 import { useTranslation } from "react-i18next";
 
 export default function Settings() {
@@ -77,6 +89,65 @@ export default function Settings() {
     setRequestAlerts(value);
     setRequestAlertsEnabled(value);
     toast.success(t('settings.toast.saved'));
+  };
+
+  // --- SUPPRESSION DU COMPTE (droit à l'effacement, promis par la page Confidentialité) ---
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const confirmWord = t('settings.danger.confirmWord');
+
+  const handleDeleteAccount = async () => {
+    const current = auth.currentUser;
+    if (!current || !user?.email) return;
+    setIsDeleting(true);
+    try {
+      // Firebase exige une connexion récente pour supprimer un compte : on la demande d'abord,
+      // AVANT d'effacer quoi que ce soit (sinon on risquerait une suppression à moitié faite)
+      await reauthenticateWithPopup(current, new GoogleAuthProvider());
+
+      const email = user.email;
+
+      // 1. Mes messages, et leurs pièces jointes dans Storage
+      const messagesSnap = await getDocs(query(collection(db, "messages"), where("participants", "array-contains", email)));
+      const myMessages = messagesSnap.docs.filter((d) => d.data().senderEmail === email);
+      await Promise.all(myMessages.map((d) => {
+        const url = d.data().fileUrl;
+        return url ? deleteObject(ref(storage, url)).catch(() => {}) : null;
+      }));
+      await deleteInBatches(myMessages.map((d) => d.ref));
+
+      // 2. Mes demandes de binôme, envoyées et reçues
+      const [incoming, outgoing] = await Promise.all([
+        getDocs(query(collection(db, "requests"), where("to_email", "==", email))),
+        getDocs(query(collection(db, "requests"), where("from_email", "==", email))),
+      ]);
+      await deleteInBatches([...incoming.docs, ...outgoing.docs].map((d) => d.ref));
+
+      // 3. Mes sessions prévues : annulées, pour que mon binôme ne m'attende pas
+      const sessionsSnap = await getDocs(query(collection(db, "sessions"), where("participants", "array-contains", email)));
+      const plannedRefs = sessionsSnap.docs.filter((d) => d.data().status === "planned").map((d) => d.ref);
+      for (let i = 0; i < plannedRefs.length; i += 450) {
+        const batch = writeBatch(db);
+        plannedRefs.slice(i, i + 450).forEach((r) => batch.update(r, { status: "cancelled" }));
+        await batch.commit();
+      }
+
+      // 4. Mon profil
+      await deleteDoc(doc(db, "users", user.uid));
+
+      // 5. Le compte de connexion lui-même
+      await deleteUser(current);
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Erreur de suppression du compte:", error);
+      if (error?.code === "auth/popup-closed-by-user" || error?.code === "auth/cancelled-popup-request") {
+        toast.error(t('settings.danger.reauthCancelled'));
+      } else {
+        toast.error(t('settings.danger.error'));
+      }
+      setIsDeleting(false);
+    }
   };
 
   const TABS = [
@@ -161,6 +232,56 @@ export default function Settings() {
                     <CheckCircle2 className="w-4 h-4" /> 
                     {t('settings.account.syncNotice')}
                   </p>
+                </div>
+              </div>
+
+              {/* Zone de danger : suppression du compte */}
+              <div className="mt-8 bg-white dark:bg-[#1e1f20] border border-red-100 dark:border-red-500/20 rounded-3xl p-8 md:p-12 shadow-sm">
+                <h2 className="text-xl font-bold text-red-600 dark:text-red-400 mb-2 flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5" /> {t('settings.danger.title')}
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">{t('settings.danger.desc')}</p>
+                <Button
+                  variant="outline"
+                  onClick={() => { setDeleteConfirmText(""); setShowDeleteModal(true); }}
+                  className="rounded-xl border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 bg-transparent"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" /> {t('settings.danger.button')}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {showDeleteModal && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in p-4">
+              <div role="dialog" aria-modal="true" className="bg-white dark:bg-[#1e1f20] rounded-3xl p-6 shadow-2xl w-full max-w-md border border-gray-100 dark:border-[#333537] animate-in zoom-in-95">
+                <div className="w-12 h-12 bg-red-50 dark:bg-red-500/10 rounded-full flex items-center justify-center mb-4">
+                  <Trash2 className="w-6 h-6 text-red-500" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{t('settings.danger.modalTitle')}</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 leading-relaxed">{t('settings.danger.modalDesc')}</p>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="delete-confirm">
+                  {t('settings.danger.typeToConfirm', { word: confirmWord })}
+                </label>
+                <Input
+                  id="delete-confirm"
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  autoComplete="off"
+                  className="mt-2 mb-6 rounded-xl bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537]"
+                />
+                <div className="flex gap-3 justify-end">
+                  <Button variant="ghost" disabled={isDeleting} onClick={() => setShowDeleteModal(false)} className="rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#282a2c]">
+                    {t('settings.danger.cancel')}
+                  </Button>
+                  <Button
+                    onClick={handleDeleteAccount}
+                    disabled={isDeleting || deleteConfirmText.trim().toUpperCase() !== confirmWord.toUpperCase()}
+                    className="bg-red-500 hover:bg-red-600 text-white rounded-xl"
+                  >
+                    {isDeleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    {t('settings.danger.confirm')}
+                  </Button>
                 </div>
               </div>
             </div>
