@@ -86,7 +86,7 @@ export default function Dashboard() {
                 <Sparkles className="w-5 h-5 text-primary" /> 
                 {isProfileComplete && hasBuddy && hasLaunchedSession ? t("dashboard.tutorial.title_ready") : t("dashboard.tutorial.title_welcome")}
               </h2>
-              <button onClick={hideTutorialBanner} className="p-1.5 text-muted-foreground hover:bg-muted rounded-md transition-colors">
+              <button onClick={hideTutorialBanner} aria-label={t("dashboard.tutorial.close")} title={t("dashboard.tutorial.close")} className="p-1.5 text-muted-foreground hover:bg-muted rounded-md transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </div>

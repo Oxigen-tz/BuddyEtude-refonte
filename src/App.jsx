@@ -4,44 +4,52 @@ import { Toaster as SonnerToaster } from "sonner" // Indispensable pour mes noti
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import { pagesConfig } from './pages.config'
-import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
-// Import du Footer
 import Footer from '@/components/Footer';
+import PublicHeader from '@/components/PublicHeader';
+import LoginRequired from '@/components/LoginRequired';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
 const MainPage = (mainPageKey && Pages[mainPageKey]) || (() => null);
 
-// 🛠️ WRAPPER INTELLIGENT
+// Pages consultables sans compte. Toutes les autres affichent l'écran "Connexion requise"
+// aux visiteurs : avant, /Dashboard affichait "Bonjour, Étudiant" avec un bouton Déconnexion,
+// et /Profile restait bloquée sur son squelette de chargement.
+const PUBLIC_PAGES = [mainPageKey, 'About', 'Legal', 'Privacy'];
+
+// On cache le footer sur le tableau blanc pour avoir 100% de l'écran pour dessiner
+const HIDE_FOOTER_PAGES = ['Whiteboard'];
+
 const LayoutWrapper = ({ children, currentPageName }) => {
-  const location = useLocation();
-  
-  // On définit ici les pages qui NE DOIVENT PAS avoir de menu latéral (ex: l'accueil)
-  // '/Home' affiche la même page d'accueil que '/' : elle ne doit pas non plus avoir la sidebar
-  const hideSidebarRoutes = ['/', `/${mainPageKey}`, '/login', '/register'];
-  const showSidebar = Layout && !hideSidebarRoutes.includes(location.pathname);
+  const { user } = useAuth();
+  const isHome = currentPageName === mainPageKey;
+  const isPublic = PUBLIC_PAGES.includes(currentPageName);
+  const showFooter = !HIDE_FOOTER_PAGES.includes(currentPageName);
 
-  // On cache le footer sur le tableau blanc pour avoir 100% de l'écran pour dessiner
-  const hideFooterRoutes = ['/Whiteboard'];
-  const showFooter = !hideFooterRoutes.includes(location.pathname);
+  // Connecté : barre latérale sur toutes les pages sauf l'accueil (qui a sa propre navbar)
+  if (user && Layout && !isHome) {
+    return (
+      <Layout currentPageName={currentPageName}>
+        {/* On utilise flex pour repousser le footer tout en bas si la page est courte */}
+        <div className="flex flex-col min-h-full">
+          <div className="flex-1 pb-10">{children}</div>
+          {showFooter && <Footer />}
+        </div>
+      </Layout>
+    );
+  }
 
-  return showSidebar ? (
-    <Layout currentPageName={currentPageName}>
-      {/* On utilise flex pour repousser le footer tout en bas si la page est courte */}
-      <div className="flex flex-col min-h-full">
-        <div className="flex-1 pb-10">{children}</div>
-        {showFooter && <Footer />}
-      </div>
-    </Layout>
-  ) : (
-    // Si on est sur l'accueil, on affiche le contenu en plein écran
+  // Visiteur (ou accueil) : plein écran, sans barre latérale
+  return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-[#131314] text-gray-900 dark:text-gray-100 transition-colors duration-300">
-      <div className="flex-1">{children}</div>
-      {showFooter && <Footer />}
+      {!isHome && <PublicHeader />}
+      <div className={isHome ? "flex-1" : "flex-1 px-4"}>{isPublic ? children : <LoginRequired />}</div>
+      <Footer />
     </div>
   );
 };
@@ -126,7 +134,8 @@ function App() {
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
-        <Router>
+        {/* Active dès maintenant les comportements de React Router v7 (et supprime les avertissements console) */}
+        <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <AuthenticatedApp />
         </Router>
         {/* On garde les deux Toasters pour la compatibilité */}

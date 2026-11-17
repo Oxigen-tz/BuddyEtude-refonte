@@ -23,7 +23,7 @@ export default function CTASection() {
   };
 
   return (
-    <section className="py-24 px-6 bg-gray-50">
+    <section className="py-24 px-6 bg-gray-50 dark:bg-[#1a1b1c] transition-colors duration-300">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}

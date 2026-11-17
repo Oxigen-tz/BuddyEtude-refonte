@@ -1,0 +1,149 @@
+rules_version = '2';
+
+// Règles Firestore de BuddyEtude.
+// Déploiement : firebase deploy --only firestore:rules
+// (ou copier-coller dans la console Firebase → Firestore → Règles)
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function myEmail() {
+      return request.auth.token.email;
+    }
+
+    // Seuls les champs listés sont modifiés par cette écriture
+    function onlyChanges(fields) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields);
+    }
+
+    // Liste de deux emails triés dont la concaténation "a_b" donne l'id attendu
+    // (même format que le chatId de Messages.jsx et l'id des tableaux blancs)
+    function isPair(list, pairId) {
+      return list is list
+        && list.size() == 2
+        && list[0] < list[1]
+        && pairId == list[0] + '_' + list[1];
+    }
+
+    // ---------------------------------------------------------------- Profils
+    match /users/{userId} {
+      // Lisible par tout utilisateur connecté (recherche de binômes)
+      allow read: if signedIn();
+      // On n'écrit que son propre profil, et on ne peut pas y mettre l'email de quelqu'un d'autre
+      // (les demandes de binôme sont envoyées à l'email affiché sur le profil)
+      allow create, update: if signedIn()
+        && request.auth.uid == userId
+        && (!('email' in request.resource.data) || request.resource.data.email == myEmail());
+      allow delete: if signedIn() && request.auth.uid == userId;
+    }
+
+    // ----------------------------------------------------- Demandes de binôme
+    match /requests/{requestId} {
+      allow read: if signedIn()
+        && (myEmail() == resource.data.from_email || myEmail() == resource.data.to_email);
+
+      // Envoyée en son propre nom, jamais à soi-même, toujours "pending" au départ
+      allow create: if signedIn()
+        && request.resource.data.from_email == myEmail()
+        && request.resource.data.to_email != myEmail()
+        && request.resource.data.status == 'pending';
+
+      // Seul le destinataire accepte, et il ne peut toucher qu'au statut
+      allow update: if signedIn()
+        && resource.data.to_email == myEmail()
+        && onlyChanges(['status'])
+        && request.resource.data.status == 'accepted';
+
+      // Refus (destinataire, Messages.jsx) ou annulation (émetteur)
+      allow delete: if signedIn()
+        && (myEmail() == resource.data.to_email || myEmail() == resource.data.from_email);
+    }
+
+    // ---------------------------------------------------------------- Messages
+    match /messages/{messageId} {
+      allow read: if signedIn() && myEmail() in resource.data.participants;
+
+      allow create: if signedIn()
+        && request.resource.data.senderEmail == myEmail()
+        && myEmail() in request.resource.data.participants
+        && isPair(request.resource.data.participants, request.resource.data.chatId);
+
+      // Modifier ou supprimer : uniquement ses propres messages, et seulement le texte
+      allow update: if signedIn()
+        && resource.data.senderEmail == myEmail()
+        && onlyChanges(['text', 'isEdited']);
+      allow delete: if signedIn() && resource.data.senderEmail == myEmail();
+    }
+
+    // -------------------------------------------------------- Sessions d'étude
+    match /sessions/{sessionId} {
+      allow read: if signedIn() && myEmail() in resource.data.participants;
+
+      allow create: if signedIn()
+        && request.resource.data.organizer_email == myEmail()
+        && request.resource.data.participants is list
+        && request.resource.data.participants.size() == 2
+        && myEmail() in request.resource.data.participants
+        && request.resource.data.status == 'planned';
+
+      // Terminer ou annuler : l'un ou l'autre participant, statut uniquement
+      allow update: if signedIn()
+        && myEmail() in resource.data.participants
+        && onlyChanges(['status'])
+        && request.resource.data.status in ['completed', 'cancelled'];
+
+      allow delete: if false;
+    }
+
+    // ---------------------------------------------------------- Tableaux blancs
+    // id = "<email1>_<email2>" (emails triés)
+    match /whiteboards/{boardId} {
+      // resource == null : tableau pas encore créé (le premier onSnapshot doit pouvoir écouter)
+      // Sans champ participants : tableau créé avant cette version des règles
+      allow read: if signedIn()
+        && (resource == null
+            || !('participants' in resource.data)
+            || myEmail() in resource.data.participants);
+
+      allow create: if signedIn()
+        && isPair(request.resource.data.participants, boardId)
+        && myEmail() in request.resource.data.participants;
+
+      allow update: if signedIn()
+        && isPair(request.resource.data.participants, boardId)
+        && myEmail() in request.resource.data.participants
+        && (!('participants' in resource.data)
+            || request.resource.data.participants == resource.data.participants);
+
+      allow delete: if false;
+    }
+
+    // ------------------------------------------------------------ Signalements
+    // Écriture seule : les signalements se consultent depuis la console Firebase
+    match /reports/{reportId} {
+      allow create: if signedIn()
+        && request.resource.data.reporter_email == myEmail()
+        && request.resource.data.status == 'pending';
+      allow read, update, delete: if false;
+    }
+
+    // -------------------------------------------- Compteur public de l'accueil
+    match /stats/public {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['studentCount'])
+        && request.resource.data.studentCount == 1;
+      allow update: if signedIn()
+        && onlyChanges(['studentCount'])
+        && request.resource.data.studentCount == resource.data.studentCount + 1;
+    }
+
+    // ------------------------------------------- Tout le reste : fermé par défaut
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { db } from "../firebase/config";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, increment } from "firebase/firestore";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -79,7 +79,15 @@ export default function Profile() {
         profile_complete: true, 
         updatedAt: new Date().toISOString() 
       };
+      const wasComplete = Boolean(profile?.profile_complete);
       await setDoc(docRef, dataToSave, { merge: true });
+
+      // Premier profil complété : +1 au compteur public affiché sur l'accueil (HeroSection).
+      // Un échec ici (règles pas encore déployées…) ne doit pas bloquer l'enregistrement du profil.
+      if (!wasComplete) {
+        setDoc(doc(db, "stats", "public"), { studentCount: increment(1) }, { merge: true })
+          .catch((error) => console.warn("Compteur public non mis à jour :", error));
+      }
       // merge: true côté Firestore → même chose côté état local (sinon des champs comme
       // profile_visible disparaissaient de l'état jusqu'au rechargement)
       setProfile(prev => ({ ...prev, ...dataToSave }));

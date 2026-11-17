@@ -9,6 +9,21 @@ import {
   X, Eraser, Pen, Trash2, Download, Circle, Palette, Plus, Undo2, Type
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/lib/AuthContext";
+
+// Le tableau d'un binôme a pour id "<email1>_<email2>" (emails triés, comme le chatId de Messages).
+// On retrouve les deux participants à partir de notre propre email, sans découper sur "_" :
+// une adresse comme "jean_dupont@…" aurait été coupée en deux.
+// Renvoie null si l'id ne correspond pas à un binôme dont on fait partie.
+const getBoardParticipants = (boardId, myEmail) => {
+  if (!boardId || !myEmail) return null;
+  let other = null;
+  if (boardId.startsWith(`${myEmail}_`)) other = boardId.slice(myEmail.length + 1);
+  else if (boardId.endsWith(`_${myEmail}`)) other = boardId.slice(0, -(myEmail.length + 1));
+  if (!other) return null;
+  const pair = [myEmail, other].sort();
+  return pair.join("_") === boardId ? pair : null;
+};
 
 const CANVAS_WIDTH = 1200;
 const CANVAS_HEIGHT = 800;
@@ -28,6 +43,10 @@ export default function Whiteboard() {
   // 🛠️ CORRIGÉ : plus de repli sur "demo-board". Sans sessionId, tous les utilisateurs se
   // retrouvaient à dessiner sur le même tableau public.
   const sessionId = queryParams.get("sessionId");
+  const { user } = useAuth();
+  // Écrit dans chaque sauvegarde : les règles Firestore s'en servent pour n'autoriser que le binôme
+  const participants = getBoardParticipants(sessionId, user?.email);
+  const isValidBoard = participants !== null;
 
   const canvasRef = useRef(null);
   const isDrawingRef = useRef(false);
@@ -49,9 +68,10 @@ export default function Whiteboard() {
 
   const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.classList.contains("dark"));
 
+  // Pas d'id, ou un id qui n'est pas celui d'un de nos binômes : retour à la messagerie
   useEffect(() => {
-    if (!sessionId) navigate("/Messages", { replace: true });
-  }, [sessionId, navigate]);
+    if (!isValidBoard) navigate("/Messages", { replace: true });
+  }, [isValidBoard, navigate]);
 
   useEffect(() => {
     const observer = new MutationObserver(() => {
@@ -85,7 +105,7 @@ export default function Whiteboard() {
   // --- ÉCRITURE ---
   const saveToFirestore = useCallback(async () => {
     const canvas = canvasRef.current;
-    if (!canvas || !sessionId) return false;
+    if (!canvas || !isValidBoard) return false;
 
     const imageBase64 = canvas.toDataURL("image/png");
     if (imageBase64.length > MAX_IMAGE_LENGTH) {
@@ -96,7 +116,7 @@ export default function Whiteboard() {
     try {
       await setDoc(
         doc(db, "whiteboards", sessionId),
-        { image: imageBase64, updatedAt: new Date().toISOString(), clientId: clientIdRef.current },
+        { image: imageBase64, participants, updatedAt: new Date().toISOString(), clientId: clientIdRef.current },
         { merge: true }
       );
       return true;
@@ -105,7 +125,8 @@ export default function Whiteboard() {
       toast.error(t('whiteboard.saveError'));
       return false;
     }
-  }, [sessionId, t]);
+    // participants est dérivé de sessionId et de l'email : il change en même temps qu'eux
+  }, [sessionId, isValidBoard, user?.email, t]);
 
   // --- LECTURE ---
   const applyRemoteImage = useCallback((image) => {
@@ -139,7 +160,7 @@ export default function Whiteboard() {
 
   // Le listener ne dépend que de sessionId : on ne se réabonne pas à chaque trait.
   useEffect(() => {
-    if (!sessionId) return;
+    if (!isValidBoard) return;
     const docRef = doc(db, "whiteboards", sessionId);
     const unsub = onSnapshot(
       docRef,
@@ -167,7 +188,7 @@ export default function Whiteboard() {
       }
     );
     return () => unsub();
-  }, [sessionId, applyRemoteImage, t]);
+  }, [sessionId, isValidBoard, applyRemoteImage, t]);
 
   // Fusionne l'image reçue du binôme PAR-DESSOUS notre tableau, pour que nos nouveaux traits ne
   // l'écrasent pas à la sauvegarde. Limite : une gomme appliquée pendant ce temps par l'autre
@@ -356,7 +377,7 @@ export default function Whiteboard() {
     try {
       await setDoc(
         doc(db, "whiteboards", sessionId),
-        { image: null, updatedAt: new Date().toISOString(), clientId: clientIdRef.current },
+        { image: null, participants, updatedAt: new Date().toISOString(), clientId: clientIdRef.current },
         { merge: true }
       );
     } catch (error) {
@@ -398,7 +419,7 @@ export default function Whiteboard() {
     navigate("/Messages");
   };
 
-  if (!sessionId) return null;
+  if (!isValidBoard) return null;
 
   return (
     <div className="fixed inset-0 bg-slate-50 dark:bg-[#131314] z-[9999] flex flex-col transition-colors duration-300" 

@@ -1,0 +1,52 @@
+rules_version = '2';
+
+// Règles Firebase Storage de BuddyEtude.
+// Déploiement : firebase deploy --only storage
+// (ou copier-coller dans la console Firebase → Storage → Règles)
+//
+// Seule la messagerie envoie des fichiers, dans chat_files/<uid de l'expéditeur>/.
+// Remarque : les liens de téléchargement (getDownloadURL) contiennent un jeton d'accès et
+// fonctionnent sans passer par ces règles ; elles protègent surtout l'écriture et la suppression.
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // Même liste que BANNED_EXTENSIONS dans src/pages/Messages.jsx
+    function isBannedName(name) {
+      return name.matches('(?i).*\\.(exe|msi|bat|cmd|sh|vbs|js|com|scr|dll|sys)$');
+    }
+
+    // ------------------------------------------------ Pièces jointes du chat
+    match /chat_files/{uid}/{fileName} {
+      allow read: if signedIn();
+
+      // Uniquement dans son propre dossier, 10 Mo maximum, pas d'exécutables.
+      // resource == null : le fichier ne doit pas déjà exister (un ré-envoi au même chemin
+      // est évalué comme une création, il faut donc l'interdire explicitement)
+      allow create: if signedIn()
+        && resource == null
+        && request.auth.uid == uid
+        && request.resource.size <= 10 * 1024 * 1024
+        && !isBannedName(fileName);
+
+      // Un fichier envoyé ne peut pas être remplacé ; seul son auteur peut le supprimer
+      allow update: if false;
+      allow delete: if signedIn() && request.auth.uid == uid;
+    }
+
+    // Anciennes pièces jointes (chat_files/<date>_<nom>, avant le rangement par utilisateur) :
+    // toujours lisibles, plus modifiables
+    match /chat_files/{fileName} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    // ------------------------------------------- Tout le reste : fermé par défaut
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

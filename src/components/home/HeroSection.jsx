@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation, Trans } from "react-i18next";
 import { db } from "@/firebase/config";
-import { collection, query, where, getCountFromServer } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 
 const SOCIAL_PROOF_THRESHOLD = 20;
 
@@ -34,12 +34,13 @@ export default function HeroSection() {
   useEffect(() => {
     let cancelled = false;
 
-    // getCountFromServer ne télécharge aucun document : on récupère uniquement le nombre.
-    // L'ancien onSnapshot faisait télécharger tous les profils complets à chaque visiteur.
-    const q = query(collection(db, "users"), where("profile_complete", "==", true));
-    getCountFromServer(q)
+    // On lit un compteur public (stats/public.studentCount) plutôt que de compter la collection
+    // "users" : les règles Firestore interdisent (à juste titre) de lister les profils sans être
+    // connecté, donc le comptage échouait en 403 pour tous les visiteurs de l'accueil.
+    // Le compteur est incrémenté par Profile.jsx quand un profil est complété pour la première fois.
+    getDoc(doc(db, "stats", "public"))
       .then((snap) => {
-        if (!cancelled) setStudentCount(snap.data().count);
+        if (!cancelled) setStudentCount(snap.exists() ? Number(snap.data().studentCount) || 0 : 0);
       })
       .catch((error) => {
         // Lecture refusée ou réseau indisponible : on affiche le badge "lancement",

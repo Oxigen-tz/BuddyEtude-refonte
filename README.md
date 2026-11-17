@@ -50,10 +50,36 @@ src/
 | `sessions`    | Sessions de révision planifiées                                 |
 | `whiteboards` | Image du tableau blanc partagé (id = `chatId` du binôme)        |
 | `reports`     | Signalements de profils                                         |
+| `stats`       | Document `public` : compteur `studentCount` affiché sur l'accueil |
+
+### Compteur d'étudiants (accueil)
+
+L'accueil lit `stats/public.studentCount`, lisible sans compte. `Profile.jsx` l'incrémente de 1
+quand un profil est complété pour la première fois. Les règles correspondantes sont dans
+`firestore.rules` (bloc `stats/public`).
+
+Pour initialiser le compteur avec les profils déjà existants, créer à la main dans la console le
+document `stats/public` avec un champ `studentCount` (nombre) égal au nombre de documents `users`
+dont `profile_complete` vaut `true`.
 
 ## Ajouter une traduction
 
 Toute chaîne affichée passe par `t('clé')`. Ajouter la clé dans les deux blocs `fr` et `en` de `src/i18n.js`.
+
+## Règles de sécurité Firestore
+
+Elles sont versionnées dans `firestore.rules` (référencé par `firebase.json`). Pour les déployer :
+
+```bash
+firebase deploy --only firestore:rules,storage
+```
+
+Chaque collection n'est accessible qu'aux personnes concernées : les messages, sessions et
+tableaux blancs portent un champ `participants` (les deux emails) que les règles vérifient.
+
+Les règles Storage (`storage.rules`) rangent les pièces jointes du chat dans
+`chat_files/<uid>/` : chacun n'écrit que dans son dossier, 10 Mo maximum, sans exécutables,
+et un fichier envoyé ne peut pas être remplacé.
 
 ## Déploiement
 

@@ -12,9 +12,20 @@ import { Send, MessageSquare, Loader2, Paperclip, FileText, PenTool, X, Edit2, T
 import { toast } from "sonner";
 import { useTranslation, Trans } from "react-i18next";
 
+// ⚠️ Même liste et même limite que storage.rules : les règles refusent aussi ces fichiers,
+// la vérification ici sert à afficher un message clair avant l'envoi.
 const BANNED_EXTENSIONS = [
   ".exe", ".msi", ".bat", ".cmd", ".sh", ".vbs", ".js", ".com", ".scr", ".dll", ".sys"
 ];
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 Mo
+
+// Nom de fichier sûr pour un chemin Storage : pas de "/" (qui créerait des sous-dossiers),
+// ni de caractères de contrôle. Le nom d'origine reste affiché dans le message (fileName).
+const FORBIDDEN_NAME_CHARS = "/\\#?[]*";
+const toStorageName = (name) =>
+  Array.from(name, (ch) => (ch.charCodeAt(0) < 32 || FORBIDDEN_NAME_CHARS.includes(ch) ? "_" : ch))
+    .join("")
+    .slice(-120) || "fichier";
 
 // Initiale sûre : ne plante pas si le nom est vide ou absent
 const getInitial = (name) => (name?.trim()?.[0] || "?").toUpperCase();
@@ -96,7 +107,13 @@ export default function Messages() {
     if (!user?.email || !activeChat || activeChat.isPending) return;
 
     const chatId = [user.email, activeChat.email].sort().join("_");
-    const q = query(collection(db, "messages"), where("chatId", "==", chatId));
+    // Le filtre "participants" est exigé par les règles Firestore : une requête n'est autorisée
+    // que si Firestore peut prouver que chaque résultat nous concerne.
+    const q = query(
+      collection(db, "messages"),
+      where("chatId", "==", chatId),
+      where("participants", "array-contains", user.email)
+    );
     const unsub = onSnapshot(q, (snapshot) => {
       // serverTimestamps "estimate" : un message qui vient d'être envoyé a un createdAt null
       // tant que le serveur n'a pas répondu, ce qui le faisait apparaître tout en haut du fil
@@ -141,7 +158,6 @@ export default function Messages() {
   };
 
   // --- SÉLECTION D'UN FICHIER ---
-  // La liste BANNED_EXTENSIONS existait mais n'était utilisée nulle part.
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     // Réinitialise l'input pour pouvoir re-sélectionner le même fichier après l'avoir retiré
@@ -150,7 +166,11 @@ export default function Messages() {
 
     const lowerName = file.name.toLowerCase();
     if (BANNED_EXTENSIONS.some(ext => lowerName.endsWith(ext))) {
-      toast.error(t('messages.toast.fileNotAllowed', 'Ce type de fichier n’est pas autorisé.'));
+      toast.error(t('messages.toast.fileNotAllowed'));
+      return;
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error(t('messages.toast.fileTooLarge'));
       return;
     }
     setSelectedFile(file);
@@ -167,8 +187,10 @@ export default function Messages() {
       let fileUrl = null, fileType = null, fileName = null;
 
       if (selectedFile) {
-        const fileRef = ref(storage, `chat_files/${Date.now()}_${selectedFile.name}`);
-        await uploadBytes(fileRef, selectedFile);
+        // Un dossier par utilisateur : storage.rules n'autorise l'écriture que dans le sien,
+        // personne ne peut donc écraser ou supprimer les fichiers des autres.
+        const fileRef = ref(storage, `chat_files/${user.uid}/${Date.now()}_${toStorageName(selectedFile.name)}`);
+        await uploadBytes(fileRef, selectedFile, { contentType: selectedFile.type || "application/octet-stream" });
         fileUrl = await getDownloadURL(fileRef);
         fileType = selectedFile.type; 
         fileName = selectedFile.name;
@@ -176,6 +198,7 @@ export default function Messages() {
 
       await addDoc(collection(db, "messages"), {
         chatId, text: newMessage.trim(), senderEmail: user.email,
+        participants: [user.email, activeChat.email].sort(),
         createdAt: serverTimestamp(), fileUrl, fileType, fileName
       });
 

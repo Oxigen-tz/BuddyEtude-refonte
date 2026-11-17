@@ -10,6 +10,12 @@ const resources = {
         desc: "La page « {{page}} » n'existe pas.",
         home: "Retour à l'accueil"
       },
+      auth: {
+        requiredTitle: "Connexion requise",
+        requiredDesc: "Connecte-toi avec ton compte Google pour accéder à ton espace BuddyEtude : binômes, messages, sessions et tableau blanc.",
+        login: "Se connecter avec Google",
+        backHome: "Retour à l'accueil"
+      },
       about: {
         title: "À propos de BuddyEtude",
         subtitle: "L'histoire d'un projet né pour résoudre un problème que tous les étudiants connaissent : la solitude face aux révisions.",
@@ -110,6 +116,7 @@ const resources = {
         subtitle: "Prêt à booster vos révisions aujourd'hui ?",
         findBuddy: "Trouver un binôme",
         tutorial: {
+          close: "Masquer le tutoriel",
           title_ready: "Félicitations, vous êtes prêt !",
           title_welcome: "Bienvenue sur votre espace !",
           desc_ready: "Vous avez accompli toutes les étapes de base. Vous pouvez maintenant fermer ce tutoriel et profiter pleinement de BuddyEtude !",
@@ -325,7 +332,8 @@ const resources = {
           deleteError: "Impossible de supprimer le message",
           edited: "Message modifié",
           editError: "Impossible de modifier le message",
-          fileNotAllowed: "Ce type de fichier n'est pas autorisé."
+          fileNotAllowed: "Ce type de fichier n'est pas autorisé.",
+          fileTooLarge: "Fichier trop volumineux (10 Mo maximum)."
         },
         rejectModal: {
           title: "Refuser la demande ?",
@@ -536,6 +544,12 @@ const resources = {
         desc: "The page \"{{page}}\" does not exist.",
         home: "Back to home"
       },
+      auth: {
+        requiredTitle: "Login required",
+        requiredDesc: "Sign in with your Google account to access your BuddyEtude space: study buddies, messages, sessions and whiteboard.",
+        login: "Sign in with Google",
+        backHome: "Back to home"
+      },
       about: {
         title: "About BuddyEtude",
         subtitle: "The story of a project born to solve a problem every student knows: feeling alone when revising.",
@@ -636,6 +650,7 @@ const resources = {
         subtitle: "Ready to boost your studies today?",
         findBuddy: "Find a buddy",
         tutorial: {
+          close: "Hide tutorial",
           title_ready: "Congratulations, you're ready!",
           title_welcome: "Welcome to your space!",
           desc_ready: "You have completed all basic steps. You can now close this tutorial and fully enjoy BuddyEtude!",
@@ -851,7 +866,8 @@ const resources = {
           deleteError: "Couldn't delete the message",
           edited: "Message edited",
           editError: "Couldn't edit the message",
-          fileNotAllowed: "This file type is not allowed."
+          fileNotAllowed: "This file type is not allowed.",
+          fileTooLarge: "File too large (10 MB maximum)."
         },
         rejectModal: {
           title: "Decline the request?",

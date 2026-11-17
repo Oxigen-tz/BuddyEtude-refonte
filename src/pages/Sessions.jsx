@@ -187,9 +187,10 @@ export default function Sessions() {
     <div className="max-w-5xl mx-auto pb-20 animate-in fade-in duration-500">
       
       {/* --- EN-TÊTE --- */}
-      <div className="flex items-center justify-between mb-8">
+      {/* Sur mobile, titre et bouton s'empilent : côte à côte, le titre se cassait sur deux lignes */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-500/10 rounded-xl flex items-center justify-center">
+          <div className="w-10 h-10 shrink-0 bg-indigo-50 dark:bg-indigo-500/10 rounded-xl flex items-center justify-center">
             <Calendar className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
           </div>
           <div>
@@ -199,7 +200,7 @@ export default function Sessions() {
         </div>
         <Button 
           onClick={() => setShowCreate(true)} 
-          className="bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded-xl font-medium shadow-sm"
+          className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded-xl font-medium shadow-sm"
           disabled={buddies.length === 0}
         >
           <Plus className="w-4 h-4 mr-2" /> {t('sessions.newSession')}
