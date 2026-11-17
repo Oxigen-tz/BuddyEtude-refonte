@@ -16,8 +16,17 @@ function XIcon({ className = "w-5 h-5" }) {
   );
 }
 
+// Renseigne ici les vraies adresses de tes comptes. Un réseau dont l'URL est vide n'est pas affiché :
+// les anciens liens pointaient vers "#" et ne menaient nulle part.
+const SOCIAL_LINKS = [
+  { id: "instagram", label: "Instagram", url: "", Icon: Instagram },
+  { id: "x", label: "X", url: "", Icon: XIcon },
+  { id: "github", label: "GitHub", url: "", Icon: Github },
+];
+
 export default function Footer() {
   const { t } = useTranslation();
+  const visibleSocials = SOCIAL_LINKS.filter((social) => social.url);
 
   return (
     <footer className="bg-white dark:bg-[#1e1f20] border-t border-gray-100 dark:border-[#333537] pt-16 pb-8">
@@ -34,11 +43,22 @@ export default function Footer() {
             <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed max-w-md mb-6">
               {t("footer.tagline")}
             </p>
-            <div className="flex gap-4">
-              <a href="#" className="text-gray-400 hover:text-indigo-600 transition-colors"><Instagram className="w-5 h-5" /></a>
-              <a href="#" className="text-gray-400 hover:text-indigo-600 transition-colors"><XIcon className="w-5 h-5" /></a>
-              <a href="#" className="text-gray-400 hover:text-indigo-600 transition-colors"><Github className="w-5 h-5" /></a>
-            </div>
+            {visibleSocials.length > 0 && (
+              <div className="flex gap-4">
+                {visibleSocials.map(({ id, label, url, Icon }) => (
+                  <a
+                    key={id}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={label}
+                    className="text-gray-400 hover:text-indigo-600 transition-colors"
+                  >
+                    <Icon className="w-5 h-5" />
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Liens utiles */}
@@ -47,12 +67,6 @@ export default function Footer() {
             <ul className="space-y-3">
               <li><Link to={createPageUrl("About")} className="text-gray-500 hover:text-indigo-600 dark:text-gray-400 text-sm transition-colors">{t("footer.about")}</Link></li>
               <li><Link to={createPageUrl("Search")} className="text-gray-500 hover:text-indigo-600 dark:text-gray-400 text-sm transition-colors">{t("footer.findBuddy")}</Link></li>
-              <li>
-                <span className="text-gray-500 hover:text-indigo-600 dark:text-gray-400 text-sm transition-colors cursor-pointer flex items-center gap-2">
-                  {t("footer.referral")}
-                  <span className="bg-indigo-100 text-indigo-700 text-[10px] px-2 py-0.5 rounded-full font-bold">{t("footer.soon")}</span>
-                </span>
-              </li>
             </ul>
           </div>
 
@@ -71,14 +85,10 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="pt-8 border-t border-gray-100 dark:border-[#333537] flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="pt-8 border-t border-gray-100 dark:border-[#333537]">
           <p className="text-gray-400 dark:text-gray-500 text-sm">
             © {new Date().getFullYear()} BuddyEtude. {t("footer.rights")}.
           </p>
-          <div className="flex items-center gap-2">
-             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-             <span className="text-sm text-gray-500 dark:text-gray-400">{t("footer.systemsOperational")}</span>
-          </div>
         </div>
       </div>
     </footer>

@@ -20,6 +20,9 @@ export const AuthProvider = ({ children }) => {
         setUser({
           uid: firebaseUser.uid,
           email: firebaseUser.email,
+          // 🛠️ CORRIGÉ : displayName manquait alors que Layout, Sessions, Profile et Search le lisent.
+          // Résultat : le nom stocké dans les sessions retombait sur "Moi".
+          displayName: firebaseUser.displayName,
           full_name: firebaseUser.displayName,
           name: firebaseUser.displayName,
           photoURL: firebaseUser.photoURL

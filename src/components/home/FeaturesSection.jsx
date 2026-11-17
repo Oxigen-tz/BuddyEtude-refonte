@@ -3,12 +3,14 @@ import { Target, MessageCircle, PenTool, Users, Clock, BookOpen } from "lucide-r
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next"; // Ajout de i18n
 
-// On remplace les titres/descriptions par des clés (id) qui pointent vers i18n
+// Les ids pointent vers features.items.<id> dans i18n.js.
+// "filters" et "requests" remplacent "goals" et "matching" : l'ancien texte promettait
+// un filtre par examen/chapitre et un algorithme de matching qui n'existent pas dans Search.jsx.
 const features = [
-  { id: "goals", icon: Target, color: "bg-red-50 text-red-600" },
+  { id: "filters", icon: Target, color: "bg-red-50 text-red-600" },
   { id: "chat", icon: MessageCircle, color: "bg-blue-50 text-blue-600" },
   { id: "whiteboard", icon: PenTool, color: "bg-purple-50 text-purple-600" },
-  { id: "matching", icon: Users, color: "bg-green-50 text-green-600" },
+  { id: "requests", icon: Users, color: "bg-green-50 text-green-600" },
   { id: "schedule", icon: Clock, color: "bg-amber-50 text-amber-600" },
   { id: "subjects", icon: BookOpen, color: "bg-indigo-50 text-indigo-600" },
 ];

@@ -27,7 +27,8 @@ const resources = {
           view: "Voir"
         },
         language: "English",
-        logout: "Déconnexion"
+        logout: "Déconnexion",
+        menu: "Menu"
       },
       dashboard: {
         greeting: "Bonjour, {{name}}",
@@ -62,6 +63,15 @@ const resources = {
           button: "Planifier une session"
         }
       },
+      // --- LANDING : barre de navigation ---
+      home: {
+        nav: {
+          login: "Connexion",
+          signup: "Inscription",
+          dashboard: "Tableau de bord",
+          switchLanguage: "Changer de langue"
+        }
+      },
       hero: {
         badge: "Tableau blanc collaboratif intégré",
         title1: "Trouvez votre",
@@ -72,11 +82,7 @@ const resources = {
         subtitle_part2: ".",
         btn_dashboard: "Accéder à mon espace",
         btn_start: "C'est parti !",
-        stats: {
-          free: "Gratuit",
-          realtime_value: "Live",
-          realtime: "Collaboration"
-        },
+        previewAlt: "Aperçu du tableau blanc collaboratif et de la messagerie de BuddyEtude",
         social: {
           early: "Plateforme en <bold>lancement</bold> — rejoins les premiers étudiants !",
           active: "Rejoins déjà <bold>{{count}} étudiants</bold> actifs sur la plateforme !"
@@ -84,37 +90,37 @@ const resources = {
       },
       features: {
         title: "Étudier à deux, avec les bons outils",
-        subtitle: "BuddyEtude n'est pas qu'un simple annuaire de rencontre étudiante, c'est une plateforme de travail complète.",
+        subtitle: "Trouver un partenaire, discuter, planifier et réviser sur un tableau blanc partagé : tout se passe au même endroit.",
         items: {
-          goals: {
-            title: "Objectifs communs",
-            desc: "Filtrez par examen ou chapitre en cours pour trouver un partenaire qui révise exactement la même chose que vous."
+          filters: {
+            title: "Recherche ciblée",
+            desc: "Filtrez par matière, niveau d'études, ville et mode (en ligne ou présentiel) pour trouver quelqu'un qui révise la même chose que vous."
           },
           chat: {
             title: "Chat intégré",
-            desc: "Messagerie texte avec partage de fichiers et de notes, directement dans l'appli, sans passer par WhatsApp ou Discord."
+            desc: "Messagerie avec envoi de fichiers, directement dans l'appli, sans passer par WhatsApp ou Discord."
           },
           whiteboard: {
             title: "Tableau blanc temps réel",
             desc: "Dessinez, écrivez et résolvez des problèmes ensemble sur un espace de travail collaboratif fluide."
           },
-          matching: {
-            title: "Matching intelligent",
-            desc: "Un algorithme de filtrage croise niveau d'études, matière et créneaux de disponibilité pour proposer des binômes compatibles."
+          requests: {
+            title: "Une demande, un message",
+            desc: "Présentez-vous en quelques mots. Si l'autre accepte, la discussion s'ouvre et vous pouvez planifier une session."
           },
           schedule: {
             title: "Sessions planifiées",
-            desc: "Proposez un créneau, votre binôme confirme, et la session apparaît automatiquement dans votre agenda BuddyEtude."
+            desc: "Choisissez un binôme, une date, une heure et une durée, en ligne ou en présentiel. Vos sessions sont regroupées dans une page dédiée."
           },
           subjects: {
             title: "Toutes les matières",
-            desc: "Mathématiques, droit, médecine, langues... Il y a forcément un binôme pour votre spécialité."
+            desc: "Mathématiques, droit, médecine, langues… La matière est libre : indiquez la vôtre et voyez qui la partage."
           }
         }
       },
       cta: {
         title: "Prêt à trouver votre binôme ?",
-        subtitle: "Rejoignez BuddyEtude gratuitement et commencez à étudier plus efficacement dès aujourd'hui.",
+        subtitle: "Connectez-vous avec Google, complétez votre profil et envoyez votre première demande de binôme. C'est gratuit.",
         button: "Créer mon compte",
         buttonLoggedIn: "Accéder à mon tableau de bord"
       },
@@ -123,13 +129,10 @@ const resources = {
         platform: "Plateforme",
         about: "À propos de nous",
         findBuddy: "Trouver un binôme",
-        referral: "Programme de parrainage",
-        soon: "Bientôt",
         support: "Support & Légal",
         legal: "Mentions Légales & CGU",
         privacy: "Politique de Confidentialité",
-        rights: "Tous droits réservés",
-        systemsOperational: "Systèmes opérationnels"
+        rights: "Tous droits réservés"
       },
       // --- NOUVEAU : PAGE "TROUVER UN BINÔME" ---
       search: {
@@ -174,7 +177,8 @@ const resources = {
         },
         toast: {
           success: "Demande envoyée avec succès !",
-          error: "Impossible d'envoyer la demande"
+          error: "Impossible d'envoyer la demande",
+          loadError: "Impossible de charger les profils."
         }
       },
       // --- NOUVEAU : CARTE DE PROFIL (résultats de recherche) ---
@@ -245,7 +249,8 @@ const resources = {
           deleted: "Message supprimé",
           deleteError: "Impossible de supprimer le message",
           edited: "Message modifié",
-          editError: "Impossible de modifier le message"
+          editError: "Impossible de modifier le message",
+          fileNotAllowed: "Ce type de fichier n'est pas autorisé."
         },
         rejectModal: {
           title: "Refuser la demande ?",
@@ -280,6 +285,7 @@ const resources = {
         },
         status: {
           upcoming: "À venir",
+          past: "Passée",
           completed: "Terminée"
         },
         mode: {
@@ -298,6 +304,8 @@ const resources = {
           modeLabel: "Mode",
           modeOnline: "En ligne (Tableau blanc)",
           modeInPerson: "Présentiel",
+          locationLabel: "Lieu",
+          locationPlaceholder: "Ex: Bibliothèque universitaire, salle 2",
           cancel: "Annuler",
           submit: "Planifier la session"
         },
@@ -361,6 +369,9 @@ const resources = {
         sessionsOnline: "Sessions en ligne",
         sessionsInPerson: "Sessions en présentiel",
         save: "Enregistrer mon profil",
+        validation: {
+          incomplete: "Ajoutez un nom affiché, au moins une matière, et votre niveau d'études ou votre établissement."
+        },
         subjectLevels: {
           debutant: "💡 Débutant (Besoin d'aide)",
           intermediaire: "🤝 Intermédiaire (Je gère)",
@@ -411,28 +422,29 @@ const resources = {
         preferences: {
           title: "Préférences Générales",
           notifications: "Notifications",
-          messageAlerts: "Alertes de messagerie",
-          messageAlertsDesc: "Recevoir une notification lors d'un nouveau message.",
-          calendarReminders: "Rappels de calendrier",
-          calendarRemindersDesc: "Être prévenu avant le début d'une session d'étude.",
+          requestAlerts: "Alertes de demandes",
+          requestAlertsDesc: "Afficher une notification quand quelqu'un accepte votre demande ou vous en envoie une. Ce réglage est propre à cet appareil.",
           privacy: "Confidentialité",
           profileVisibility: "Visibilité du profil",
-          profileVisibilityDesc: "Permettre aux autres étudiants de vous trouver via la recherche.",
-          onlineStatus: "Statut de connexion",
-          onlineStatusDesc: "Afficher quand vous êtes en train de travailler sur le site."
+          profileVisibilityDesc: "Permettre aux autres étudiants de vous trouver via la recherche."
+        },
+        toast: {
+          saved: "Préférence enregistrée",
+          error: "Impossible d'enregistrer la préférence"
         }
       },
       // --- NOUVEAU : TABLEAU BLANC ---
       whiteboard: {
         closeBoard: "Fermer le tableau",
-        titleLight: "Tableau Blanc Interactif",
-        titleDark: "Tableau Noir Interactif",
+        title: "Tableau blanc",
         undo: "Défaire",
         undoTitle: "Défaire le dernier trait (Ctrl+Z)",
         export: "Exporter",
         customColor: "Couleur personnalisée",
         textPlaceholder: "Écrivez ici...",
         clearConfirm: "Voulez-vous vraiment tout effacer ?",
+        saveError: "Synchronisation impossible : vos derniers tracés n'ont pas été enregistrés.",
+        tooLarge: "Le tableau est trop chargé pour être synchronisé. Exportez-le puis effacez-le pour continuer.",
         tools: {
           pen: "Stylo",
           text: "Texte",
@@ -466,7 +478,8 @@ const resources = {
           view: "View"
         },
         language: "Français",
-        logout: "Logout"
+        logout: "Logout",
+        menu: "Menu"
       },
       dashboard: {
         greeting: "Hello, {{name}}",
@@ -501,6 +514,15 @@ const resources = {
           button: "Schedule a session"
         }
       },
+      // --- LANDING: navigation bar ---
+      home: {
+        nav: {
+          login: "Login",
+          signup: "Sign Up",
+          dashboard: "Dashboard",
+          switchLanguage: "Switch language"
+        }
+      },
       hero: {
         badge: "Integrated collaborative whiteboard",
         title1: "Find your ideal",
@@ -511,11 +533,7 @@ const resources = {
         subtitle_part2: ".",
         btn_dashboard: "Go to my dashboard",
         btn_start: "Let's get started!",
-        stats: {
-          free: "Free",
-          realtime_value: "Live",
-          realtime: "Collaboration"
-        },
+        previewAlt: "Preview of BuddyEtude's collaborative whiteboard and chat",
         social: {
           early: "Platform is <bold>launching</bold> — join the first students!",
           active: "Join <bold>{{count}} students</bold> already active on the platform!"
@@ -523,37 +541,37 @@ const resources = {
       },
       features: {
         title: "Study together, with the right tools",
-        subtitle: "BuddyEtude is not just a student directory, it's a complete workspace.",
+        subtitle: "Find a partner, chat, schedule and study on a shared whiteboard: everything happens in one place.",
         items: {
-          goals: {
-            title: "Common goals",
-            desc: "Filter by exam or chapter to find a partner reviewing exactly the same material as you."
+          filters: {
+            title: "Targeted search",
+            desc: "Filter by subject, study level, city and mode (online or in-person) to find someone studying the same material as you."
           },
           chat: {
             title: "Integrated chat",
-            desc: "Text messaging with file and note sharing, built into the app — no need for WhatsApp or Discord."
+            desc: "Messaging with file sharing, built into the app — no need for WhatsApp or Discord."
           },
           whiteboard: {
             title: "Real-time whiteboard",
             desc: "Draw, write, and solve problems together on a fluid collaborative workspace."
           },
-          matching: {
-            title: "Smart matching",
-            desc: "A filtering algorithm cross-references study level, subject, and availability to suggest compatible buddies."
+          requests: {
+            title: "One request, one message",
+            desc: "Introduce yourself in a few words. If they accept, the chat opens and you can schedule a session."
           },
           schedule: {
             title: "Scheduled sessions",
-            desc: "Propose a time slot, your buddy confirms it, and the session shows up automatically in your BuddyEtude calendar."
+            desc: "Pick a buddy, a date, a time and a duration, online or in person. Your sessions are gathered on a dedicated page."
           },
           subjects: {
             title: "All subjects",
-            desc: "Maths, law, medicine, languages... There's definitely a buddy for your specialty."
+            desc: "Maths, law, medicine, languages... The subject field is free: enter yours and see who shares it."
           }
         }
       },
       cta: {
         title: "Ready to find your buddy?",
-        subtitle: "Join BuddyEtude for free and start studying more effectively today.",
+        subtitle: "Sign in with Google, complete your profile and send your first buddy request. It's free.",
         button: "Create my account",
         buttonLoggedIn: "Go to my dashboard"
       },
@@ -562,13 +580,10 @@ const resources = {
         platform: "Platform",
         about: "About us",
         findBuddy: "Find a buddy",
-        referral: "Referral program",
-        soon: "Coming soon",
         support: "Support & Legal",
         legal: "Legal Notice & Terms",
         privacy: "Privacy Policy",
-        rights: "All rights reserved",
-        systemsOperational: "All systems operational"
+        rights: "All rights reserved"
       },
       // --- NEW: "FIND A BUDDY" PAGE ---
       search: {
@@ -613,7 +628,8 @@ const resources = {
         },
         toast: {
           success: "Request sent successfully!",
-          error: "Couldn't send the request"
+          error: "Couldn't send the request",
+          loadError: "Couldn't load profiles."
         }
       },
       // --- NEW: PROFILE CARD (search results) ---
@@ -684,7 +700,8 @@ const resources = {
           deleted: "Message deleted",
           deleteError: "Couldn't delete the message",
           edited: "Message edited",
-          editError: "Couldn't edit the message"
+          editError: "Couldn't edit the message",
+          fileNotAllowed: "This file type is not allowed."
         },
         rejectModal: {
           title: "Decline the request?",
@@ -719,6 +736,7 @@ const resources = {
         },
         status: {
           upcoming: "Upcoming",
+          past: "Past",
           completed: "Completed"
         },
         mode: {
@@ -737,6 +755,8 @@ const resources = {
           modeLabel: "Mode",
           modeOnline: "Online (Whiteboard)",
           modeInPerson: "In-person",
+          locationLabel: "Location",
+          locationPlaceholder: "E.g. University library, room 2",
           cancel: "Cancel",
           submit: "Schedule session"
         },
@@ -800,6 +820,9 @@ const resources = {
         sessionsOnline: "Online sessions",
         sessionsInPerson: "In-person sessions",
         save: "Save my profile",
+        validation: {
+          incomplete: "Add a display name, at least one subject, and your study level or school."
+        },
         subjectLevels: {
           debutant: "💡 Beginner (Needs help)",
           intermediaire: "🤝 Intermediate (Comfortable)",
@@ -850,28 +873,29 @@ const resources = {
         preferences: {
           title: "General preferences",
           notifications: "Notifications",
-          messageAlerts: "Message alerts",
-          messageAlertsDesc: "Get notified when you receive a new message.",
-          calendarReminders: "Calendar reminders",
-          calendarRemindersDesc: "Be notified before a study session starts.",
+          requestAlerts: "Request alerts",
+          requestAlertsDesc: "Show a notification when someone accepts your request or sends you one. This setting is specific to this device.",
           privacy: "Privacy",
           profileVisibility: "Profile visibility",
-          profileVisibilityDesc: "Allow other students to find you through search.",
-          onlineStatus: "Online status",
-          onlineStatusDesc: "Show when you're active on the site."
+          profileVisibilityDesc: "Allow other students to find you through search."
+        },
+        toast: {
+          saved: "Preference saved",
+          error: "Couldn't save the preference"
         }
       },
       // --- NEW: WHITEBOARD ---
       whiteboard: {
         closeBoard: "Close whiteboard",
-        titleLight: "Interactive Whiteboard",
-        titleDark: "Interactive Blackboard",
+        title: "Whiteboard",
         undo: "Undo",
         undoTitle: "Undo last stroke (Ctrl+Z)",
         export: "Export",
         customColor: "Custom color",
         textPlaceholder: "Write here...",
         clearConfirm: "Are you sure you want to clear everything?",
+        saveError: "Sync failed: your latest strokes were not saved.",
+        tooLarge: "The whiteboard is too full to sync. Export it, then clear it to keep going.",
         tools: {
           pen: "Pen",
           text: "Text",

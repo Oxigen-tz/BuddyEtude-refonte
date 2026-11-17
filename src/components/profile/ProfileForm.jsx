@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { X, Plus, Save, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 
 // Valeurs techniques uniquement : le libellé de niveau vient de
@@ -98,7 +99,18 @@ export default function ProfileForm({ profile, onSave, saving }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave({ ...form, profile_complete: true });
+
+    // 🛠️ CORRIGÉ : le formulaire marquait le profil "complet" même vide, d'où les profils sans
+    // matière ni établissement visibles dans la recherche. Mêmes critères que Search.jsx.
+    const hasName = Boolean(form.display_name?.trim());
+    const hasSubjects = Array.isArray(form.subjects) && form.subjects.length > 0;
+    const hasContext = Boolean(form.level || form.school?.trim());
+    if (!hasName || !hasSubjects || !hasContext) {
+      toast.error(t('profileForm.validation.incomplete'));
+      return;
+    }
+
+    onSave({ ...form, display_name: form.display_name.trim(), profile_complete: true });
   };
 
   const getLevelLabel = (val) => t(`profileForm.subjectLevels.${val}`, val);
@@ -123,6 +135,7 @@ export default function ProfileForm({ profile, onSave, saving }) {
               value={form.display_name} 
               onChange={(e) => setForm({ ...form, display_name: e.target.value })} 
               placeholder={t('profileForm.displayNamePlaceholder')} 
+              maxLength={40}
               className="bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-gray-100 rounded-xl"
             />
           </div>
@@ -132,6 +145,7 @@ export default function ProfileForm({ profile, onSave, saving }) {
               value={form.city} 
               onChange={(e) => setForm({ ...form, city: e.target.value })} 
               placeholder={t('profileForm.cityPlaceholder')} 
+              maxLength={60}
               className="bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-gray-100 rounded-xl"
             />
           </div>
@@ -141,6 +155,7 @@ export default function ProfileForm({ profile, onSave, saving }) {
           <Textarea 
             value={form.bio} 
             onChange={(e) => setForm({ ...form, bio: e.target.value })} 
+            maxLength={400}
             className="h-24 bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-gray-100 rounded-xl" 
             placeholder={t('profileForm.bioPlaceholder')} 
           />
@@ -152,6 +167,7 @@ export default function ProfileForm({ profile, onSave, saving }) {
               value={form.school} 
               onChange={(e) => setForm({ ...form, school: e.target.value })} 
               placeholder={t('profileForm.schoolPlaceholder')} 
+              maxLength={80}
               className="bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-gray-100 rounded-xl"
             />
           </div>
@@ -192,6 +208,7 @@ export default function ProfileForm({ profile, onSave, saving }) {
             <Input 
               className="w-full bg-white dark:bg-[#1e1f20] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-gray-100 rounded-xl" 
               value={newSubjectName} 
+              maxLength={60}
               onChange={(e) => {
                 setNewSubjectName(e.target.value);
                 setShowSuggestions(true);
@@ -266,6 +283,7 @@ export default function ProfileForm({ profile, onSave, saving }) {
             onChange={(e) => setNewGoal(e.target.value)} 
             onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addGoal())} 
             placeholder={t('profileForm.goalPlaceholder')} 
+            maxLength={60}
             className="bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-gray-100 rounded-xl"
           />
           <Button type="button" variant="outline" onClick={addGoal} className="rounded-xl border-gray-200 dark:border-[#333537] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#282a2c]">

@@ -6,9 +6,13 @@ import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation, Trans } from "react-i18next";
 import { db } from "@/firebase/config";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { collection, query, where, getCountFromServer } from "firebase/firestore";
 
 const SOCIAL_PROOF_THRESHOLD = 20;
+
+// Capture d'écran réelle à placer dans /public (ex : une session avec un tracé et le chat).
+// Si le fichier n'existe pas, le cadre disparaît tout seul.
+const PREVIEW_IMAGE = "/whiteboard-preview.png";
 
 export default function HeroSection() {
   const { user, loginWithGoogle } = useAuth(); 
@@ -25,14 +29,26 @@ export default function HeroSection() {
   };
 
   const [studentCount, setStudentCount] = useState(null);
+  const [previewFailed, setPreviewFailed] = useState(false);
 
   useEffect(() => {
-    const q = query(collection(db, "users"), where("profile_complete", "==", true));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setStudentCount(snapshot.size);
-    });
+    let cancelled = false;
 
-    return () => unsubscribe();
+    // getCountFromServer ne télécharge aucun document : on récupère uniquement le nombre.
+    // L'ancien onSnapshot faisait télécharger tous les profils complets à chaque visiteur.
+    const q = query(collection(db, "users"), where("profile_complete", "==", true));
+    getCountFromServer(q)
+      .then((snap) => {
+        if (!cancelled) setStudentCount(snap.data().count);
+      })
+      .catch((error) => {
+        // Lecture refusée ou réseau indisponible : on affiche le badge "lancement",
+        // qui n'avance aucun chiffre.
+        console.warn("Compteur d'étudiants indisponible :", error);
+        if (!cancelled) setStudentCount(0);
+      });
+
+    return () => { cancelled = true; };
   }, []);
 
   const showRealCount = studentCount !== null && studentCount >= SOCIAL_PROOF_THRESHOLD;
@@ -102,7 +118,6 @@ export default function HeroSection() {
             )}
           </div>
 
-          {/* 🛠️ CORRIGÉ : les deux variantes de preuve sociale sont maintenant traduites via Trans (balise <bold>) */}
           {showRealCount && (
             <div className="mt-8 inline-flex items-center gap-3 bg-white/10 backdrop-blur-md px-5 py-2.5 rounded-2xl border border-white/20 shadow-sm">
               <div className="w-7 h-7 rounded-full bg-indigo-500/30 flex items-center justify-center text-white">
@@ -133,22 +148,25 @@ export default function HeroSection() {
           )}
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.3 }}
-          className="mt-16 grid grid-cols-2 gap-8 max-w-sm mx-auto"
-        >
-          {[
-            { value: "100%", labelKey: "free" },
-            { value: t('hero.stats.realtime_value'), labelKey: "realtime" },
-          ].map((stat) => (
-            <div key={stat.labelKey} className="text-center">
-              <div className="text-3xl font-bold text-white">{stat.value}</div>
-              <div className="text-sm text-indigo-200 mt-1">{t(`hero.stats.${stat.labelKey}`)}</div>
+        {/* Aperçu réel du produit : remplace les anciennes "stats" (100% / Live) qui n'en étaient pas */}
+        {!previewFailed && (
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.3 }}
+            className="mt-16 max-w-4xl mx-auto"
+          >
+            <div className="rounded-2xl border border-white/20 bg-white/10 p-2 shadow-2xl shadow-indigo-950/40 backdrop-blur-sm">
+              <img
+                src={PREVIEW_IMAGE}
+                alt={t('hero.previewAlt')}
+                loading="lazy"
+                onError={() => setPreviewFailed(true)}
+                className="w-full h-auto rounded-xl"
+              />
             </div>
-          ))}
-        </motion.div>
+          </motion.div>
+        )}
       </div>
     </section>
   );

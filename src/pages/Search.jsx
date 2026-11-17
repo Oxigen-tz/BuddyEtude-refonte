@@ -22,6 +22,18 @@ import { useTranslation, Trans } from "react-i18next";
 const LEVEL_VALUES = ["all", "college", "lycee", "prepa", "bts_iut", "licence", "master", "doctorat"];
 const TYPE_VALUES = ["all", "online", "inperson"];
 
+// Un profil n'apparaît dans la recherche que s'il est exploitable :
+// - un email (sinon impossible de lui envoyer une demande),
+// - au moins une matière,
+// - un niveau ou un établissement.
+// Le flag profile_complete seul ne suffit pas : il peut être à true avec un profil quasi vide.
+const hasUsableProfile = (p) => {
+  const hasEmail = Boolean(p.email);
+  const hasSubjects = Array.isArray(p.subjects) && p.subjects.length > 0;
+  const hasContext = Boolean(p.level || p.school);
+  return hasEmail && hasSubjects && hasContext;
+};
+
 export default function Search() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -44,19 +56,40 @@ export default function Search() {
   useEffect(() => {
     if (!user?.email) return;
 
+    const myEmail = user.email.toLowerCase();
+
     const qProfiles = query(collection(db, "users"), where("profile_complete", "==", true));
-    const unsubProfiles = onSnapshot(qProfiles, (snapshot) => {
-      const pList = snapshot.docs
-        .map(d => ({ id: d.id, ...d.data() }))
-        .filter(p => p.email !== user.email); 
-      setProfiles(pList);
-      setIsLoading(false);
-    });
+    const unsubProfiles = onSnapshot(
+      qProfiles,
+      (snapshot) => {
+        const pList = snapshot.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          // On s'exclut soi-même par uid (id du document) ET par email (insensible à la casse)
+          .filter(p => p.id !== user.uid)
+          .filter(p => (p.email || "").toLowerCase() !== myEmail)
+          // On masque les profils vides ou inexploitables
+          .filter(hasUsableProfile);
+        setProfiles(pList);
+        setIsLoading(false);
+      },
+      (error) => {
+        // Sans ce callback, une erreur de règles Firestore laisserait les squelettes affichés indéfiniment
+        console.error("Erreur de chargement des profils:", error);
+        toast.error(t('search.toast.error'));
+        setIsLoading(false);
+      }
+    );
 
     const qRequests = query(collection(db, "requests"), where("from_email", "==", user.email));
-    const unsubRequests = onSnapshot(qRequests, (snapshot) => {
-      setMyRequests(snapshot.docs.map(d => d.data()));
-    });
+    const unsubRequests = onSnapshot(
+      qRequests,
+      (snapshot) => {
+        setMyRequests(snapshot.docs.map(d => d.data()));
+      },
+      (error) => {
+        console.error("Erreur de chargement des demandes:", error);
+      }
+    );
 
     return () => {
       unsubProfiles();
@@ -126,8 +159,17 @@ export default function Search() {
     }
   };
 
+  const sentToEmails = myRequests.map(r => r.to_email);
+
   const handleSendRequest = async () => {
     if (!requestDialog || !user) return;
+
+    // Garde-fous : jamais de demande à soi-même, ni de doublon
+    if (requestDialog.email === user.email || sentToEmails.includes(requestDialog.email)) {
+      setRequestDialog(null);
+      setRequestMessage("");
+      return;
+    }
     
     setIsSending(true);
     try {
@@ -179,8 +221,6 @@ export default function Search() {
     }
     return true;
   });
-
-  const sentToEmails = myRequests.map(r => r.to_email);
 
   const resetFilters = () => {
     setSearch("");
@@ -304,7 +344,7 @@ export default function Search() {
               profile={p}
               onRequest={(profile) => setRequestDialog(profile)}
               alreadyRequested={sentToEmails.includes(p.email)}
-              isOwnProfile={p.email === user?.email}
+              isOwnProfile={p.id === user.uid || p.email === user.email}
             />
           ))}
         </div>

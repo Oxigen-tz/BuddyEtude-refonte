@@ -4,6 +4,7 @@ import { db } from "../firebase/config";
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { HexColorPicker } from "react-colorful";
+import { toast } from "sonner";
 import { 
   X, Eraser, Pen, Trash2, Download, Circle, Palette, Plus, Undo2, Type
 } from "lucide-react";
@@ -15,16 +16,21 @@ const BRUSH_SIZES = [2, 6, 12, 24];
 const FONT_SIZES = { 2: "16px", 6: "24px", 12: "36px", 24: "64px" };
 const MAX_HISTORY = 25;
 
+// Un document Firestore ne peut pas dépasser 1 Mio. Le tableau est stocké comme une image PNG
+// encodée en base64 : au-delà de cette taille, l'écriture échouait sans aucun message.
+const MAX_IMAGE_LENGTH = 950000;
+
 export default function Whiteboard() {
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const queryParams = new URLSearchParams(location.search);
-  const sessionId = queryParams.get("sessionId") || "demo-board";
+  // 🛠️ CORRIGÉ : plus de repli sur "demo-board". Sans sessionId, tous les utilisateurs se
+  // retrouvaient à dessiner sur le même tableau public.
+  const sessionId = queryParams.get("sessionId");
 
   const canvasRef = useRef(null);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const isDrawingRef = useRef(false); // 🛠️ NOUVEAU : ref miroir pour éviter de resubscribe le listener Firestore
+  const isDrawingRef = useRef(false);
   const [lineWidth, setLineWidth] = useState(BRUSH_SIZES[1]);
   const [tool, setTool] = useState("pen");
   const [isCustomColorOpen, setIsCustomColorOpen] = useState(false);
@@ -36,7 +42,16 @@ export default function Whiteboard() {
   const [canUndo, setCanUndo] = useState(false);
   const isRestoringRef = useRef(false);
 
+  // Identifiant propre à cet onglet : permet de reconnaître l'écho de nos propres sauvegardes
+  const clientIdRef = useRef(`${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  // Dernière image reçue du binôme pendant qu'on dessinait (à fusionner à la fin du trait)
+  const pendingRemoteRef = useRef(null);
+
   const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.classList.contains("dark"));
+
+  useEffect(() => {
+    if (!sessionId) navigate("/Messages", { replace: true });
+  }, [sessionId, navigate]);
 
   useEffect(() => {
     const observer = new MutationObserver(() => {
@@ -59,39 +74,124 @@ export default function Whiteboard() {
   }, [isDarkMode]);
 
   const [savedColors, setSavedColors] = useState(() => {
-    const saved = localStorage.getItem("buddyetude_saved_colors");
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem("buddyetude_saved_colors");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
   });
 
-  // 🛠️ NOUVEAU : garder la ref synchronisée avec le state, sans provoquer de resubscribe
-  useEffect(() => {
-    isDrawingRef.current = isDrawing;
-  }, [isDrawing]);
+  // --- ÉCRITURE ---
+  const saveToFirestore = useCallback(async () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !sessionId) return false;
 
-  // 🛠️ CORRIGÉ : le listener ne dépend plus que de sessionId.
-  // On ne se réabonne plus à chaque coup de crayon, donc plus de flash
-  // où Firestore renvoie une version en cache et efface le trait qu'on vient de faire.
-  useEffect(() => {
-    const docRef = doc(db, "whiteboards", sessionId);
-    const unsub = onSnapshot(docRef, (docSnap) => {
-      if (docSnap.exists() && canvasRef.current && !isDrawingRef.current && !isRestoringRef.current) {
-        const data = docSnap.data();
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext("2d");
-        
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        if (data.image) {
-          const img = new Image();
-          img.onload = () => ctx.drawImage(img, 0, 0);
-          img.src = data.image;
-        }
+    const imageBase64 = canvas.toDataURL("image/png");
+    if (imageBase64.length > MAX_IMAGE_LENGTH) {
+      toast.error(t('whiteboard.tooLarge'));
+      return false;
+    }
+
+    try {
+      await setDoc(
+        doc(db, "whiteboards", sessionId),
+        { image: imageBase64, updatedAt: new Date().toISOString(), clientId: clientIdRef.current },
+        { merge: true }
+      );
+      return true;
+    } catch (error) {
+      console.error("Erreur de synchronisation du tableau:", error);
+      toast.error(t('whiteboard.saveError'));
+      return false;
+    }
+  }, [sessionId, t]);
+
+  // --- LECTURE ---
+  const applyRemoteImage = useCallback((image) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+
+    // Les points d'annulation locaux ne correspondent plus au tableau : les garder permettrait
+    // à un "Défaire" d'effacer le travail du binôme.
+    historyRef.current = [];
+    setCanUndo(false);
+
+    if (!image) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      return;
+    }
+
+    const img = new Image();
+    img.onload = () => {
+      // Un trait a commencé pendant le chargement de l'image : on la garde pour la fusion
+      if (isDrawingRef.current) {
+        pendingRemoteRef.current = { image };
+        return;
       }
-    });
-    return () => unsub();
-  }, [sessionId]);
+      ctx.globalCompositeOperation = "source-over";
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+    };
+    img.src = image;
+  }, []);
 
-  // 🛠️ NOUVEAU : extrait le point (x,y) qu'il vienne d'un événement souris OU tactile
+  // Le listener ne dépend que de sessionId : on ne se réabonne pas à chaque trait.
+  useEffect(() => {
+    if (!sessionId) return;
+    const docRef = doc(db, "whiteboards", sessionId);
+    const unsub = onSnapshot(
+      docRef,
+      (docSnap) => {
+        if (!docSnap.exists() || !canvasRef.current) return;
+        // Écriture locale pas encore confirmée par le serveur : ce n'est pas le binôme
+        if (docSnap.metadata.hasPendingWrites) return;
+
+        const data = docSnap.data();
+        // Écho de notre propre sauvegarde : on ne redessine pas
+        if (data.clientId === clientIdRef.current) return;
+
+        if (isDrawingRef.current) {
+          // On dessine : on garde l'image du binôme pour la fusionner à la fin du trait
+          pendingRemoteRef.current = { image: data.image || null };
+          return;
+        }
+        if (isRestoringRef.current) return;
+
+        applyRemoteImage(data.image || null);
+      },
+      (error) => {
+        console.error("Erreur de lecture du tableau:", error);
+        toast.error(t('whiteboard.saveError'));
+      }
+    );
+    return () => unsub();
+  }, [sessionId, applyRemoteImage, t]);
+
+  // Fusionne l'image reçue du binôme PAR-DESSOUS notre tableau, pour que nos nouveaux traits ne
+  // l'écrasent pas à la sauvegarde. Limite : une gomme appliquée pendant ce temps par l'autre
+  // personne peut être annulée.
+  const mergePendingRemote = () => new Promise((resolve) => {
+    const pending = pendingRemoteRef.current;
+    pendingRemoteRef.current = null;
+    if (!pending?.image) return resolve();
+
+    const img = new Image();
+    img.onload = () => {
+      const ctx = canvasRef.current?.getContext("2d");
+      if (ctx) {
+        ctx.globalCompositeOperation = "destination-over";
+        ctx.drawImage(img, 0, 0);
+        ctx.globalCompositeOperation = "source-over";
+      }
+      resolve();
+    };
+    img.onerror = () => resolve();
+    img.src = pending.image;
+  });
+
+  // Extrait le point (x,y) qu'il vienne d'un événement souris OU tactile
   const getEventPoint = (e) => {
     if (e.touches && e.touches.length > 0) return e.touches[0];
     if (e.changedTouches && e.changedTouches.length > 0) return e.changedTouches[0];
@@ -157,11 +257,11 @@ export default function Whiteboard() {
     const ctx = canvasRef.current.getContext("2d");
     ctx.beginPath();
     ctx.moveTo(x, y);
-    setIsDrawing(true);
+    isDrawingRef.current = true;
   };
 
   const draw = (e) => {
-    if (!isDrawing || tool === "text") return;
+    if (!isDrawingRef.current || tool === "text") return;
     const { x, y } = getCanvasCoordinates(e);
     const ctx = canvasRef.current.getContext("2d");
     ctx.lineTo(x, y);
@@ -181,19 +281,15 @@ export default function Whiteboard() {
     ctx.stroke();
   };
 
-  const saveToFirestore = async () => {
-    const canvas = canvasRef.current;
-    const imageBase64 = canvas.toDataURL("image/png");
-    await setDoc(doc(db, "whiteboards", sessionId), { image: imageBase64, updatedAt: new Date().toISOString() }, { merge: true });
-  };
-
   const stopDrawing = async () => {
-    if (!isDrawing) return;
-    setIsDrawing(false);
+    // Le ref évite le double appel mouseup + mouseout qui sauvegardait deux fois
+    if (!isDrawingRef.current) return;
+    isDrawingRef.current = false;
     
     const ctx = canvasRef.current.getContext("2d");
     ctx.globalCompositeOperation = "source-over";
 
+    await mergePendingRemote();
     await saveToFirestore();
   };
 
@@ -221,11 +317,14 @@ export default function Whiteboard() {
       isRestoringRef.current = false;
       await saveToFirestore();
     }
-  }, [sessionId]);
+  }, [saveToFirestore]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+        // Dans le champ de texte du tableau, on laisse l'annulation native du navigateur
+        const tag = e.target?.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA") return;
         e.preventDefault();
         undoLastStroke();
       }
@@ -240,7 +339,16 @@ export default function Whiteboard() {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    await setDoc(doc(db, "whiteboards", sessionId), { image: null }, { merge: true });
+    try {
+      await setDoc(
+        doc(db, "whiteboards", sessionId),
+        { image: null, updatedAt: new Date().toISOString(), clientId: clientIdRef.current },
+        { merge: true }
+      );
+    } catch (error) {
+      console.error("Erreur lors de l'effacement du tableau:", error);
+      toast.error(t('whiteboard.saveError'));
+    }
   };
 
   const downloadBoard = () => {
@@ -264,13 +372,19 @@ export default function Whiteboard() {
     if (!savedColors.includes(color) && !PRESET_COLORS.includes(color)) {
       const newColors = [color, ...savedColors].slice(0, 8);
       setSavedColors(newColors);
-      localStorage.setItem("buddyetude_saved_colors", JSON.stringify(newColors));
+      try {
+        localStorage.setItem("buddyetude_saved_colors", JSON.stringify(newColors));
+      } catch {
+        // Stockage indisponible : la couleur reste disponible jusqu'à la fermeture de la page
+      }
     }
   };
 
   const handleBack = () => {
     navigate("/Messages");
   };
+
+  if (!sessionId) return null;
 
   return (
     <div className="fixed inset-0 bg-slate-50 dark:bg-[#131314] z-[9999] flex flex-col transition-colors duration-300" 
@@ -283,8 +397,9 @@ export default function Whiteboard() {
             <X className="w-5 h-5 mr-2" /> {t('whiteboard.closeBoard')}
           </Button>
           <div className="h-6 w-px bg-gray-300 dark:bg-[#333537] hidden md:block"></div>
+          {/* Un seul nom, que le thème soit clair ou sombre */}
           <h2 className="font-bold text-gray-800 dark:text-gray-100 hidden md:block">
-            {isDarkMode ? t('whiteboard.titleDark') : t('whiteboard.titleLight')}
+            {t('whiteboard.title')}
           </h2>
         </div>
         <div className="flex items-center gap-2">
@@ -378,6 +493,22 @@ export default function Whiteboard() {
                 <Plus className="w-4 h-4" />
               </Button>
             </div>
+
+            {/* Les couleurs enregistrées avec "+" n'étaient affichées nulle part */}
+            {savedColors.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 px-1">
+                {savedColors.map((savedColor) => (
+                  <button
+                    key={savedColor}
+                    type="button"
+                    onClick={() => { setColor(savedColor); if (tool === "eraser") setTool("pen"); }}
+                    aria-label={savedColor}
+                    className="w-6 h-6 rounded-full border border-gray-200 dark:border-[#333537] hover:scale-110 transition-transform"
+                    style={{ backgroundColor: savedColor }}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

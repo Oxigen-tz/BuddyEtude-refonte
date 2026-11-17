@@ -3,12 +3,24 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext"; 
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 export default function CTASection() {
-  const { user, loginWithGoogle } = useAuth(); // 🛠️ CORRIGÉ : on récupère aussi `user`
+  const { user, loginWithGoogle } = useAuth();
   const { t } = useTranslation();
+  const navigate = useNavigate();
+
+  // Même comportement que le bouton du hero : try/catch (fermer la popup Google
+  // ne doit pas produire d'erreur non gérée) puis redirection vers le tableau de bord.
+  const handleLogin = async () => {
+    try {
+      await loginWithGoogle();
+      navigate("/Dashboard");
+    } catch (error) {
+      console.error("Erreur lors de la connexion", error);
+    }
+  };
 
   return (
     <section className="py-24 px-6 bg-gray-50">
@@ -31,7 +43,6 @@ export default function CTASection() {
               {t('cta.subtitle')}
             </p>
 
-            {/* 🛠️ CORRIGÉ : bouton conditionnel selon l'état de connexion */}
             {user ? (
               <Link to="/Dashboard">
                 <Button
@@ -45,7 +56,7 @@ export default function CTASection() {
             ) : (
               <Button
                 size="lg"
-                onClick={loginWithGoogle} 
+                onClick={handleLogin} 
                 className="bg-white text-indigo-700 hover:bg-indigo-50 font-semibold text-base px-8 py-6 rounded-xl group"
               >
                 {t('cta.button')}

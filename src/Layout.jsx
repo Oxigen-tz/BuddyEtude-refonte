@@ -4,11 +4,12 @@ import { db } from "./firebase/config";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { createPageUrl } from "@/utils";
 import { useAuth } from "@/lib/AuthContext";
+import { getRequestAlertsEnabled } from "@/lib/preferences";
 import { useTranslation } from "react-i18next";
 import { Toaster, toast } from "sonner";
 import {
-  Home, Search, LayoutDashboard, MessageSquare, Calendar,
-  User, LogOut, Menu, X, GraduationCap, Settings as SettingsIcon, Bell, CheckCircle2, Globe
+  Search, LayoutDashboard, MessageSquare, Calendar,
+  User, LogOut, Menu, X, GraduationCap, Settings as SettingsIcon, Bell, CheckCircle2, Globe, UserPlus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -38,36 +39,73 @@ export default function Layout({ children, currentPageName }) {
     const newLang = i18n.language.startsWith('fr') ? 'en' : 'fr';
     i18n.changeLanguage(newLang);
   };
-  const isFr = i18n.language.startsWith('fr');
 
   useEffect(() => {
     if (!user?.email) return;
-    const q = query(collection(db, "requests"), where("from_email", "==", user.email), where("status", "==", "accepted"));
-    const unsub = onSnapshot(q, (snapshot) => {
-      const newNotifs = [];
-      snapshot.docChanges().forEach((change) => {
-        if (change.type === "modified") {
+
+    const formatTime = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    const notify = ({ id, type, title, message, toastTitle }) => {
+      // Réglage "Alertes de demandes" (page Paramètres) : s'il est coupé, on ne notifie pas
+      if (!getRequestAlertsEnabled()) return;
+
+      setNotifications(prev => [{ id, type, title, message, time: formatTime() }, ...prev]);
+      toast.success(toastTitle, {
+        description: message,
+        action: { label: t('layout.notifications.view'), onClick: () => navigate(createPageUrl("Messages")) }
+      });
+    };
+
+    // 🛠️ CORRIGÉ : quand une demande passe de "pending" à "accepted", le document ENTRE dans le
+    // résultat de cette requête (filtrée sur status == accepted) : Firestore le signale comme "added",
+    // pas "modified". L'ancien code ne traitait que "modified", donc la notification d'acceptation
+    // ne se déclenchait jamais. Le premier snapshot (état initial) est ignoré pour ne pas notifier
+    // à chaque chargement de page.
+    let acceptedReady = false;
+    let inviteReady = false;
+
+    const unsubAccepted = onSnapshot(
+      query(collection(db, "requests"), where("from_email", "==", user.email), where("status", "==", "accepted")),
+      (snapshot) => {
+        if (!acceptedReady) { acceptedReady = true; return; }
+        snapshot.docChanges().forEach((change) => {
+          if (change.type !== "added") return;
           const data = change.doc.data();
-          
-          newNotifs.push({
-            id: change.doc.id,
+          notify({
+            id: `accepted-${change.doc.id}`,
+            type: "accepted",
             title: t('layout.notifications.acceptedTitle'),
             message: t('layout.notifications.acceptedBody', { name: data.to_name }),
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            toastTitle: t('layout.notifications.acceptedToast'),
           });
+        });
+      },
+      (error) => console.error("Erreur notifications (acceptations):", error)
+    );
 
-          toast.success(t('layout.notifications.acceptedToast'), {
-            description: t('layout.notifications.acceptedBody', { name: data.to_name }),
-            action: { label: t('layout.notifications.view'), onClick: () => navigate(createPageUrl("Messages")) }
+    // Les clés layout.notifications.invite* existaient dans i18n.js sans jamais être utilisées :
+    // personne n'était prévenu qu'une demande lui était adressée.
+    const unsubInvites = onSnapshot(
+      query(collection(db, "requests"), where("to_email", "==", user.email), where("status", "==", "pending")),
+      (snapshot) => {
+        if (!inviteReady) { inviteReady = true; return; }
+        snapshot.docChanges().forEach((change) => {
+          if (change.type !== "added") return;
+          const data = change.doc.data();
+          if (data.from_email === user.email) return;
+          notify({
+            id: `invite-${change.doc.id}`,
+            type: "invite",
+            title: t('layout.notifications.inviteTitle'),
+            message: t('layout.notifications.inviteBody', { name: data.from_name }),
+            toastTitle: t('layout.notifications.inviteToast', { name: data.from_name }),
           });
-        }
-      });
-      
-      if (newNotifs.length > 0) {
-        setNotifications(prev => [...newNotifs, ...prev]);
-      }
-    });
-    return () => unsub();
+        });
+      },
+      (error) => console.error("Erreur notifications (invitations):", error)
+    );
+
+    return () => { unsubAccepted(); unsubInvites(); };
   }, [user, navigate, t]);
 
   const initials = (user?.displayName || user?.full_name || "U").split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
@@ -77,8 +115,12 @@ export default function Layout({ children, currentPageName }) {
     setShowNotifications(false);
   };
 
-  const NotificationsPanel = () => (
-    <div className="absolute bottom-16 left-4 md:bottom-24 md:left-64 w-80 bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] shadow-xl rounded-2xl z-50 overflow-hidden transition-all animate-in fade-in slide-in-from-bottom-4">
+  // 🛠️ CORRIGÉ : ce n'est plus un composant défini dans le composant (il était recréé à chaque rendu,
+  // donc démonté/remonté en permanence) mais une fonction qui renvoie du JSX. Le positionnement est
+  // passé en paramètre : sur mobile, les classes "absolute bottom-16" de la version desktop
+  // plaçaient le panneau hors de l'écran.
+  const renderNotificationsPanel = (positionClass) => (
+    <div className={`${positionClass} bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] shadow-xl rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4`}>
       <div className="p-4 border-b border-gray-100 dark:border-[#333537] flex justify-between items-center bg-gray-50 dark:bg-[#131314]">
         <h3 className="font-bold text-gray-900 dark:text-white">{t('layout.notifications.title')}</h3>
         {notifications.length > 0 && (
@@ -93,10 +135,18 @@ export default function Layout({ children, currentPageName }) {
             {t('layout.notifications.empty')}
           </div>
         ) : (
-          notifications.map((notif, idx) => (
-            <div key={idx} className="p-3 mb-1 hover:bg-gray-50 dark:hover:bg-[#282a2c] rounded-xl cursor-pointer transition-colors" onClick={() => navigate(createPageUrl("Messages"))}>
+          notifications.map((notif) => (
+            <div
+              key={notif.id}
+              className="p-3 mb-1 hover:bg-gray-50 dark:hover:bg-[#282a2c] rounded-xl cursor-pointer transition-colors"
+              onClick={() => { setShowNotifications(false); navigate(createPageUrl("Messages")); }}
+            >
               <div className="flex gap-3">
-                <div className="mt-1"><CheckCircle2 className="w-5 h-5 text-emerald-500" /></div>
+                <div className="mt-1">
+                  {notif.type === "invite"
+                    ? <UserPlus className="w-5 h-5 text-indigo-500" />
+                    : <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
+                </div>
                 <div>
                   <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{notif.title}</p>
                   <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{notif.message}</p>
@@ -147,18 +197,19 @@ export default function Layout({ children, currentPageName }) {
         {/* --- BLOC DU BAS (Langue + Notifications + Paramètres + Profil) --- */}
         <div className="p-4 border-t border-gray-100 dark:border-[#333537] flex flex-col gap-2 relative">
 
-          {/* 🌐 BOUTON LANGUE DESKTOP */}
+          {/* 🌐 BOUTON LANGUE DESKTOP : layout.language contient déjà la langue cible */}
           <button
             onClick={toggleLanguage}
             className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all w-full text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-[#282a2c]"
           >
             <Globe className="w-5 h-5" />
-            {isFr ? "English" : t('layout.language')}
+            {t('layout.language')}
           </button>
           
           {/* 🔔 BOUTON NOTIFICATIONS DESKTOP */}
           <button 
             onClick={() => setShowNotifications(!showNotifications)}
+            aria-expanded={showNotifications}
             className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all w-full ${
               showNotifications
                 ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400"
@@ -177,7 +228,7 @@ export default function Layout({ children, currentPageName }) {
             {t('layout.notifications.title')}
           </button>
 
-          {showNotifications && <NotificationsPanel />}
+          {showNotifications && renderNotificationsPanel("absolute bottom-24 left-64 w-80 z-50")}
 
           <Link
             to={createPageUrl("Settings")}
@@ -221,7 +272,12 @@ export default function Layout({ children, currentPageName }) {
 
            <div className="flex items-center gap-4">
              {/* 🔔 BOUTON NOTIFICATIONS MOBILE */}
-             <button onClick={() => setShowNotifications(!showNotifications)} className="relative text-gray-600 dark:text-gray-300">
+             <button
+               onClick={() => setShowNotifications(!showNotifications)}
+               aria-label={t('layout.notifications.title')}
+               aria-expanded={showNotifications}
+               className="relative text-gray-600 dark:text-gray-300"
+             >
                 <Bell className="w-6 h-6" />
                 {notifications.length > 0 && (
                   <span className="absolute -top-1 -right-1 flex h-3 w-3">
@@ -231,18 +287,19 @@ export default function Layout({ children, currentPageName }) {
                 )}
              </button>
 
-             <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="text-gray-900 dark:text-gray-100">
+             <button
+               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+               aria-label={t('layout.menu')}
+               aria-expanded={mobileMenuOpen}
+               className="text-gray-900 dark:text-gray-100"
+             >
                {mobileMenuOpen ? <X /> : <Menu />}
              </button>
            </div>
         </header>
 
-        {/* PANNEAU NOTIFICATIONS MOBILE (S'affiche sous le header) */}
-        {showNotifications && (
-          <div className="md:hidden fixed inset-x-4 top-20 z-50">
-            <NotificationsPanel />
-          </div>
-        )}
+        {/* PANNEAU NOTIFICATIONS MOBILE (s'affiche sous le header) */}
+        {showNotifications && renderNotificationsPanel("md:hidden fixed inset-x-4 top-20 z-50")}
 
         {mobileMenuOpen && (
           <nav className="md:hidden fixed inset-0 top-[73px] bg-white dark:bg-[#1e1f20] z-30 p-4 flex flex-col gap-2 transition-colors duration-300">
@@ -259,7 +316,7 @@ export default function Layout({ children, currentPageName }) {
               className="flex items-center gap-3 px-4 py-4 rounded-xl font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#282a2c]"
             >
               <Globe className="w-5 h-5" />
-              {isFr ? "English" : t('layout.language')}
+              {t('layout.language')}
             </button>
 
             <Link to={createPageUrl("Settings")} onClick={() => setMobileMenuOpen(false)} className={`flex items-center gap-3 px-4 py-4 rounded-xl font-medium ${currentPageName === "Settings" ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400" : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#282a2c]"}`}>

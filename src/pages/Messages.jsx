@@ -16,6 +16,9 @@ const BANNED_EXTENSIONS = [
   ".exe", ".msi", ".bat", ".cmd", ".sh", ".vbs", ".js", ".com", ".scr", ".dll", ".sys"
 ];
 
+// Initiale sûre : ne plante pas si le nom est vide ou absent
+const getInitial = (name) => (name?.trim()?.[0] || "?").toUpperCase();
+
 export default function Messages() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -44,15 +47,26 @@ export default function Messages() {
     let fromList = [];
 
     const updateBuddies = () => {
-      const combined = [...toList, ...fromList];
-      setBuddies(combined.filter((v, i, a) => a.findIndex(t => t.email === v.email) === i));
+      const combined = [...toList, ...fromList]
+        // Jamais soi-même, jamais de contact sans email
+        .filter(b => b.email && b.email !== user.email);
+
+      // Si une même personne apparaît deux fois (demande en attente + conversation acceptée),
+      // on garde la conversation acceptée en premier. Le tri est stable.
+      combined.sort((a, b) => Number(a.isPending) - Number(b.isPending));
+
+      const unique = combined.filter(
+        (buddy, i, arr) => arr.findIndex(other => other.email === buddy.email) === i
+      );
+      setBuddies(unique);
     };
 
     const unsubTo = onSnapshot(query(collection(db, "requests"), where("to_email", "==", user.email)), (snap) => {
       toList = snap.docs.map(d => {
         const data = d.data();
+        if (data.from_email === user.email) return null;
         if (data.status === "accepted" || data.status === "pending") {
-          return { email: data.from_email, name: data.from_name, requestId: d.id, isPending: data.status === "pending" };
+          return { email: data.from_email, name: data.from_name || data.from_email, requestId: d.id, isPending: data.status === "pending" };
         }
         return null;
       }).filter(Boolean);
@@ -62,8 +76,9 @@ export default function Messages() {
     const unsubFrom = onSnapshot(query(collection(db, "requests"), where("from_email", "==", user.email)), (snap) => {
       fromList = snap.docs.map(d => {
         const data = d.data();
+        if (data.to_email === user.email) return null;
         if (data.status === "accepted") {
-          return { email: data.to_email, name: data.to_name, requestId: d.id, isPending: false };
+          return { email: data.to_email, name: data.to_name || data.to_email, requestId: d.id, isPending: false };
         }
         return null;
       }).filter(Boolean);
@@ -114,6 +129,22 @@ export default function Messages() {
     } finally {
       setShowRejectModal(false);
     }
+  };
+
+  // --- SÉLECTION D'UN FICHIER ---
+  // La liste BANNED_EXTENSIONS existait mais n'était utilisée nulle part.
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    // Réinitialise l'input pour pouvoir re-sélectionner le même fichier après l'avoir retiré
+    e.target.value = "";
+    if (!file) return;
+
+    const lowerName = file.name.toLowerCase();
+    if (BANNED_EXTENSIONS.some(ext => lowerName.endsWith(ext))) {
+      toast.error(t('messages.toast.fileNotAllowed', 'Ce type de fichier n’est pas autorisé.'));
+      return;
+    }
+    setSelectedFile(file);
   };
 
   // --- ACTIONS DES MESSAGES ---
@@ -195,7 +226,7 @@ export default function Messages() {
             {buddies.length === 0 ? <p className="text-center text-sm text-gray-400 p-4">{t('messages.noConversation')}</p> : 
               buddies.map(buddy => (
                 <button key={buddy.email} onClick={() => setActiveChat(buddy)} className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all ${activeChat?.email === buddy.email ? "bg-indigo-50 dark:bg-indigo-500/10 shadow-sm" : "hover:bg-gray-50 dark:hover:bg-[#282a2c]"}`}>
-                  <Avatar className="h-12 w-12"><AvatarFallback className="bg-indigo-100 dark:bg-[#282a2c] text-indigo-700 dark:text-indigo-400 font-bold">{buddy.name[0]}</AvatarFallback></Avatar>
+                  <Avatar className="h-12 w-12"><AvatarFallback className="bg-indigo-100 dark:bg-[#282a2c] text-indigo-700 dark:text-indigo-400 font-bold">{getInitial(buddy.name)}</AvatarFallback></Avatar>
                   <span className={`font-semibold text-left truncate ${activeChat?.email === buddy.email ? "text-indigo-900 dark:text-indigo-300" : "text-gray-700 dark:text-gray-300"}`}>{buddy.name}</span>
                   
                   {buddy.isPending && (
@@ -244,7 +275,7 @@ export default function Messages() {
               /* UI : CHAT NORMAL */
               <>
                 <div className="p-5 border-b border-gray-50 dark:border-[#333537] bg-gray-50/50 dark:bg-[#131314]/30 flex items-center gap-4">
-                   <Avatar className="h-12 w-12"><AvatarFallback className="bg-indigo-100 dark:bg-[#282a2c] text-indigo-700 dark:text-indigo-400 font-bold text-lg">{activeChat.name[0]}</AvatarFallback></Avatar>
+                   <Avatar className="h-12 w-12"><AvatarFallback className="bg-indigo-100 dark:bg-[#282a2c] text-indigo-700 dark:text-indigo-400 font-bold text-lg">{getInitial(activeChat.name)}</AvatarFallback></Avatar>
                    <div className="flex-1">
                      <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100 leading-tight">{activeChat.name}</h3>
                      <p className="text-sm text-gray-500 dark:text-gray-400">{t('messages.studyBuddy')}</p>
@@ -320,7 +351,7 @@ export default function Messages() {
                 )}
 
                 <form onSubmit={handleSend} className="p-4 bg-white dark:bg-[#1e1f20] border-t border-gray-50 dark:border-[#333537] flex gap-3 items-center">
-                  <input type="file" ref={fileInputRef} onChange={(e) => setSelectedFile(e.target.files[0])} className="hidden" />
+                  <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" />
                   <Button type="button" variant="ghost" onClick={() => fileInputRef.current.click()} className="text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#282a2c] hover:text-indigo-600 dark:hover:text-indigo-400 rounded-full h-12 w-12 p-0 shrink-0 transition-colors">
                     <Paperclip className="w-5 h-5" />
                   </Button>

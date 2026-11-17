@@ -5,8 +5,8 @@ import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
-  User, CheckCircle, Edit, MapPin, GraduationCap, 
-  Monitor, Users, BookOpen, Target, Clock, ArrowLeft, Camera 
+  User, CheckCircle, Edit, MapPin, 
+  Monitor, Users, BookOpen, Target, Clock, ArrowLeft
 } from "lucide-react";
 import ProfileForm from "../components/profile/ProfileForm";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,10 +23,15 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false); 
+  const [photoFailed, setPhotoFailed] = useState(false);
 
   // Les libellés de niveau partagent la même source que buddyCard.levels
   // (mêmes valeurs "college"/"lycee"/etc.) : une seule liste à maintenir.
   const levelLabel = (value) => t(`buddyCard.levels.${value}`, value);
+
+  // Nom proposé à la création du profil : displayName n'existait pas dans AuthContext,
+  // d'où un champ "Nom affiché" vide pour les nouveaux comptes.
+  const defaultName = user?.displayName || user?.full_name || "";
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -40,11 +45,14 @@ export default function Profile() {
           if (!data.photo_url && user.photoURL) {
             data.photo_url = user.photoURL;
           }
+          if (!data.display_name && defaultName) {
+            data.display_name = defaultName;
+          }
           setProfile(data);
           if (!data.profile_complete) setIsEditing(true);
         } else {
           setProfile({
-            display_name: user.displayName || "",
+            display_name: defaultName,
             photo_url: user.photoURL || "",
             subjects: [], goals: [], availability: [], profile_complete: false
           });
@@ -73,6 +81,7 @@ export default function Profile() {
       };
       await setDoc(docRef, dataToSave, { merge: true });
       setProfile(dataToSave);
+      setPhotoFailed(false);
       
       toast.success(t('profile.toast.saved'), {
         description: t('profile.toast.savedDesc')
@@ -127,10 +136,14 @@ export default function Profile() {
               <div className="flex items-center gap-5">
                 {/* Avatar utilisateur */}
                 <div className="relative">
-                  {profile.photo_url ? (
+                  {profile.photo_url && !photoFailed ? (
+                    // 🛠️ CORRIGÉ : les photos Google refusent souvent de se charger avec un Referer.
+                    // Sans cela, le navigateur affichait le texte alt ("Charles Bertreux") dans le cadre.
                     <img 
                       src={profile.photo_url} 
                       alt={profile.display_name} 
+                      referrerPolicy="no-referrer"
+                      onError={() => setPhotoFailed(true)}
                       className="w-20 h-20 rounded-2xl object-cover border-2 border-white dark:border-[#333537] shadow-md"
                     />
                   ) : (

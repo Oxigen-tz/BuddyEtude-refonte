@@ -5,11 +5,10 @@ import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { 
-  Calendar, Plus, Clock, MapPin, Monitor, Users, X, Check, 
+  Calendar, Plus, Clock, MapPin, Monitor, Users, Check, 
   Loader2, Presentation
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -19,38 +18,95 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useTranslation } from "react-i18next";
 
+const EMPTY_FORM = {
+  title: "", buddy_email: "", subject: "", date: "", time: "",
+  duration_minutes: 60, mode: "en_ligne", location: "", notes: ""
+};
+
+// Anciennes sessions : organizer_name valait "Moi" / "Me" (user.displayName n'existait pas).
+const LEGACY_PLACEHOLDER_NAMES = ["Moi", "Me"];
+
+// "2026-09-16" + "23:21" → Date locale, sans décalage de fuseau horaire
+const parseSessionStart = (session) => {
+  if (!session?.date) return null;
+  const [y, m, d] = session.date.split("-").map(Number);
+  const [hh, mm] = (session.time || "00:00").split(":").map(Number);
+  const start = new Date(y, (m || 1) - 1, d || 1, hh || 0, mm || 0);
+  return Number.isNaN(start.getTime()) ? null : start;
+};
+
+const parseSessionEnd = (session) => {
+  const start = parseSessionStart(session);
+  if (!start) return null;
+  return new Date(start.getTime() + (Number(session.duration_minutes) || 60) * 60000);
+};
+
+const startTime = (session) => parseSessionStart(session)?.getTime() ?? 0;
+
+const todayISO = () => {
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+};
+
 export default function Sessions() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({
-    title: "", buddy_email: "", subject: "", date: "", time: "",
-    duration_minutes: 60, mode: "en_ligne", location: "", notes: ""
-  });
+  const [form, setForm] = useState(EMPTY_FORM);
 
   const [buddies, setBuddies] = useState([]);
+  const [buddiesLoading, setBuddiesLoading] = useState(true);
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
 
-  // 1. Charger les binômes (requêtes acceptées)
+  // 1. Charger les binômes (requêtes acceptées).
+  // 🛠️ CORRIGÉ : l'ancienne requête récupérait TOUTES les demandes acceptées de TOUS les utilisateurs
+  // puis filtrait côté navigateur. On interroge maintenant uniquement les demandes qui nous concernent.
   useEffect(() => {
     if (!user?.email) return;
 
-    const q = query(collection(db, "requests"), where("status", "==", "accepted"));
-    const unsub = onSnapshot(q, (snapshot) => {
-      const list = [];
-      snapshot.docs.forEach(doc => {
-        const data = doc.data();
-        if (data.from_email === user.email) list.push({ email: data.to_email, name: data.to_name });
-        else if (data.to_email === user.email) list.push({ email: data.from_email, name: data.from_name });
-      });
-      const unique = list.filter((v, i, a) => a.findIndex(item => item.email === v.email) === i);
-      setBuddies(unique);
-    });
+    let fromList = [];
+    let toList = [];
+    let fromReady = false;
+    let toReady = false;
 
-    return () => unsub();
+    const update = () => {
+      const combined = [...fromList, ...toList].filter(b => b.email && b.email !== user.email);
+      const unique = combined.filter((v, i, a) => a.findIndex(item => item.email === v.email) === i);
+      setBuddies(unique);
+      if (fromReady && toReady) setBuddiesLoading(false);
+    };
+
+    const unsubFrom = onSnapshot(
+      query(collection(db, "requests"), where("from_email", "==", user.email), where("status", "==", "accepted")),
+      (snapshot) => {
+        fromList = snapshot.docs.map(d => {
+          const data = d.data();
+          return { email: data.to_email, name: data.to_name || data.to_email };
+        });
+        fromReady = true;
+        update();
+      },
+      (error) => { console.error("Erreur de chargement des binômes:", error); fromReady = true; update(); }
+    );
+
+    const unsubTo = onSnapshot(
+      query(collection(db, "requests"), where("to_email", "==", user.email), where("status", "==", "accepted")),
+      (snapshot) => {
+        toList = snapshot.docs.map(d => {
+          const data = d.data();
+          return { email: data.from_email, name: data.from_name || data.from_email };
+        });
+        toReady = true;
+        update();
+      },
+      (error) => { console.error("Erreur de chargement des binômes:", error); toReady = true; update(); }
+    );
+
+    return () => { unsubFrom(); unsubTo(); };
   }, [user]);
 
   // 2. Charger les sessions avec sécurité
@@ -62,8 +118,7 @@ export default function Sessions() {
 
     const q = query(collection(db, "sessions"), where("participants", "array-contains", user.email));
     const unsub = onSnapshot(q, (snapshot) => {
-      const sessList = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      setSessions(sessList.sort((a, b) => new Date(b.date) - new Date(a.date)));
+      setSessions(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
       setLoading(false);
     }, (error) => {
       console.error("Erreur de chargement des sessions:", error);
@@ -80,15 +135,19 @@ export default function Sessions() {
       const buddy = buddies.find(b => b.email === form.buddy_email);
       await addDoc(collection(db, "sessions"), {
         ...form,
+        title: form.title.trim(),
+        duration_minutes: Number(form.duration_minutes) || 60,
+        location: form.mode === "presentiel" ? form.location.trim() : "",
         organizer_email: user.email,
-        organizer_name: user.displayName || t('sessions.defaultOrganizer'),
-        buddy_name: buddy?.name || t('sessions.defaultBuddy'),
+        // 🛠️ CORRIGÉ : on ne stocke plus un libellé traduit ("Moi") mais le vrai nom.
+        organizer_name: user.displayName || user.full_name || user.name || user.email,
+        buddy_name: buddy?.name || form.buddy_email,
         participants: [user.email, form.buddy_email],
         status: "planned",
         createdAt: serverTimestamp(),
       });
       setShowCreate(false);
-      setForm({ title: "", buddy_email: "", subject: "", date: "", time: "", duration_minutes: 60, mode: "en_ligne", location: "", notes: "" });
+      setForm(EMPTY_FORM);
       toast.success(t('sessions.toast.created'));
     } catch (error) {
       toast.error(t('sessions.toast.createError'));
@@ -106,8 +165,11 @@ export default function Sessions() {
     }
   };
 
-  const planned = sessions.filter(s => s.status === "planned");
-  const completed = sessions.filter(s => s.status === "completed");
+  // Prochaines sessions : la plus proche en premier. Historique : la plus récente en premier.
+  const planned = sessions.filter(s => s.status === "planned").sort((a, b) => startTime(a) - startTime(b));
+  const completed = sessions.filter(s => s.status === "completed").sort((a, b) => startTime(b) - startTime(a));
+
+  const canSubmit = form.title.trim() && form.buddy_email && form.date && form.time && !isCreating;
 
   return (
     <div className="max-w-5xl mx-auto pb-20 animate-in fade-in duration-500">
@@ -133,7 +195,7 @@ export default function Sessions() {
       </div>
 
       {/* --- MESSAGE D'ALERTE (Pas de binômes) --- */}
-      {buddies.length === 0 && !loading && (
+      {buddies.length === 0 && !buddiesLoading && (
         <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20 rounded-2xl mb-8 transition-colors duration-300">
           <div className="p-6 text-center">
             <Users className="w-10 h-10 text-amber-500 dark:text-amber-400 mx-auto mb-3" />
@@ -166,7 +228,8 @@ export default function Sessions() {
                 session={s} 
                 userEmail={user?.email} 
                 onUpdateStatus={updateStatus} 
-                onJoinWhiteboard={() => navigate(createPageUrl("Whiteboard", { sessionId: s.id }))}
+                // Même format d'URL que dans Messages.jsx (?sessionId=...)
+                onJoinWhiteboard={() => navigate(`${createPageUrl("Whiteboard")}?sessionId=${s.id}`)}
               />
             ))}
           </div>
@@ -199,6 +262,7 @@ export default function Sessions() {
                 value={form.title} 
                 onChange={(e) => setForm({ ...form, title: e.target.value })} 
                 placeholder={t('sessions.createDialog.titlePlaceholder')} 
+                maxLength={80}
                 className="bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-white rounded-xl" 
               />
             </div>
@@ -225,6 +289,7 @@ export default function Sessions() {
                 <Input 
                   type="date" 
                   value={form.date} 
+                  min={todayISO()}
                   onChange={(e) => setForm({ ...form, date: e.target.value })} 
                   className="bg-white dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-white rounded-xl"
                 />
@@ -245,6 +310,8 @@ export default function Sessions() {
                 <Label className="dark:text-gray-300">{t('sessions.createDialog.durationLabel')}</Label>
                 <Input 
                   type="number" 
+                  min={5}
+                  max={480}
                   value={form.duration_minutes} 
                   onChange={(e) => setForm({ ...form, duration_minutes: e.target.value })} 
                   className="bg-white dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-white rounded-xl"
@@ -264,6 +331,20 @@ export default function Sessions() {
               </div>
             </div>
 
+            {/* Une session en présentiel sans lieu ne sert à rien */}
+            {form.mode === "presentiel" && (
+              <div className="space-y-2">
+                <Label className="dark:text-gray-300">{t('sessions.createDialog.locationLabel')}</Label>
+                <Input 
+                  value={form.location} 
+                  onChange={(e) => setForm({ ...form, location: e.target.value })} 
+                  placeholder={t('sessions.createDialog.locationPlaceholder')} 
+                  maxLength={120}
+                  className="bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-white rounded-xl" 
+                />
+              </div>
+            )}
+
           </div>
           <DialogFooter className="mt-4 flex gap-2">
             <Button 
@@ -275,7 +356,7 @@ export default function Sessions() {
             </Button>
             <Button 
               className="bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded-xl flex-1 sm:flex-none shadow-sm"
-              disabled={!form.title || !form.buddy_email || !form.date || isCreating}
+              disabled={!canSubmit}
               onClick={handleCreateSession}
             >
               {isCreating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : t('sessions.createDialog.submit')}
@@ -287,11 +368,37 @@ export default function Sessions() {
   );
 }
 
-// Composant Carte de Session (Refondu avec des div simples)
+// Composant Carte de Session
 function SessionCard({ session, userEmail, onUpdateStatus, onJoinWhiteboard }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isOrganizer = session.organizer_email === userEmail;
-  const buddyName = isOrganizer ? session.buddy_name : session.organizer_name;
+
+  const rawName = isOrganizer ? session.buddy_name : session.organizer_name;
+  const buddyName = !rawName || LEGACY_PLACEHOLDER_NAMES.includes(rawName)
+    ? (isOrganizer ? session.buddy_email : session.organizer_email)
+    : rawName;
+
+  const start = parseSessionStart(session);
+  const end = parseSessionEnd(session);
+  // Une session "planned" dont l'heure de fin est dépassée n'est plus "à venir"
+  const isPast = session.status === "planned" && end !== null && end < new Date();
+
+  const dateLabel = start
+    ? start.toLocaleDateString(i18n.language, { weekday: "short", day: "numeric", month: "short", year: "numeric" })
+    : session.date;
+  const timeLabel = session.time && start
+    ? start.toLocaleTimeString(i18n.language, { hour: "2-digit", minute: "2-digit" })
+    : null;
+
+  let badgeClass = "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400";
+  let badgeText = t('sessions.status.upcoming');
+  if (session.status === "completed") {
+    badgeClass = "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400";
+    badgeText = t('sessions.status.completed');
+  } else if (isPast) {
+    badgeClass = "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400";
+    badgeText = t('sessions.status.past');
+  }
 
   return (
     <div className="bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] shadow-sm rounded-2xl hover:shadow-md transition-all duration-300 overflow-hidden">
@@ -303,26 +410,24 @@ function SessionCard({ session, userEmail, onUpdateStatus, onJoinWhiteboard }) {
             <h3 className="font-bold text-gray-900 dark:text-white text-lg leading-tight">{session.title}</h3>
             <p className="text-sm text-indigo-600 dark:text-indigo-400 font-medium mt-1">{t('sessions.with', { name: buddyName })}</p>
           </div>
-          <Badge className={`border-0 ${session.status === "completed" ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400"}`}>
-            {session.status === "planned" ? t('sessions.status.upcoming') : t('sessions.status.completed')}
-          </Badge>
+          <Badge className={`border-0 ${badgeClass}`}>{badgeText}</Badge>
         </div>
         
         {/* Détails carte */}
         <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-sm text-gray-600 dark:text-gray-300">
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-            <span>{session.date}</span>
+            <span>{dateLabel}</span>
           </div>
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-            <span>{session.time} ({session.duration_minutes} min)</span>
+            <span>{timeLabel ? `${timeLabel} · ` : ""}{session.duration_minutes} min</span>
           </div>
           <div className="flex items-center gap-2">
             {session.mode === "en_ligne" ? (
               <><Monitor className="w-4 h-4 text-indigo-500 dark:text-indigo-400" /> <span className="text-indigo-600 dark:text-indigo-400 font-medium">{t('sessions.mode.online')}</span></>
             ) : (
-              <><MapPin className="w-4 h-4 text-gray-400 dark:text-gray-500" /> <span>{t('sessions.mode.inperson')}</span></>
+              <><MapPin className="w-4 h-4 text-gray-400 dark:text-gray-500" /> <span>{session.location || t('sessions.mode.inperson')}</span></>
             )}
           </div>
         </div>

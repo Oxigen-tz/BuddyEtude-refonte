@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
+import { db } from "../firebase/config";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { useAuth } from "@/lib/AuthContext";
-import { Button } from "@/components/ui/button";
+import { getRequestAlertsEnabled, setRequestAlertsEnabled } from "@/lib/preferences";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
@@ -18,21 +20,63 @@ export default function Settings() {
   // Gestion du thème
   const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.classList.contains("dark"));
 
+  // Visibilité du profil : stockée dans users/{uid}.profile_visible (true par défaut)
+  const [profileVisible, setProfileVisible] = useState(true);
+  const [visibilityLoaded, setVisibilityLoaded] = useState(false);
+
+  // Alertes de demandes : réglage propre à l'appareil (voir lib/preferences.js)
+  const [requestAlerts, setRequestAlerts] = useState(() => getRequestAlertsEnabled());
+
+  useEffect(() => {
+    if (!user?.uid) return;
+    let cancelled = false;
+
+    getDoc(doc(db, "users", user.uid))
+      .then((snap) => {
+        if (cancelled) return;
+        if (snap.exists() && snap.data().profile_visible === false) setProfileVisible(false);
+      })
+      .catch((error) => console.error("Erreur de lecture des préférences:", error))
+      .finally(() => { if (!cancelled) setVisibilityLoaded(true); });
+
+    return () => { cancelled = true; };
+  }, [user]);
+
   const setTheme = (theme) => {
     const root = document.documentElement;
     if (theme === "dark") {
       root.classList.add("dark");
-      // 🛠️ CORRECTION : On utilise "theme" pour correspondre à App.jsx
+      // On utilise "theme" pour correspondre à App.jsx
       localStorage.setItem("theme", "dark");
       setIsDarkMode(true);
       toast.success(t('settings.appearance.darkToast'));
     } else {
       root.classList.remove("dark");
-      // 🛠️ CORRECTION : On utilise "theme" pour correspondre à App.jsx
       localStorage.setItem("theme", "light");
       setIsDarkMode(false);
       toast.success(t('settings.appearance.lightToast'));
     }
+  };
+
+  // 🛠️ CORRIGÉ : ce réglage n'était relié à rien (Switch defaultChecked, aucune écriture).
+  // Il est maintenant enregistré, et Search.jsx masque les profils dont profile_visible vaut false.
+  const handleVisibilityChange = async (value) => {
+    if (!user?.uid) return;
+    setProfileVisible(value); // mise à jour immédiate de l'interface
+    try {
+      await setDoc(doc(db, "users", user.uid), { profile_visible: value }, { merge: true });
+      toast.success(t('settings.toast.saved'));
+    } catch (error) {
+      console.error("Erreur d'enregistrement de la visibilité:", error);
+      setProfileVisible(!value);
+      toast.error(t('settings.toast.error'));
+    }
+  };
+
+  const handleRequestAlertsChange = (value) => {
+    setRequestAlerts(value);
+    setRequestAlertsEnabled(value);
+    toast.success(t('settings.toast.saved'));
   };
 
   const TABS = [
@@ -160,7 +204,7 @@ export default function Settings() {
             </div>
           )}
 
-          {/* ⚙️ ONGLET : PRÉFÉRENCES (Fusion Notifications + Confidentialité) */}
+          {/* ⚙️ ONGLET : PRÉFÉRENCES (Notifications + Confidentialité) */}
           {activeTab === "preferences" && (
             <div className="animate-in slide-in-from-right-4 duration-300">
               <div className="bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] rounded-3xl p-8 md:p-12 shadow-sm transition-colors duration-300">
@@ -176,17 +220,14 @@ export default function Settings() {
                     <div className="space-y-8">
                       <div className="flex items-center justify-between gap-8">
                         <div className="flex-1">
-                          <p className="font-semibold text-gray-900 dark:text-gray-100">{t('settings.preferences.messageAlerts')}</p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('settings.preferences.messageAlertsDesc')}</p>
+                          <p className="font-semibold text-gray-900 dark:text-gray-100">{t('settings.preferences.requestAlerts')}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('settings.preferences.requestAlertsDesc')}</p>
                         </div>
-                        <Switch defaultChecked className="data-[state=checked]:bg-indigo-600" />
-                      </div>
-                      <div className="flex items-center justify-between gap-8">
-                        <div className="flex-1">
-                          <p className="font-semibold text-gray-900 dark:text-gray-100">{t('settings.preferences.calendarReminders')}</p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('settings.preferences.calendarRemindersDesc')}</p>
-                        </div>
-                        <Switch defaultChecked className="data-[state=checked]:bg-indigo-600" />
+                        <Switch
+                          checked={requestAlerts}
+                          onCheckedChange={handleRequestAlertsChange}
+                          className="data-[state=checked]:bg-indigo-600"
+                        />
                       </div>
                     </div>
                   </div>
@@ -204,14 +245,12 @@ export default function Settings() {
                           <p className="font-semibold text-gray-900 dark:text-gray-100">{t('settings.preferences.profileVisibility')}</p>
                           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('settings.preferences.profileVisibilityDesc')}</p>
                         </div>
-                        <Switch defaultChecked className="data-[state=checked]:bg-indigo-600" />
-                      </div>
-                      <div className="flex items-center justify-between gap-8">
-                        <div className="flex-1">
-                          <p className="font-semibold text-gray-900 dark:text-gray-100">{t('settings.preferences.onlineStatus')}</p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('settings.preferences.onlineStatusDesc')}</p>
-                        </div>
-                        <Switch defaultChecked className="data-[state=checked]:bg-indigo-600" />
+                        <Switch
+                          checked={profileVisible}
+                          onCheckedChange={handleVisibilityChange}
+                          disabled={!visibilityLoaded}
+                          className="data-[state=checked]:bg-indigo-600"
+                        />
                       </div>
                     </div>
                   </div>
