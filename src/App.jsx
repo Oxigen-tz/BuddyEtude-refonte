@@ -1,4 +1,4 @@
-import { useEffect } from "react"; // 🛠️ NOUVEAU : Import de useEffect
+import { useEffect, Suspense } from "react";
 import { Toaster as ShadcnToaster } from "@/components/ui/toaster"
 import { Toaster as SonnerToaster } from "sonner" // Indispensable pour mes notifications toast.success
 import { QueryClientProvider } from '@tanstack/react-query'
@@ -14,14 +14,15 @@ import Footer from '@/components/Footer';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
-const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
+const MainPage = (mainPageKey && Pages[mainPageKey]) || (() => null);
 
 // 🛠️ WRAPPER INTELLIGENT
 const LayoutWrapper = ({ children, currentPageName }) => {
   const location = useLocation();
   
   // On définit ici les pages qui NE DOIVENT PAS avoir de menu latéral (ex: l'accueil)
-  const hideSidebarRoutes = ['/', '/login', '/register', '/Whiteboard']; 
+  // '/Home' affiche la même page d'accueil que '/' : elle ne doit pas non plus avoir la sidebar
+  const hideSidebarRoutes = ['/', `/${mainPageKey}`, '/login', '/register'];
   const showSidebar = Layout && !hideSidebarRoutes.includes(location.pathname);
 
   // On cache le footer sur le tableau blanc pour avoir 100% de l'écran pour dessiner
@@ -45,16 +46,25 @@ const LayoutWrapper = ({ children, currentPageName }) => {
   );
 };
 
+const FullScreenSpinner = () => (
+  <div className="fixed inset-0 flex items-center justify-center bg-slate-50 dark:bg-[#131314] transition-colors duration-300">
+    <div className="w-8 h-8 border-4 border-slate-200 dark:border-[#333537] border-t-indigo-600 dark:border-t-indigo-500 rounded-full animate-spin"></div>
+  </div>
+);
+
+// Affiché dans la zone de contenu (sidebar conservée) pendant le téléchargement d'une page
+const PageSpinner = () => (
+  <div className="flex items-center justify-center py-24">
+    <div className="w-8 h-8 border-4 border-slate-200 dark:border-[#333537] border-t-indigo-600 dark:border-t-indigo-500 rounded-full animate-spin"></div>
+  </div>
+);
+
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
 
   // Affichage du spinner pendant le chargement
   if (isLoadingPublicSettings || isLoadingAuth) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-slate-50 dark:bg-[#131314] transition-colors duration-300">
-        <div className="w-8 h-8 border-4 border-slate-200 dark:border-[#333537] border-t-indigo-600 dark:border-t-indigo-500 rounded-full animate-spin"></div>
-      </div>
-    );
+    return <FullScreenSpinner />;
   }
 
   // Gestion des erreurs d'authentification
@@ -83,7 +93,9 @@ const AuthenticatedApp = () => {
           path={`/${path}`}
           element={
             <LayoutWrapper currentPageName={path}>
-              <Page />
+              <Suspense fallback={<PageSpinner />}>
+                <Page />
+              </Suspense>
             </LayoutWrapper>
           }
         />

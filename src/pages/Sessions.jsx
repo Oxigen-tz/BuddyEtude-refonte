@@ -41,6 +41,14 @@ const parseSessionEnd = (session) => {
   return new Date(start.getTime() + (Number(session.duration_minutes) || 60) * 60000);
 };
 
+// Identifiant du tableau blanc d'un binôme : même calcul que le chatId de Messages.jsx
+const getPairBoardId = (session) => {
+  const emails = Array.isArray(session.participants) && session.participants.length === 2
+    ? session.participants
+    : [session.organizer_email, session.buddy_email];
+  return [...emails].sort().join("_");
+};
+
 const startTime = (session) => parseSessionStart(session)?.getTime() ?? 0;
 
 const todayISO = () => {
@@ -150,6 +158,7 @@ export default function Sessions() {
       setForm(EMPTY_FORM);
       toast.success(t('sessions.toast.created'));
     } catch (error) {
+      console.error(error);
       toast.error(t('sessions.toast.createError'));
     } finally {
       setIsCreating(false);
@@ -161,6 +170,7 @@ export default function Sessions() {
       await updateDoc(doc(db, "sessions", id), { status });
       toast.success(t('sessions.toast.statusUpdated'));
     } catch (error) {
+      console.error(error);
       toast.error(t('sessions.toast.statusError'));
     }
   };
@@ -169,7 +179,9 @@ export default function Sessions() {
   const planned = sessions.filter(s => s.status === "planned").sort((a, b) => startTime(a) - startTime(b));
   const completed = sessions.filter(s => s.status === "completed").sort((a, b) => startTime(b) - startTime(a));
 
-  const canSubmit = form.title.trim() && form.buddy_email && form.date && form.time && !isCreating;
+  const canSubmit = form.title.trim() && form.buddy_email && form.date && form.time
+    && (form.mode !== "presentiel" || form.location.trim())
+    && !isCreating;
 
   return (
     <div className="max-w-5xl mx-auto pb-20 animate-in fade-in duration-500">
@@ -228,8 +240,10 @@ export default function Sessions() {
                 session={s} 
                 userEmail={user?.email} 
                 onUpdateStatus={updateStatus} 
-                // Même format d'URL que dans Messages.jsx (?sessionId=...)
-                onJoinWhiteboard={() => navigate(`${createPageUrl("Whiteboard")}?sessionId=${s.id}`)}
+                // Même tableau que le bouton de Messages.jsx : il est identifié par le binôme
+                // (emails triés), pas par la session. Avant, ouvrir le tableau depuis une session
+                // ou depuis la conversation donnait deux tableaux différents pour les mêmes personnes.
+                onJoinWhiteboard={() => navigate(`${createPageUrl("Whiteboard")}?sessionId=${encodeURIComponent(getPairBoardId(s))}`)}
               />
             ))}
           </div>

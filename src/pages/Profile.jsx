@@ -80,7 +80,9 @@ export default function Profile() {
         updatedAt: new Date().toISOString() 
       };
       await setDoc(docRef, dataToSave, { merge: true });
-      setProfile(dataToSave);
+      // merge: true côté Firestore → même chose côté état local (sinon des champs comme
+      // profile_visible disparaissaient de l'état jusqu'au rechargement)
+      setProfile(prev => ({ ...prev, ...dataToSave }));
       setPhotoFailed(false);
       
       toast.success(t('profile.toast.saved'), {
@@ -92,6 +94,7 @@ export default function Profile() {
       }, 1500);
 
     } catch (error) {
+      console.error(error);
       toast.error(t('profile.toast.error'));
       setIsSaving(false);
     }

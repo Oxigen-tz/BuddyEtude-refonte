@@ -11,6 +11,22 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    // Le SDK Firebase pèse à lui seul ~535 Ko (125 Ko compressé) et ne peut pas être découpé
+    // davantage : on relève le seuil d'alerte juste au-dessus pour garder l'avertissement utile.
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        // Bibliothèques lourdes et rarement modifiées dans des fichiers séparés :
+        // le navigateur les garde en cache d'un déploiement à l'autre.
+        manualChunks: {
+          react: ["react", "react-dom", "react-router-dom"],
+          firebase: ["firebase/app", "firebase/auth", "firebase/firestore", "firebase/storage", "firebase/analytics"],
+          i18n: ["i18next", "react-i18next", "i18next-browser-languagedetector"],
+        },
+      },
+    },
+  },
   server: {
     port: 5173,
     // On désactive les logs inutiles

@@ -80,10 +80,11 @@ export default function ProfileForm({ profile, onSave, saving }) {
 
   const addGoal = () => {
     const goals = Array.isArray(form.goals) ? form.goals : [];
-    if (newGoal && !goals.includes(newGoal)) {
-      setForm({ ...form, goals: [...goals, newGoal] });
-      setNewGoal("");
+    const goal = newGoal.trim(); // évite les objectifs vides ("   ") ou en double à un espace près
+    if (goal && !goals.includes(goal)) {
+      setForm({ ...form, goals: [...goals, goal] });
     }
+    setNewGoal("");
   };
 
   const removeGoal = (goal) => {

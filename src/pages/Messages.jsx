@@ -71,7 +71,7 @@ export default function Messages() {
         return null;
       }).filter(Boolean);
       updateBuddies();
-    });
+    }, (error) => console.error("Erreur de chargement des contacts:", error));
 
     const unsubFrom = onSnapshot(query(collection(db, "requests"), where("from_email", "==", user.email)), (snap) => {
       fromList = snap.docs.map(d => {
@@ -83,19 +83,24 @@ export default function Messages() {
         return null;
       }).filter(Boolean);
       updateBuddies();
-    });
+    }, (error) => console.error("Erreur de chargement des contacts:", error));
 
     return () => { unsubTo(); unsubFrom(); };
   }, [user]);
 
   // Écoute des messages avec le correctif anti-saut de page (block: "nearest")
   useEffect(() => {
+    // On vide la conversation précédente : sinon ses messages restaient affichés
+    // le temps que ceux du nouveau contact arrivent
+    setMessages([]);
     if (!user?.email || !activeChat || activeChat.isPending) return;
-    
+
     const chatId = [user.email, activeChat.email].sort().join("_");
     const q = query(collection(db, "messages"), where("chatId", "==", chatId));
     const unsub = onSnapshot(q, (snapshot) => {
-      const rawMessages = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      // serverTimestamps "estimate" : un message qui vient d'être envoyé a un createdAt null
+      // tant que le serveur n'a pas répondu, ce qui le faisait apparaître tout en haut du fil
+      const rawMessages = snapshot.docs.map(d => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) }));
       const sortedMessages = rawMessages.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
       setMessages(sortedMessages);
       
@@ -103,6 +108,8 @@ export default function Messages() {
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
       }, 50);
+    }, (error) => {
+      console.error("Erreur de chargement des messages:", error);
     });
     return () => unsub();
   }, [activeChat, user]);
@@ -114,6 +121,7 @@ export default function Messages() {
       toast.success(t('messages.toast.accepted'));
       setActiveChat(prev => ({ ...prev, isPending: false }));
     } catch (error) {
+      console.error(error);
       toast.error(t('messages.toast.acceptError'));
     }
   };
@@ -125,6 +133,7 @@ export default function Messages() {
       toast.success(t('messages.toast.rejected'));
       setActiveChat(null);
     } catch (error) {
+      console.error(error);
       toast.error(t('messages.toast.rejectError'));
     } finally {
       setShowRejectModal(false);
@@ -173,6 +182,7 @@ export default function Messages() {
       setNewMessage(""); 
       setSelectedFile(null);
     } catch (error) { 
+      console.error(error);
       toast.error(t('messages.toast.sendError'));
     } finally { 
       setIsSending(false); 
@@ -185,6 +195,7 @@ export default function Messages() {
       await deleteDoc(doc(db, "messages", messageToDelete));
       toast.success(t('messages.toast.deleted'));
     } catch (error) {
+      console.error(error);
       toast.error(t('messages.toast.deleteError'));
     } finally {
       setMessageToDelete(null); 
@@ -207,6 +218,7 @@ export default function Messages() {
       setEditMessageText("");
       toast.success(t('messages.toast.edited'));
     } catch (error) {
+      console.error(error);
       toast.error(t('messages.toast.editError'));
     }
   };
@@ -282,7 +294,7 @@ export default function Messages() {
                    </div>
                    <Button 
                     variant="outline" 
-                    onClick={() => navigate(`${createPageUrl("Whiteboard")}?sessionId=${[user.email, activeChat.email].sort().join("_")}`)}
+                    onClick={() => navigate(`${createPageUrl("Whiteboard")}?sessionId=${encodeURIComponent([user.email, activeChat.email].sort().join("_"))}`)}
                     className="border-indigo-200 dark:border-[#333537] text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-[#282a2c] dark:bg-[#1e1f20] rounded-xl py-5 px-5"
                    >
                      <PenTool className="w-5 h-5 mr-2" /> {t('messages.openWhiteboard')}

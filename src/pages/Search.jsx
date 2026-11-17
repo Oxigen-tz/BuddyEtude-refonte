@@ -68,14 +68,16 @@ export default function Search() {
           .filter(p => p.id !== user.uid)
           .filter(p => (p.email || "").toLowerCase() !== myEmail)
           // On masque les profils vides ou inexploitables
-          .filter(hasUsableProfile);
+          .filter(hasUsableProfile)
+          // Respecte le réglage "Visibilité du profil" (Paramètres)
+          .filter(p => p.profile_visible !== false);
         setProfiles(pList);
         setIsLoading(false);
       },
       (error) => {
         // Sans ce callback, une erreur de règles Firestore laisserait les squelettes affichés indéfiniment
         console.error("Erreur de chargement des profils:", error);
-        toast.error(t('search.toast.error'));
+        toast.error(t('search.toast.loadError'));
         setIsLoading(false);
       }
     );
@@ -123,6 +125,7 @@ export default function Search() {
     const response = await fetch(
       `https://geo.api.gouv.fr/communes?nom=${encodeURIComponent(queryText)}&fields=nom&boost=population&limit=6`
     );
+    if (!response.ok) return [];
     const data = await response.json();
     return data.map((commune) => commune.nom);
   };
@@ -195,6 +198,7 @@ export default function Search() {
       setRequestDialog(null);
       setRequestMessage("");
     } catch (error) {
+      console.error(error);
       toast.error(t('search.toast.error'));
     } finally {
       setIsSending(false);
@@ -378,7 +382,7 @@ export default function Search() {
               {t('search.requestDialog.cancel')}
             </Button>
             <Button
-              className="bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded-sm flex-1 sm:flex-none py-6 font-medium"
+              className="bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded-xl flex-1 sm:flex-none py-6 font-medium"
               disabled={isSending || !requestMessage.trim()}
               onClick={handleSendRequest}
             >

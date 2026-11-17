@@ -6,7 +6,7 @@ import { createPageUrl } from "@/utils";
 import { useAuth } from "@/lib/AuthContext";
 import { getRequestAlertsEnabled } from "@/lib/preferences";
 import { useTranslation } from "react-i18next";
-import { Toaster, toast } from "sonner";
+import { toast } from "sonner";
 import {
   Search, LayoutDashboard, MessageSquare, Calendar,
   User, LogOut, Menu, X, GraduationCap, Settings as SettingsIcon, Bell, CheckCircle2, Globe, UserPlus
@@ -162,7 +162,7 @@ export default function Layout({ children, currentPageName }) {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#131314] flex flex-col md:flex-row transition-colors duration-300">
-      <Toaster position="bottom-right" richColors />
+      {/* Le <Toaster> sonner est déjà monté dans App.jsx : un second ici affichait chaque toast en double */}
 
       {/* --- SIDEBAR DESKTOP --- */}
       <aside className="hidden md:flex w-64 flex-col bg-white dark:bg-[#1e1f20] border-r border-gray-100 dark:border-[#333537] h-screen sticky top-0 transition-colors duration-300">

@@ -222,8 +222,23 @@ export default function Whiteboard() {
     setCanUndo(historyRef.current.length > 0);
   };
 
+  // Un clic sur le canvas pendant la saisie déclenche finalizeText deux fois (mousedown puis
+  // blur du champ), et "Entrée" est suivi d'un blur : sans ce verrou le texte était dessiné
+  // et sauvegardé deux fois.
+  const isFinalizingRef = useRef(false);
+
   const finalizeText = async () => {
-    if (!textInput.visible) return;
+    if (!textInput.visible || isFinalizingRef.current) return;
+    isFinalizingRef.current = true;
+    try {
+      await commitText();
+    } finally {
+      setTextInput({ visible: false, x: 0, y: 0, text: "" });
+      isFinalizingRef.current = false;
+    }
+  };
+
+  const commitText = async () => {
     if (textInput.text.trim()) {
       pushHistory();
       const canvas = canvasRef.current;
@@ -237,7 +252,6 @@ export default function Whiteboard() {
       
       await saveToFirestore();
     }
-    setTextInput({ visible: false, x: 0, y: 0, text: "" });
   };
 
   const startDrawing = (e) => {

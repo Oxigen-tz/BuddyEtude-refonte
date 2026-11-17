@@ -1,81 +1,60 @@
-<<<<<<< HEAD
-**Welcome to your Base44 project** 
+# BuddyEtude
 
-**About**
+Plateforme de mise en relation entre étudiants pour réviser à deux : recherche de binômes par matière, niveau et ville, messagerie avec partage de fichiers, planification de sessions et tableau blanc collaboratif en temps réel.
 
-View and Edit  your app on [Base44.com](http://Base44.com) 
+## Stack
 
-This project contains everything you need to run your app locally.
+- **React 18** + **Vite 6**, routage avec `react-router-dom`
+- **Tailwind CSS** et composants **shadcn/ui** (`src/components/ui`)
+- **Firebase** : Authentication (Google), Firestore, Storage
+- **i18next** : interface en français et en anglais (`src/i18n.js`)
 
-**Edit the code in your local development environment**
+## Démarrer en local
 
-Any change pushed to the repo will also be reflected in the Base44 Builder.
+Prérequis : Node.js 18 ou plus récent.
 
-**Prerequisites:** 
-
-1. Clone the repository using the project's Git URL 
-2. Navigate to the project directory
-3. Install dependencies: `npm install`
-4. Create an `.env.local` file and set the right environment variables
-
-```
-VITE_BASE44_APP_ID=your_app_id
-VITE_BASE44_APP_BASE_URL=your_backend_url
-
-e.g.
-VITE_BASE44_APP_ID=cbef744a8545c389ef439ea6
-VITE_BASE44_APP_BASE_URL=https://my-to-do-list-81bfaad7.base44.app
+```bash
+npm install
+npm run dev
 ```
 
-Run the app: `npm run dev`
+L'application est servie sur http://localhost:5173.
 
-**Publish your changes**
+## Scripts
 
-Open [Base44.com](http://Base44.com) and click on Publish.
+| Commande          | Rôle                                     |
+| ----------------- | ---------------------------------------- |
+| `npm run dev`     | Serveur de développement                 |
+| `npm run build`   | Build de production dans `dist/`         |
+| `npm run preview` | Sert le build de production en local     |
+| `npm run lint`    | Vérification ESLint                      |
 
-**Docs & Support**
-
-Documentation: [https://docs.base44.com/Integrations/Using-GitHub](https://docs.base44.com/Integrations/Using-GitHub)
-
-Support: [https://app.base44.com/support](https://app.base44.com/support)
-=======
-**Welcome to your Base44 project** 
-
-**About**
-
-View and Edit  your app on [Base44.com](http://Base44.com) 
-
-This project contains everything you need to run your app locally.
-
-**Edit the code in your local development environment**
-
-Any change pushed to the repo will also be reflected in the Base44 Builder.
-
-**Prerequisites:** 
-
-1. Clone the repository using the project's Git URL 
-2. Navigate to the project directory
-3. Install dependencies: `npm install`
-4. Create an `.env.local` file and set the right environment variables
+## Structure
 
 ```
-VITE_BASE44_APP_ID=your_app_id
-VITE_BASE44_APP_BASE_URL=your_backend_url
-
-e.g.
-VITE_BASE44_APP_ID=cbef744a8545c389ef439ea6
-VITE_BASE44_APP_BASE_URL=https://my-to-do-list-81bfaad7.base44.app
+src/
+  pages/        Une page par fichier, déclarée dans pages.config.js
+  components/   Composants par domaine (home, profile, search) + ui/ (shadcn)
+  firebase/     Initialisation Firebase et services
+  lib/          Contexte d'authentification, préférences locales, page 404
+  i18n.js       Traductions FR / EN
 ```
 
-Run the app: `npm run dev`
+## Données Firestore
 
-**Publish your changes**
+| Collection    | Contenu                                                         |
+| ------------- | --------------------------------------------------------------- |
+| `users`       | Profil étudiant (id = uid Firebase)                             |
+| `requests`    | Demandes de binôme (`pending` → `accepted`, supprimée si refus) |
+| `messages`    | Messages, regroupés par `chatId` (emails triés, joints par `_`) |
+| `sessions`    | Sessions de révision planifiées                                 |
+| `whiteboards` | Image du tableau blanc partagé (id = `chatId` du binôme)        |
+| `reports`     | Signalements de profils                                         |
 
-Open [Base44.com](http://Base44.com) and click on Publish.
+## Ajouter une traduction
 
-**Docs & Support**
+Toute chaîne affichée passe par `t('clé')`. Ajouter la clé dans les deux blocs `fr` et `en` de `src/i18n.js`.
 
-Documentation: [https://docs.base44.com/Integrations/Using-GitHub](https://docs.base44.com/Integrations/Using-GitHub)
+## Déploiement
 
-Support: [https://app.base44.com/support](https://app.base44.com/support)
->>>>>>> 6b88a12f674c32552cb3079a33c97e7810e3fe29
+Le projet est configuré pour Vercel (`vercel.json`) et Firebase Hosting (`firebase.json`) : les deux redirigent toutes les routes vers `index.html`.

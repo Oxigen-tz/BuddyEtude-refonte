@@ -12,9 +12,6 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "@/lib/AuthContext";
 import { useTranslation } from "react-i18next";
 
-// Valeurs techniques uniquement : le libellé vient de buddyCard.levels.<value>
-// via t(), résolu au rendu (un objet hors composant ne peut pas appeler t()).
-const LEVEL_VALUES = ["college", "lycee", "prepa", "bts_iut", "licence", "master", "doctorat", "autre"];
 const REPORT_REASON_VALUES = ["harassment", "spam", "fake", "inappropriate", "other"];
 
 export default function BuddyCard({ profile, onRequest, alreadyRequested, isOwnProfile }) {
@@ -46,6 +43,7 @@ export default function BuddyCard({ profile, onRequest, alreadyRequested, isOwnP
       setReportReason("");
       setReportDetails("");
     } catch (error) {
+      console.error(error);
       toast.error(t('buddyCard.reportDialog.error'));
     } finally {
       setIsReporting(false);

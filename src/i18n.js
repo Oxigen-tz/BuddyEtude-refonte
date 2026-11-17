@@ -5,6 +5,81 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 const resources = {
   fr: {
     translation: {
+      notFound: {
+        title: "Page introuvable",
+        desc: "La page « {{page}} » n'existe pas.",
+        home: "Retour à l'accueil"
+      },
+      about: {
+        title: "À propos de BuddyEtude",
+        subtitle: "L'histoire d'un projet né pour résoudre un problème que tous les étudiants connaissent : la solitude face aux révisions.",
+        origin: {
+          title: "Notre Origine",
+          text: "BuddyEtude a été imaginé et développé par un étudiant. Devant la difficulté de trouver des partenaires motivés pour réviser la veille des partiels, l'idée est née : pourquoi ne pas créer un réseau social dédié uniquement à l'entraide scolaire et au travail de groupe ?"
+        },
+        mission: {
+          title: "Notre Mission",
+          text: "Notre objectif est simple : faire en sorte qu'aucun étudiant ne se retrouve bloqué seul devant ses cours. Que vous soyez au lycée, en prépa ou à l'université, BuddyEtude vous connecte avec les profils qui complètent vos compétences pour réussir ensemble."
+        },
+        join: {
+          title: "Rejoignez l'aventure",
+          text: "BuddyEtude grandit chaque jour grâce à sa communauté. Si vous avez des suggestions, des idées d'amélioration, ou si vous souhaitez participer au projet, n'hésitez pas à nous contacter !",
+          button: "Nous écrire"
+        }
+      },
+      legal: {
+        title: "Mentions Légales & CGU",
+        publisher: {
+          title: "1. Éditeur du site",
+          intro: "Le site <bold>BuddyEtude</bold> est édité par :",
+          email: "Email",
+          director: "Directeur de la publication"
+        },
+        hosting: {
+          title: "2. Hébergement",
+          intro: "Ce site est hébergé par :",
+          country: "États-Unis",
+          website: "Site web"
+        },
+        terms: {
+          title: "3. Conditions Générales d'Utilisation (CGU)",
+          purposeLabel: "Objet :",
+          purpose: "BuddyEtude est une plateforme de mise en relation pour étudiants visant à faciliter l'entraide scolaire.",
+          userLabel: "Responsabilité de l'utilisateur :",
+          user: "L'utilisateur s'engage à fournir des informations réelles et à utiliser la plateforme dans un cadre strictement académique et respectueux. Tout contenu à caractère haineux, publicitaire, ou inapproprié entraînera la suppression immédiate du compte.",
+          moderationLabel: "Modération :",
+          moderation: "BuddyEtude se réserve le droit d'étudier les signalements et de bannir tout utilisateur ne respectant pas les règles de bienséance. Les messages échangés entre les utilisateurs peuvent être soumis à une modération en cas de signalement."
+        },
+        ip: {
+          title: "4. Propriété intellectuelle",
+          text: "L'ensemble des éléments graphiques, la structure et, plus généralement, le contenu du site BuddyEtude sont protégés par le droit d'auteur, le droit des marques et le droit des dessins et modèles. Toute personne qui recueille ou télécharge du contenu ou des informations diffusées sur le site ne dispose sur ceux-ci que d'un droit d'usage privé, personnel et non transmissible."
+        }
+      },
+      privacy: {
+        title: "Politique de Confidentialité",
+        intro: "La protection de vos données est une priorité absolue pour BuddyEtude. Nous nous engageons à respecter le Règlement Général sur la Protection des Données (RGPD).",
+        collected: {
+          title: "1. Données collectées",
+          identityLabel: "Données d'identification :",
+          identity: "Nom, prénom, adresse email (récupérés de manière sécurisée via Google Authentication).",
+          profileLabel: "Données de profil :",
+          profile: "Ville, niveau d'études, matières étudiées, biographie.",
+          usageLabel: "Données d'utilisation :",
+          usage: "Demandes de binômes envoyées/reçues, messages privés."
+        },
+        use: {
+          title: "2. Utilisation de vos données",
+          text: "Vos données sont exclusivement utilisées pour le bon fonctionnement de la plateforme : vous permettre de trouver des partenaires d'étude compatibles, vous connecter à la plateforme, et assurer la sécurité de vos échanges. <bold>BuddyEtude ne vendra jamais vos données personnelles à des tiers.</bold>"
+        },
+        retention: {
+          title: "3. Durée de conservation",
+          text: "Vos données sont conservées tant que votre compte est actif. En cas d'inactivité prolongée (supérieure à 3 ans) ou de demande de suppression, l'ensemble de vos données sera définitivement effacé de nos serveurs sécurisés."
+        },
+        rights: {
+          title: "4. Vos droits (RGPD)",
+          text: "Conformément à la loi informatique et libertés, vous disposez d'un droit d'accès, de rectification, de portabilité et de suppression de vos données. Vous pouvez exercer ce droit à tout moment en nous contactant directement à : <bold>{{email}}</bold>."
+        }
+      },
       layout: {
         nav: {
           Dashboard: "Tableau de bord",
@@ -456,6 +531,81 @@ const resources = {
   },
   en: {
     translation: {
+      notFound: {
+        title: "Page not found",
+        desc: "The page \"{{page}}\" does not exist.",
+        home: "Back to home"
+      },
+      about: {
+        title: "About BuddyEtude",
+        subtitle: "The story of a project born to solve a problem every student knows: feeling alone when revising.",
+        origin: {
+          title: "Our Origin",
+          text: "BuddyEtude was imagined and built by a student. Faced with how hard it was to find motivated partners to revise with the night before exams, the idea was born: why not create a social network dedicated solely to peer support and group study?"
+        },
+        mission: {
+          title: "Our Mission",
+          text: "Our goal is simple: make sure no student ends up stuck alone with their coursework. Whether you're in high school, preparatory classes or university, BuddyEtude connects you with profiles that complement your skills so you can succeed together."
+        },
+        join: {
+          title: "Join the adventure",
+          text: "BuddyEtude grows every day thanks to its community. If you have suggestions, ideas for improvement, or would like to get involved in the project, feel free to contact us!",
+          button: "Write to us"
+        }
+      },
+      legal: {
+        title: "Legal Notice & Terms of Use",
+        publisher: {
+          title: "1. Site publisher",
+          intro: "The <bold>BuddyEtude</bold> website is published by:",
+          email: "Email",
+          director: "Publication director"
+        },
+        hosting: {
+          title: "2. Hosting",
+          intro: "This website is hosted by:",
+          country: "United States",
+          website: "Website"
+        },
+        terms: {
+          title: "3. Terms of Use",
+          purposeLabel: "Purpose:",
+          purpose: "BuddyEtude is a platform that connects students to make peer support with studies easier.",
+          userLabel: "User responsibility:",
+          user: "Users agree to provide accurate information and to use the platform in a strictly academic and respectful way. Any hateful, promotional or inappropriate content will result in the immediate deletion of the account.",
+          moderationLabel: "Moderation:",
+          moderation: "BuddyEtude reserves the right to review reports and to ban any user who does not follow the rules of courtesy. Messages exchanged between users may be moderated if they are reported."
+        },
+        ip: {
+          title: "4. Intellectual property",
+          text: "All graphic elements, the structure and, more generally, the content of the BuddyEtude website are protected by copyright, trademark law and design law. Anyone who collects or downloads content or information published on the site only has a private, personal and non-transferable right to use it."
+        }
+      },
+      privacy: {
+        title: "Privacy Policy",
+        intro: "Protecting your data is a top priority for BuddyEtude. We are committed to complying with the General Data Protection Regulation (GDPR).",
+        collected: {
+          title: "1. Data collected",
+          identityLabel: "Identification data:",
+          identity: "First name, last name, email address (retrieved securely via Google Authentication).",
+          profileLabel: "Profile data:",
+          profile: "City, level of study, subjects studied, biography.",
+          usageLabel: "Usage data:",
+          usage: "Study buddy requests sent/received, private messages."
+        },
+        use: {
+          title: "2. How your data is used",
+          text: "Your data is used solely to run the platform: helping you find compatible study partners, signing you in, and keeping your conversations secure. <bold>BuddyEtude will never sell your personal data to third parties.</bold>"
+        },
+        retention: {
+          title: "3. Retention period",
+          text: "Your data is kept for as long as your account is active. After prolonged inactivity (more than 3 years) or upon a deletion request, all of your data will be permanently erased from our secure servers."
+        },
+        rights: {
+          title: "4. Your rights (GDPR)",
+          text: "Under French data protection law, you have the right to access, rectify, port and delete your data. You can exercise this right at any time by contacting us directly at: <bold>{{email}}</bold>."
+        }
+      },
       layout: {
         nav: {
           Dashboard: "Dashboard",
@@ -917,5 +1067,12 @@ i18n
       escapeValue: false 
     }
   });
+
+// Garde l'attribut <html lang> aligné sur la langue affichée (lecteurs d'écran, correcteur, SEO)
+const syncHtmlLang = (lng) => {
+  if (typeof document !== 'undefined' && lng) document.documentElement.lang = lng.split('-')[0];
+};
+syncHtmlLang(i18n.language);
+i18n.on('languageChanged', syncHtmlLang);
 
 export default i18n;

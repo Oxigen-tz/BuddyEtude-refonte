@@ -19,7 +19,7 @@ export default function Dashboard() {
   const [hasLaunchedSession, setHasLaunchedSession] = useState(localStorage.getItem("tuto_step3") === "true");
   const [showTutorial, setShowTutorial] = useState(localStorage.getItem("tuto_hidden") !== "true");
 
-  const firstName = user?.displayName?.split(" ")[0] || user?.full_name?.split(" ")[0] || "Étudiant";
+  const firstName = user?.displayName?.split(" ")[0] || user?.full_name?.split(" ")[0] || t("settings.account.defaultStudent");
 
   useEffect(() => {
     if (!user?.email) return;
@@ -34,7 +34,8 @@ export default function Dashboard() {
         }
 
         const reqQueryTo = query(collection(db, "requests"), where("to_email", "==", user.email), where("status", "==", "accepted"));
-        const reqQueryFrom = query(collection(db, "requests"), where("from_email", "==", user.email));
+        // Une demande envoyée mais pas encore acceptée ne fait pas de vous un binôme
+        const reqQueryFrom = query(collection(db, "requests"), where("from_email", "==", user.email), where("status", "==", "accepted"));
         
         const [toSnap, fromSnap] = await Promise.all([getDocs(reqQueryTo), getDocs(reqQueryFrom)]);
         if (!toSnap.empty || !fromSnap.empty) {

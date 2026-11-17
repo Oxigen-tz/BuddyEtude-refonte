@@ -5,6 +5,9 @@ export default function Autocomplete({ value, onChange, fetchOptions, placeholde
   const [suggestions, setSuggestions] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const wrapperRef = useRef(null);
+  // Les réponses réseau peuvent arriver dans le désordre : on n'affiche que la plus récente,
+  // sinon une suggestion pour "Pa" pouvait remplacer celle de "Paris".
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -19,6 +22,7 @@ export default function Autocomplete({ value, onChange, fetchOptions, placeholde
   const handleInputChange = async (e) => {
     const userInput = e.target.value;
     onChange(userInput);
+    const requestId = ++requestIdRef.current;
 
     if (userInput.trim().length < 2) {
       setSuggestions([]);
@@ -29,6 +33,7 @@ export default function Autocomplete({ value, onChange, fetchOptions, placeholde
     if (fetchOptions) {
       try {
         const results = await fetchOptions(userInput);
+        if (requestId !== requestIdRef.current) return;
         setSuggestions(results || []);
         setIsOpen(true);
       } catch (error) {
@@ -38,6 +43,7 @@ export default function Autocomplete({ value, onChange, fetchOptions, placeholde
   };
 
   const handleSelectOption = (option) => {
+    requestIdRef.current++; // ignore une réponse encore en vol
     onChange(option);
     setIsOpen(false);
     setSuggestions([]);
