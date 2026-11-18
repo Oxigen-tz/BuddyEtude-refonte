@@ -106,7 +106,9 @@ vers quelqu'un qui vous a bloqué.
    gratuites). Sans elle, les e-mails restent dans la collection `mail` sans être envoyés.
 4. **Activer les connexions Microsoft et e-mail** : console Firebase → Authentication → Méthodes
    de connexion. Microsoft demande une « inscription d'application » dans Azure (Microsoft Entra ID)
-   pour obtenir l'identifiant et le secret client.
+   pour obtenir l'identifiant et le secret client. Le bouton « Continuer avec Microsoft » n'apparaît qu'avec la
+   variable `VITE_ENABLE_MICROSOFT=true` (Vercel, puis redéployer). L'inscription Azure demande
+   un annuaire Microsoft Entra (compte Azure gratuit) : un compte Microsoft personnel seul ne suffit pas.
 5. **Créer les comptes de modération** : Firestore → collection `admins` → document dont l'id est
    le uid du compte (Authentication → Utilisateurs), avec un champ quelconque.
 6. **Initialiser le compteur** `stats/public.studentCount` au nombre de profils complets existants

@@ -35,6 +35,10 @@ const MicrosoftIcon = () => (
   </svg>
 );
 
+// Connexion Microsoft : affichée seulement quand le fournisseur est activé dans Firebase
+// (variable VITE_ENABLE_MICROSOFT=true sur Vercel), sinon le bouton ne mènerait qu'à une erreur.
+const MICROSOFT_ENABLED = import.meta.env.VITE_ENABLE_MICROSOFT === "true";
+
 export default function AuthDialog({ open, onOpenChange }) {
   const { t } = useTranslation();
   const { loginWithGoogle, loginWithMicrosoft, loginWithEmail, signupWithEmail, resetPassword } = useAuth();
@@ -92,10 +96,12 @@ export default function AuthDialog({ open, onOpenChange }) {
               className="h-12 rounded-xl justify-center gap-3 dark:bg-[#131314] dark:border-[#333537] dark:hover:bg-[#282a2c]">
               {busy === "google" ? <Loader2 className="w-5 h-5 animate-spin" /> : <GoogleIcon />} {t("auth.withGoogle")}
             </Button>
-            <Button type="button" variant="outline" disabled={!!busy} onClick={() => run("microsoft", loginWithMicrosoft)}
-              className="h-12 rounded-xl justify-center gap-3 dark:bg-[#131314] dark:border-[#333537] dark:hover:bg-[#282a2c]">
-              {busy === "microsoft" ? <Loader2 className="w-5 h-5 animate-spin" /> : <MicrosoftIcon />} {t("auth.withMicrosoft")}
-            </Button>
+            {MICROSOFT_ENABLED && (
+              <Button type="button" variant="outline" disabled={!!busy} onClick={() => run("microsoft", loginWithMicrosoft)}
+                className="h-12 rounded-xl justify-center gap-3 dark:bg-[#131314] dark:border-[#333537] dark:hover:bg-[#282a2c]">
+                {busy === "microsoft" ? <Loader2 className="w-5 h-5 animate-spin" /> : <MicrosoftIcon />} {t("auth.withMicrosoft")}
+              </Button>
+            )}
             <div className="flex items-center gap-3 my-1 text-xs text-gray-400">
               <span className="h-px flex-1 bg-gray-200 dark:bg-[#333537]" /> {t("auth.or")} <span className="h-px flex-1 bg-gray-200 dark:bg-[#333537]" />
             </div>
