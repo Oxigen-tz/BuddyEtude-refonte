@@ -11,6 +11,7 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import Footer from '@/components/Footer';
 import PublicHeader from '@/components/PublicHeader';
 import LoginRequired from '@/components/LoginRequired';
+import { initTheme } from '@/lib/theme';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -117,20 +118,8 @@ const AuthenticatedApp = () => {
 };
 
 function App() {
-  // 🌓 NOUVEAU : Sauvegarde et application du Mode Sombre au chargement
-  useEffect(() => {
-    const savedTheme = localStorage.getItem("theme");
-    if (savedTheme === "dark") {
-      document.documentElement.classList.add("dark");
-    } else if (savedTheme === "light") {
-      document.documentElement.classList.remove("dark");
-    } else {
-      // Si c'est la première visite, on regarde si l'ordinateur de l'utilisateur est en mode sombre par défaut
-      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        document.documentElement.classList.add("dark");
-      }
-    }
-  }, []);
+  // Thème clair / sombre / système (voir lib/theme.js)
+  useEffect(() => initTheme(), []);
 
   return (
     <AuthProvider>

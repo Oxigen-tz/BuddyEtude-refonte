@@ -916,22 +916,126 @@ const resources = {
         }
       },
       // --- NOUVEAU : PAGE PARAMÈTRES ---
+      // --- Paramètres et profil (refonte visuelle) ---
+      settingsUi: {
+        nav: {
+          account: { label: "Compte", desc: "Identité et connexion" },
+          appearance: { label: "Apparence", desc: "Thème et langue" },
+          notifications: { label: "Notifications", desc: "Appli, e-mails, appareil" },
+          privacy: { label: "Confidentialité", desc: "Visibilité et blocages" }
+        },
+        infoTitle: "Informations",
+        header: {
+          connectedWith: "Connecté avec {{provider}}",
+          viewProfile: "Voir mon profil",
+          providers: { google: "Google", password: "e-mail", microsoft: "Microsoft" }
+        },
+        account: {
+          identityTitle: "Identité",
+          identityDesc: "Les informations de connexion à ton compte.",
+          name: "Nom",
+          email: "Adresse e-mail",
+          emailPrivate: "Jamais visible par les autres étudiants",
+          method: "Méthode de connexion",
+          student: "Statut étudiant",
+          verified: "Vérifié · @{{domain}}",
+          notVerified: "Non vérifié",
+          verify: "Vérifier",
+          dangerTitle: "Zone de danger",
+          dangerDesc: "Actions définitives sur ton compte."
+        },
+        appearance: {
+          themeTitle: "Thème",
+          themeDesc: "Choisis l'ambiance de l'application.",
+          light: "Clair",
+          dark: "Sombre",
+          system: "Système",
+          systemDesc: "Suit le réglage de ton appareil",
+          systemToast: "Le thème suit maintenant ton appareil",
+          languageTitle: "Langue",
+          languageDesc: "Langue de l'interface sur cet appareil.",
+          languageToast: "Langue modifiée"
+        },
+        notifications: {
+          appTitle: "Dans l'application",
+          appDesc: "Alertes affichées pendant que tu utilises BuddyEtude.",
+          emailTitle: "Par e-mail",
+          emailDesc: "Envoyés à ton adresse de connexion.",
+          deviceTitle: "Sur cet appareil",
+          deviceDesc: "Même quand BuddyEtude est fermé.",
+          deviceUnavailable: "Ton navigateur ne permet pas les notifications push sur cet appareil."
+        },
+        privacy: {
+          visibilityTitle: "Visibilité",
+          visibilityDesc: "Qui peut te trouver sur BuddyEtude.",
+          blockedTitle: "Personnes bloquées",
+          blockedDesc: "Elles ne peuvent plus te contacter.",
+          dataTitle: "Tes données",
+          dataDesc: "Hébergées dans l'Union européenne, jamais vendues.",
+          policy: "Politique de confidentialité",
+          policyDesc: "Ce que nous collectons et pourquoi",
+          legal: "Mentions légales et CGU",
+          legalDesc: "Les règles d'utilisation du service",
+          about: "À propos",
+          aboutDesc: "Qui est derrière BuddyEtude",
+          contact: "Nous écrire"
+        }
+      },
+      profileUi: {
+        editProfile: "Modifier le profil",
+        publicNote: "C'est ce que voient les autres étudiants",
+        stats: { subjects: "Matières", buddies: "Binômes", sessions: "Sessions faites", completion: "Profil complété" },
+        strength: {
+          title: "Force du profil",
+          done: "Ton profil est complet, bravo !",
+          hint: "Un profil complet reçoit plus de demandes.",
+          items: {
+            bio: "Écrire une présentation",
+            city: "Indiquer ta ville",
+            school: "Indiquer ton établissement",
+            subjects: "Ajouter au moins 2 matières",
+            availability: "Choisir tes disponibilités",
+            goals: "Ajouter un objectif",
+            verified: "Vérifier ton statut étudiant"
+          }
+        },
+        about: "À propos",
+        noBio: "Tu n'as pas encore écrit de présentation.",
+        addBio: "Écrire ma présentation",
+        subjects: "Matières et niveaux",
+        noSubjects: "Aucune matière pour l'instant.",
+        levels: { debutant: "Débutant", intermediaire: "Intermédiaire", avance: "Avancé" },
+        goals: "Objectifs",
+        availability: "Disponibilités",
+        noAvailability: "Aucune disponibilité indiquée.",
+        format: "Format des sessions",
+        style: "Façon d'apprendre",
+        mentor: "Mentor",
+        mentorDesc: "Peut aider en {{subjects}}",
+        form: {
+          general: "Ce qui apparaît en haut de ton profil.",
+          subjects: "Ton niveau dans chaque matière sert au calcul de compatibilité.",
+          goals: "Ce que tu veux atteindre, en quelques mots.",
+          preferences: "Quand et comment tu préfères réviser.",
+          saveHint: "Pense à enregistrer tes modifications."
+        }
+      },
       settings: {
         danger: {
           title: "Supprimer mon compte",
-          desc: "Efface définitivement votre profil, vos messages (et leurs fichiers) et vos demandes de binôme. Vos sessions prévues seront annulées. Les messages que vos binômes vous ont envoyés restent dans leur propre historique.",
+          desc: "Efface définitivement ton profil, tes messages (et leurs fichiers) et tes demandes de binôme. Tes sessions prévues seront annulées. Les messages que tes binômes t'ont envoyés restent dans leur propre historique.",
           button: "Supprimer mon compte",
-          modalTitle: "Supprimer définitivement votre compte ?",
-          modalDesc: "Cette action est irréversible. Google vous demandera de vous reconnecter pour confirmer qu'il s'agit bien de vous.",
-          typeToConfirm: "Tapez {{word}} pour confirmer",
+          modalTitle: "Supprimer définitivement ton compte ?",
+          modalDesc: "Cette action est irréversible. Tu devras te reconnecter pour confirmer qu'il s'agit bien de toi.",
+          typeToConfirm: "Tape {{word}} pour confirmer",
           confirmWord: "SUPPRIMER",
           cancel: "Annuler",
           confirm: "Supprimer définitivement",
-          reauthCancelled: "Suppression annulée : la reconnexion Google n'a pas abouti.",
-          error: "La suppression a échoué. Réessayez ou écrivez à contact@buddyetude.com."
+          reauthCancelled: "Suppression annulée : la reconnexion n'a pas abouti.",
+          error: "La suppression a échoué. Réessaie ou écris à contact@buddyetude.com."
         },
         title: "Paramètres",
-        subtitle: "Consultez vos informations et personnalisez votre expérience.",
+        subtitle: "Ton compte, l'apparence de l'application et tes notifications.",
         tabs: {
           account: "Mon Compte",
           appearance: "Apparence",
@@ -958,10 +1062,10 @@ const resources = {
           title: "Préférences Générales",
           notifications: "Notifications",
           requestAlerts: "Alertes de demandes",
-          requestAlertsDesc: "Afficher une notification quand quelqu'un accepte votre demande ou vous en envoie une. Ce réglage est propre à cet appareil.",
+          requestAlertsDesc: "Une alerte quand quelqu'un accepte ta demande ou t'en envoie une. Propre à cet appareil.",
           privacy: "Confidentialité",
           profileVisibility: "Visibilité du profil",
-          profileVisibilityDesc: "Permettre aux autres étudiants de vous trouver via la recherche.",
+          profileVisibilityDesc: "Permettre aux autres étudiants de te trouver dans la recherche.",
           emailNotifs: "Notifications par e-mail",
           emailNotifsDesc: "Nouvelle demande, nouveau message (au plus un e-mail par conversation et par demi-heure), rappels de session.",
           push: "Notifications sur cet appareil",
@@ -970,7 +1074,7 @@ const resources = {
           weeklyDigest: "Résumé du lundi",
           weeklyDigestDesc: "Chaque lundi, les nouveaux étudiants de la semaine qui partagent une matière ou ton école.",
           blocked: "Personnes bloquées",
-          noBlocked: "Vous n'avez bloqué personne.",
+          noBlocked: "Tu n'as bloqué personne.",
           unknownUser: "Utilisateur",
           unblock: "Débloquer"
         },
@@ -1934,6 +2038,110 @@ const resources = {
         }
       },
       // --- NEW: SETTINGS PAGE ---
+      // --- Settings and profile (visual redesign) ---
+      settingsUi: {
+        nav: {
+          account: { label: "Account", desc: "Identity and sign-in" },
+          appearance: { label: "Appearance", desc: "Theme and language" },
+          notifications: { label: "Notifications", desc: "App, email, device" },
+          privacy: { label: "Privacy", desc: "Visibility and blocking" }
+        },
+        infoTitle: "Information",
+        header: {
+          connectedWith: "Signed in with {{provider}}",
+          viewProfile: "View my profile",
+          providers: { google: "Google", password: "email", microsoft: "Microsoft" }
+        },
+        account: {
+          identityTitle: "Identity",
+          identityDesc: "Your account's sign-in information.",
+          name: "Name",
+          email: "Email address",
+          emailPrivate: "Never visible to other students",
+          method: "Sign-in method",
+          student: "Student status",
+          verified: "Verified · @{{domain}}",
+          notVerified: "Not verified",
+          verify: "Verify",
+          dangerTitle: "Danger zone",
+          dangerDesc: "Permanent actions on your account."
+        },
+        appearance: {
+          themeTitle: "Theme",
+          themeDesc: "Choose the look of the app.",
+          light: "Light",
+          dark: "Dark",
+          system: "System",
+          systemDesc: "Follows your device setting",
+          systemToast: "The theme now follows your device",
+          languageTitle: "Language",
+          languageDesc: "Interface language on this device.",
+          languageToast: "Language changed"
+        },
+        notifications: {
+          appTitle: "In the app",
+          appDesc: "Alerts shown while you use BuddyEtude.",
+          emailTitle: "By email",
+          emailDesc: "Sent to your sign-in address.",
+          deviceTitle: "On this device",
+          deviceDesc: "Even when BuddyEtude is closed.",
+          deviceUnavailable: "Your browser doesn't support push notifications on this device."
+        },
+        privacy: {
+          visibilityTitle: "Visibility",
+          visibilityDesc: "Who can find you on BuddyEtude.",
+          blockedTitle: "Blocked people",
+          blockedDesc: "They can no longer contact you.",
+          dataTitle: "Your data",
+          dataDesc: "Hosted in the European Union, never sold.",
+          policy: "Privacy policy",
+          policyDesc: "What we collect and why",
+          legal: "Legal notice & terms",
+          legalDesc: "The rules for using the service",
+          about: "About",
+          aboutDesc: "Who is behind BuddyEtude",
+          contact: "Write to us"
+        }
+      },
+      profileUi: {
+        editProfile: "Edit profile",
+        publicNote: "This is what other students see",
+        stats: { subjects: "Subjects", buddies: "Buddies", sessions: "Sessions done", completion: "Profile complete" },
+        strength: {
+          title: "Profile strength",
+          done: "Your profile is complete, well done!",
+          hint: "A complete profile gets more requests.",
+          items: {
+            bio: "Write a short bio",
+            city: "Add your city",
+            school: "Add your school",
+            subjects: "Add at least 2 subjects",
+            availability: "Choose your availability",
+            goals: "Add a goal",
+            verified: "Verify your student status"
+          }
+        },
+        about: "About",
+        noBio: "You haven't written a bio yet.",
+        addBio: "Write my bio",
+        subjects: "Subjects and levels",
+        noSubjects: "No subjects yet.",
+        levels: { debutant: "Beginner", intermediaire: "Intermediate", avance: "Advanced" },
+        goals: "Goals",
+        availability: "Availability",
+        noAvailability: "No availability set.",
+        format: "Session format",
+        style: "Learning style",
+        mentor: "Mentor",
+        mentorDesc: "Can help with {{subjects}}",
+        form: {
+          general: "What appears at the top of your profile.",
+          subjects: "Your level in each subject is used to compute compatibility.",
+          goals: "What you want to achieve, in a few words.",
+          preferences: "When and how you prefer to study.",
+          saveHint: "Remember to save your changes."
+        }
+      },
       settings: {
         danger: {
           title: "Delete my account",

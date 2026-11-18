@@ -1,21 +1,31 @@
 import React, { useState, useEffect } from "react";
 import StudentVerification from "@/components/profile/StudentVerification";
 import { db } from "../firebase/config";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { privateSettingsRef } from "../firebase/services";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { 
-  User, CheckCircle, Edit, MapPin, 
-  Monitor, Users, BookOpen, Target, Clock, ArrowLeft, BadgeCheck
+import {
+  User, CheckCircle, Edit, MapPin, Monitor, Users, BookOpen, Target, Clock, ArrowLeft, BadgeCheck,
+  Eye, Sparkles, GraduationCap, CalendarCheck, Plus, Flag, Lightbulb, Sunrise, Sun, Moon, CalendarHeart
 } from "lucide-react";
+import { IconTile } from "@/components/settings/SettingsUI";
+import Reveal from "@/components/ui/reveal";
 import ProfileForm from "../components/profile/ProfileForm";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useTranslation } from "react-i18next";
+
+// Niveau dans une matière : nombre de segments remplis et couleurs
+const LEVELS = {
+  debutant: { n: 1, bar: "bg-amber-400", text: "text-amber-600 dark:text-amber-300" },
+  intermediaire: { n: 2, bar: "bg-brand-500", text: "text-brand-600 dark:text-brand-300" },
+  avance: { n: 3, bar: "bg-gradient-to-r from-lime-400 to-lime-500", text: "text-lime-700 dark:text-lime-300" },
+};
+// Créneaux (valeurs stockées en base, voir ProfileForm) et leur icône
+const SLOTS = [["Matin", Sunrise], ["Après-midi", Sun], ["Soir", Moon], ["Week-end", CalendarHeart]];
 
 export default function Profile() {
   const { user } = useAuth();
@@ -26,6 +36,19 @@ export default function Profile() {
   const [isSaving, setIsSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false); 
   const [photoFailed, setPhotoFailed] = useState(false);
+  // Chiffres de l'en-tête : binômes (demandes acceptées) et sessions terminées
+  const [stats, setStats] = useState({ buddies: null, sessions: null });
+
+  useEffect(() => {
+    if (!user?.uid) return;
+    const accepted = (field) => getDocs(query(collection(db, "requests"), where(field, "==", user.uid), where("status", "==", "accepted")));
+    Promise.all([accepted("to_uid"), accepted("from_uid"), getDocs(query(collection(db, "sessions"), where("participants", "array-contains", user.uid)))])
+      .then(([to, from, sessions]) => setStats({
+        buddies: to.size + from.size,
+        sessions: sessions.docs.filter((d) => d.data().status === "completed").length,
+      }))
+      .catch(() => {});
+  }, [user?.uid]);
 
   // Les libellés de niveau partagent la même source que buddyCard.levels
   // (mêmes valeurs "college"/"lycee"/etc.) : une seule liste à maintenir.
@@ -118,182 +141,302 @@ export default function Profile() {
 
   if (loading || !user) {
     return (
-      <div className="max-w-3xl mx-auto space-y-6">
-        <Skeleton className="h-10 w-48 dark:bg-ink-900" />
-        <Skeleton className="h-[600px] rounded-2xl dark:bg-ink-900" />
+      <div className="max-w-6xl mx-auto space-y-6">
+        <Skeleton className="h-72 rounded-3xl dark:bg-ink-900" />
+        <div className="grid lg:grid-cols-3 gap-6">
+          <Skeleton className="h-80 rounded-2xl lg:col-span-2 dark:bg-ink-900" />
+          <Skeleton className="h-80 rounded-2xl dark:bg-ink-900" />
+        </div>
       </div>
     );
   }
 
-  return (
-    <div className="max-w-3xl mx-auto pb-12 animate-in fade-in duration-500">
-      
-      {/* --- EN-TÊTE DE PAGE --- */}
-      <div className="flex items-center gap-3 mb-8">
-        <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-500/10 rounded-xl flex items-center justify-center">
-          <User className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('profile.title')}</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">{t('profile.subtitle')}</p>
-        </div>
-        {profile?.profile_complete && !isEditing && (
-          <div className="ml-auto flex items-center gap-1.5 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 px-3 py-1.5 rounded-full text-sm font-medium">
-            <CheckCircle className="w-4 h-4" />
-            <span className="hidden sm:inline">{t('profile.public')}</span>
-          </div>
-        )}
-      </div>
-
-      {!isEditing ? (
-        <div className="space-y-6">
-          {/* --- CARTE PRINCIPALE --- */}
-          <div className="border border-gray-100 dark:border-ink-700 shadow-sm rounded-2xl overflow-hidden bg-white dark:bg-ink-900 transition-colors duration-300">
-            
-            {/* Bannière dégradée avec Avatar */}
-            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-gray-50 dark:border-ink-700">
-              <div className="flex items-center gap-5">
-                {/* Avatar utilisateur */}
-                <div className="relative">
-                  {profile.photo_url && !photoFailed ? (
-                    // 🛠️ CORRIGÉ : les photos Google refusent souvent de se charger avec un Referer.
-                    // Sans cela, le navigateur affichait le texte alt ("Charles Bertreux") dans le cadre.
-                    <img 
-                      src={profile.photo_url} 
-                      alt={profile.display_name} 
-                      referrerPolicy="no-referrer"
-                      onError={() => setPhotoFailed(true)}
-                      className="w-20 h-20 rounded-2xl object-cover border-2 border-white dark:border-ink-700 shadow-md"
-                    />
-                  ) : (
-                    <div className="w-20 h-20 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-2xl font-bold border-2 border-white dark:border-ink-700 shadow-md">
-                      {profile.display_name ? profile.display_name.charAt(0).toUpperCase() : "E"}
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                    {profile.display_name || t('profile.defaultStudent')}
-                    {profile.verified_domain && <BadgeCheck className="w-5 h-5 text-sky-500" aria-label={t('buddyCard.verified', { domain: profile.verified_domain })} />}
-                  </h2>
-                  <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-gray-600 dark:text-gray-300">
-                    {profile.school && <span className="font-medium text-indigo-700 dark:text-indigo-400">{profile.school}</span>}
-                    {profile.level && <span>• {levelLabel(profile.level)}</span>}
-                    {profile.city && <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> {profile.city}</span>}
-                  </div>
-                </div>
-              </div>
-
-              <Button onClick={() => setIsEditing(true)} className="bg-white dark:bg-ink-800 text-indigo-600 dark:text-indigo-400 hover:bg-gray-50 dark:hover:bg-ink-700 border border-indigo-100 dark:border-ink-700 rounded-xl shadow-sm">
-                <Edit className="w-4 h-4 mr-2" /> {t('profile.edit')}
-              </Button>
+  // --- Mode édition ---
+  if (isEditing) {
+    return (
+      <div className="max-w-4xl mx-auto pb-6">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-600 via-brand-700 to-purple-700 text-white p-6 mb-6 shadow-lift">
+          <div className="absolute -top-16 -right-10 w-64 h-64 rounded-full bg-purple-400/40 blur-3xl animate-aurora" />
+          <div className="absolute inset-0 bg-grid opacity-[0.12] mask-radial" />
+          <div className="relative flex items-center gap-4">
+            <span className="hidden sm:flex shrink-0 w-12 h-12 rounded-2xl bg-white/15 items-center justify-center"><Edit className="w-5 h-5" /></span>
+            <div className="flex-1 min-w-0">
+              <h1 className="font-display text-xl sm:text-2xl font-extrabold leading-tight">{t('profile.editTitle')}</h1>
+              <p className="hidden sm:block text-white/70 text-sm">{t('profile.subtitle')}</p>
             </div>
-            
-            {/* Contenu du profil */}
-            <div className="p-6 md:p-8 space-y-8">
-              <StudentVerification
-                verifiedDomain={profile.verified_domain || null}
-                onChange={(domain) => setProfile((prev) => ({ ...prev, verified_domain: domain || undefined }))}
-              />
-              
-              {/* Bio */}
-              {profile.bio && (
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">{t('profile.about')}</h3>
-                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed bg-gray-50 dark:bg-ink-950 p-4 rounded-xl border border-transparent dark:border-ink-700">
-                    {profile.bio}
-                  </p>
-                </div>
-              )}
-              
-              <div className="grid md:grid-cols-2 gap-8">
-                {/* Matières */}
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                    <BookOpen className="w-4 h-4" /> {t('profile.subjectsLevels')}
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {profile.subjects?.map((s, index) => {
-                      const name = typeof s === "string" ? s : s.name;
-                      const level = typeof s === "string" ? "" : s.level;
-                      const levelLabelText = level === "debutant" 
-                        ? t('profile.subjectLevels.debutant')
-                        : level === "avance" 
-                        ? t('profile.subjectLevels.avance')
-                        : t('profile.subjectLevels.intermediaire');
-                      
-                      return (
-                        <Badge key={index} variant="secondary" className="bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 px-3 py-1.5 shadow-sm border border-transparent dark:border-indigo-500/20">
-                          <span className="font-bold">{name}</span>
-                          {level && <span className="ml-2 pl-2 border-l border-indigo-200 dark:border-indigo-500/30 text-xs opacity-80">{levelLabelText}</span>}
-                        </Badge>
-                      );
-                    })}
-                  </div>
-                </div>
-                
-                {/* Objectifs (masqué s'il n'y en a aucun : le titre seul s'affichait au-dessus du vide) */}
-                {profile.goals?.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                    <Target className="w-4 h-4" /> {t('profile.goals')}
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {profile.goals.map(g => (
-                      <Badge key={g} variant="outline" className="text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-500/30 dark:bg-purple-500/5">
-                        {g}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-                )}
-              </div>
-              
-              {/* Disponibilités */}
-              <div className="pt-6 border-t border-gray-100 dark:border-ink-700">
-                <h3 className="text-sm font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
-                  <Clock className="w-4 h-4" /> {t('profile.preferencesAvailability')}
-                </h3>
-                <div className="flex flex-wrap items-center gap-4">
-                  {profile.availability?.map(a => (
-                    <span key={a} className="text-sm font-medium bg-gray-100 dark:bg-ink-800 text-gray-700 dark:text-gray-300 border border-transparent dark:border-ink-700 px-3 py-1.5 rounded-lg">
-                      {t(`profileForm.availabilityLabels.${a}`, a)}
-                    </span>
-                  ))}
-                  <div className="h-6 w-px bg-gray-200 dark:bg-ink-700 mx-2 hidden md:block"></div>
-                  {profile.is_online && (
-                    <span className="flex items-center gap-1.5 text-sm font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-500/10 px-3 py-1.5 rounded-lg border border-transparent dark:border-green-500/20">
-                      <Monitor className="w-4 h-4" /> {t('profile.online')}
-                    </span>
-                  )}
-                  {profile.is_in_person && (
-                    <span className="flex items-center gap-1.5 text-sm font-medium text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 px-3 py-1.5 rounded-lg border border-transparent dark:border-blue-500/20">
-                      <Users className="w-4 h-4" /> {t('profile.inperson')}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </div>
-      ) : (
-        /* --- MODE ÉDITION --- */
-        <div className="border border-gray-100 dark:border-ink-700 shadow-sm rounded-2xl overflow-hidden bg-white dark:bg-ink-900 transition-colors duration-300">
-          <div className="p-6 md:p-8 border-b border-gray-50 dark:border-ink-700 flex items-center justify-between">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t('profile.editTitle')}</h2>
             {profile?.profile_complete && (
-              <Button variant="ghost" onClick={() => setIsEditing(false)} className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-ink-800">
+              <Button variant="ghost" onClick={() => setIsEditing(false)} className="shrink-0 text-white hover:bg-white/10 hover:text-white rounded-xl px-3">
                 <ArrowLeft className="w-4 h-4 mr-2" /> {t('profile.cancel')}
               </Button>
             )}
           </div>
-          <div className="p-6 md:p-8">
-            <ProfileForm profile={profile} onSave={handleSave} saving={isSaving} />
-          </div>
         </div>
-      )}
+        <ProfileForm profile={profile} onSave={handleSave} saving={isSaving} />
+      </div>
+    );
+  }
+
+  // --- Profil (vue publique) ---
+  const subjects = (profile.subjects || []).map((s) => (typeof s === "string" ? { name: s, level: "intermediaire" } : s));
+  const advanced = subjects.filter((s) => s.level === "avance").map((s) => s.name);
+  const isMentor = profile.mentor_available !== false && advanced.length > 0;
+  const checklist = [
+    ["bio", Boolean(profile.bio?.trim())],
+    ["school", Boolean(profile.school?.trim())],
+    ["city", Boolean(profile.city?.trim())],
+    ["subjects", subjects.length >= 2],
+    ["availability", (profile.availability || []).length > 0],
+    ["goals", (profile.goals || []).length > 0],
+    ["verified", Boolean(profile.verified_domain)],
+  ];
+  const doneCount = checklist.filter(([, ok]) => ok).length;
+  const completion = Math.round((doneCount / checklist.length) * 100);
+  const initial = profile.display_name ? profile.display_name.charAt(0).toUpperCase() : "E";
+
+  return (
+    <div className="max-w-6xl mx-auto pb-6">
+
+      {/* --- EN-TÊTE : bannière, avatar, identité, chiffres --- */}
+      <section className="rounded-3xl overflow-hidden bg-white dark:bg-ink-900 border border-gray-200/70 dark:border-ink-700 shadow-soft">
+        <div className="relative h-36 sm:h-44 bg-gradient-to-br from-brand-500 via-brand-700 to-purple-700 overflow-hidden">
+          <div className="absolute -top-24 right-[10%] w-80 h-80 rounded-full bg-purple-400/50 blur-3xl animate-aurora" />
+          <div className="absolute -bottom-32 left-[15%] w-80 h-80 rounded-full bg-coral-400/35 blur-3xl animate-aurora-slow" />
+          <div className="absolute -bottom-20 right-[35%] w-56 h-56 rounded-full bg-lime-300/25 blur-3xl animate-aurora" />
+          <div className="absolute inset-0 bg-grid opacity-[0.14]" />
+          <svg viewBox="0 0 400 120" className="absolute right-4 sm:right-10 top-1/2 -translate-y-1/2 w-56 sm:w-80 opacity-25" aria-hidden="true">
+            <path d="M10 100 Q 110 -20 200 70 T 390 30" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" />
+            <circle cx="200" cy="70" r="16" fill="none" stroke="#DCF46B" strokeWidth="3" strokeDasharray="5 5" />
+            <text x="250" y="105" fill="white" style={{ font: "italic 700 26px 'Bricolage Grotesque', serif" }}>∫ x² dx</text>
+          </svg>
+          <span className="absolute top-4 left-4 sm:left-6 inline-flex items-center gap-1.5 rounded-full bg-white/15 backdrop-blur border border-white/20 px-3 py-1 text-xs font-semibold text-white">
+            <Eye className="w-3.5 h-3.5" /> {t('profileUi.publicNote')}
+          </span>
+        </div>
+
+        <div className="px-5 sm:px-8 pb-6">
+          <div className="flex flex-col md:flex-row md:items-end gap-4 md:gap-6">
+            <div className="-mt-12 sm:-mt-12 relative shrink-0 w-fit">
+              {profile.photo_url && !photoFailed ? (
+                // Les photos Google refusent souvent de se charger avec un Referer
+                <img src={profile.photo_url} alt={profile.display_name} referrerPolicy="no-referrer" onError={() => setPhotoFailed(true)}
+                  className="w-28 h-28 sm:w-32 sm:h-32 rounded-[1.75rem] object-cover ring-[6px] ring-white dark:ring-ink-900 shadow-lift" />
+              ) : (
+                <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-[1.75rem] bg-gradient-to-br from-brand-400 to-purple-600 text-white flex items-center justify-center font-display text-5xl font-extrabold ring-[6px] ring-white dark:ring-ink-900 shadow-lift">
+                  {initial}
+                </div>
+              )}
+              {profile.verified_domain && (
+                <span className="absolute -bottom-1 -right-1 w-9 h-9 rounded-full bg-white dark:bg-ink-900 flex items-center justify-center shadow-soft">
+                  <BadgeCheck className="w-6 h-6 text-sky-500" aria-label={t('buddyCard.verified', { domain: profile.verified_domain })} />
+                </span>
+              )}
+            </div>
+
+            <div className="flex-1 min-w-0 md:pb-1">
+              <h1 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white flex flex-wrap items-center gap-x-3 gap-y-1">
+                {profile.display_name || t('profile.defaultStudent')}
+                {isMentor && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-lime-300/40 dark:bg-lime-300/15 text-lime-800 dark:text-lime-300 text-xs font-bold px-2.5 py-1">
+                    <Sparkles className="w-3.5 h-3.5" /> {t('profileUi.mentor')}
+                  </span>
+                )}
+              </h1>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-2 text-sm text-gray-600 dark:text-gray-300">
+                {profile.school && <span className="flex items-center gap-1.5 font-semibold text-brand-700 dark:text-brand-300"><GraduationCap className="w-4 h-4" /> {profile.school}</span>}
+                {profile.level && <span className="flex items-center gap-1.5"><BookOpen className="w-4 h-4 text-gray-400" /> {levelLabel(profile.level)}</span>}
+                {profile.city && <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-gray-400" /> {profile.city}</span>}
+                {profile.verified_domain && <span className="flex items-center gap-1.5 text-sky-600 dark:text-sky-400"><BadgeCheck className="w-4 h-4" /> @{profile.verified_domain}</span>}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 md:pb-1">
+              <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-lime-300/30 dark:bg-lime-300/10 text-lime-800 dark:text-lime-300 px-3 py-1.5 text-xs font-bold">
+                <span className="w-1.5 h-1.5 rounded-full bg-lime-500 animate-pulse" /> {t('profile.public')}
+              </span>
+              <Button onClick={() => setIsEditing(true)} className="rounded-xl bg-gradient-to-r from-brand-600 to-purple-600 hover:from-brand-700 hover:to-purple-700 text-white shadow-glow">
+                <Edit className="w-4 h-4 mr-2" /> {t('profileUi.editProfile')}
+              </Button>
+            </div>
+          </div>
+
+          {/* Chiffres clés */}
+          <dl className="mt-6 grid grid-cols-2 sm:grid-cols-4 rounded-2xl bg-gray-50 dark:bg-ink-950/60 border border-gray-100 dark:border-ink-800 divide-x divide-y sm:divide-y-0 divide-gray-100 dark:divide-ink-800 overflow-hidden">
+            {[
+              [t('profileUi.stats.subjects'), subjects.length, BookOpen, "text-brand-600 dark:text-brand-300"],
+              [t('profileUi.stats.buddies'), stats.buddies ?? "–", Users, "text-coral-500 dark:text-coral-300"],
+              [t('profileUi.stats.sessions'), stats.sessions ?? "–", CalendarCheck, "text-purple-600 dark:text-purple-300"],
+              [t('profileUi.stats.completion'), `${completion} %`, Target, "text-lime-600 dark:text-lime-300"],
+            ].map(([label, value, Icon, color]) => (
+              <div key={label} className="px-4 py-3.5 sm:px-5">
+                <dt className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400"><Icon className={`w-3.5 h-3.5 ${color}`} /> {label}</dt>
+                <dd className="font-display text-2xl font-extrabold text-gray-900 dark:text-white mt-0.5">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
+      <div className="mt-6 grid lg:grid-cols-3 gap-6 items-start">
+        {/* --- COLONNE PRINCIPALE --- */}
+        <div className="lg:col-span-2 space-y-6">
+          <Reveal>
+            <Panel icon={User} tone="brand" title={t('profileUi.about')}>
+              {profile.bio ? (
+                <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-[15px] whitespace-pre-line">{profile.bio}</p>
+              ) : (
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl border border-dashed border-gray-200 dark:border-ink-700 p-4">
+                  <p className="flex-1 text-sm text-gray-500 dark:text-gray-400">{t('profileUi.noBio')}</p>
+                  <Button size="sm" variant="outline" className="rounded-xl" onClick={() => setIsEditing(true)}><Plus className="w-4 h-4 mr-1" /> {t('profileUi.addBio')}</Button>
+                </div>
+              )}
+            </Panel>
+          </Reveal>
+
+          <Reveal index={1}>
+            <Panel icon={BookOpen} tone="purple" title={t('profileUi.subjects')}
+              aside={isMentor ? <span className="text-xs font-semibold text-lime-700 dark:text-lime-300">{t('profileUi.mentorDesc', { subjects: advanced.join(", ") })}</span> : null}>
+              {subjects.length === 0 ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400">{t('profileUi.noSubjects')}</p>
+              ) : (
+                <ul className="grid sm:grid-cols-2 gap-3">
+                  {subjects.map((s) => {
+                    const lvl = LEVELS[s.level] || LEVELS.intermediaire;
+                    return (
+                      <li key={s.name} className="rounded-xl border border-gray-100 dark:border-ink-800 bg-gray-50/70 dark:bg-ink-950/50 p-3.5">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="font-semibold text-gray-900 dark:text-gray-100 truncate">{s.name}</span>
+                          <span className={`text-xs font-bold ${lvl.text}`}>{t(`profileUi.levels.${s.level || "intermediaire"}`)}</span>
+                        </div>
+                        <div className="mt-2.5 grid grid-cols-3 gap-1.5" aria-hidden="true">
+                          {[1, 2, 3].map((n) => (
+                            <span key={n} className={`h-1.5 rounded-full ${n <= lvl.n ? lvl.bar : "bg-gray-200 dark:bg-ink-700"}`} />
+                          ))}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </Panel>
+          </Reveal>
+
+          {profile.goals?.length > 0 && (
+            <Reveal index={2}>
+              <Panel icon={Target} tone="coral" title={t('profileUi.goals')}>
+                <ul className="flex flex-wrap gap-2">
+                  {profile.goals.map((g) => (
+                    <li key={g} className="inline-flex items-center gap-2 rounded-xl bg-coral-50 dark:bg-coral-500/10 text-coral-700 dark:text-coral-300 px-3 py-2 text-sm font-semibold">
+                      <Flag className="w-3.5 h-3.5" /> {g}
+                    </li>
+                  ))}
+                </ul>
+              </Panel>
+            </Reveal>
+          )}
+        </div>
+
+        {/* --- COLONNE LATÉRALE --- */}
+        <div className="space-y-6">
+          <Reveal>
+            <section className="rounded-2xl bg-white dark:bg-ink-900 border border-gray-200/70 dark:border-ink-700 shadow-soft p-5">
+              <div className="flex items-center gap-4">
+                <CompletionRing value={completion} />
+                <div className="min-w-0">
+                  <h2 className="font-display font-bold text-gray-900 dark:text-white">{t('profileUi.strength.title')}</h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{completion === 100 ? t('profileUi.strength.done') : t('profileUi.strength.hint')}</p>
+                </div>
+              </div>
+              {completion < 100 && (
+                <ul className="mt-4 space-y-1">
+                  {checklist.map(([key, ok]) => (
+                    <li key={key}>
+                      <button type="button" disabled={ok} onClick={() => key === "verified"
+                        ? document.getElementById("verification")?.scrollIntoView({ behavior: "smooth", block: "center" })
+                        : setIsEditing(true)}
+                        className={`w-full flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm text-left transition-colors ${ok ? "text-gray-400 dark:text-gray-500" : "text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-ink-800"} disabled:cursor-default`}>
+                        {ok
+                          ? <CheckCircle className="w-4 h-4 text-lime-500 shrink-0" />
+                          : <span className="w-4 h-4 rounded-full border-2 border-gray-300 dark:border-ink-600 shrink-0" />}
+                        <span className={ok ? "line-through" : ""}>{t(`profileUi.strength.items.${key}`)}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          </Reveal>
+
+          <Reveal index={1}>
+            <Panel icon={Clock} tone="sky" title={t('profileUi.availability')}>
+              <div className="grid grid-cols-2 gap-2">
+                {SLOTS.map(([slot, Icon]) => {
+                  const on = profile.availability?.includes(slot);
+                  return (
+                    <div key={slot} className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold border ${
+                      on ? "bg-sky-50 dark:bg-sky-500/10 border-sky-200 dark:border-sky-500/30 text-sky-700 dark:text-sky-300" : "border-dashed border-gray-200 dark:border-ink-700 text-gray-400 dark:text-gray-600"
+                    }`}>
+                      <Icon className="w-4 h-4" /> {t(`profileForm.availabilityLabels.${slot}`, slot)}
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-5">
+                <p className="text-xs font-bold uppercase tracking-[0.12em] text-gray-400 dark:text-gray-500 mb-2">{t('profileUi.format')}</p>
+                <div className="flex flex-wrap gap-2">
+                  {profile.is_online && <span className="inline-flex items-center gap-1.5 rounded-lg bg-brand-50 dark:bg-brand-500/10 text-brand-700 dark:text-brand-300 px-2.5 py-1.5 text-sm font-semibold"><Monitor className="w-4 h-4" /> {t('profile.online')}</span>}
+                  {profile.is_in_person && <span className="inline-flex items-center gap-1.5 rounded-lg bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300 px-2.5 py-1.5 text-sm font-semibold"><Users className="w-4 h-4" /> {t('profile.inperson')}</span>}
+                </div>
+              </div>
+              {profile.study_style && (
+                <div className="mt-5">
+                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-gray-400 dark:text-gray-500 mb-2">{t('profileUi.style')}</p>
+                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 dark:bg-amber-400/10 text-amber-700 dark:text-amber-300 px-2.5 py-1.5 text-sm font-semibold">
+                    <Lightbulb className="w-4 h-4" /> {t(`profileForm.styles.${profile.study_style}`, profile.study_style)}
+                  </span>
+                </div>
+              )}
+            </Panel>
+          </Reveal>
+
+          <Reveal index={2} className="scroll-mt-24" >
+            <div id="verification" />
+            <StudentVerification
+              verifiedDomain={profile.verified_domain || null}
+              onChange={(domain) => setProfile((prev) => ({ ...prev, verified_domain: domain || undefined }))}
+            />
+          </Reveal>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Carte de contenu du profil
+function Panel({ icon: Icon, tone, title, aside, children }) {
+  return (
+    <section className="rounded-2xl bg-white dark:bg-ink-900 border border-gray-200/70 dark:border-ink-700 shadow-soft p-5 sm:p-6">
+      <header className="flex flex-wrap items-center gap-3 mb-4">
+        <IconTile icon={Icon} tone={tone} className="w-9 h-9" />
+        <h2 className="font-display text-lg font-bold text-gray-900 dark:text-white">{title}</h2>
+        {aside && <div className="ml-auto">{aside}</div>}
+      </header>
+      {children}
+    </section>
+  );
+}
+
+// Anneau de progression (force du profil)
+function CompletionRing({ value }) {
+  const r = 26, c = 2 * Math.PI * r;
+  return (
+    <div className="relative w-16 h-16 shrink-0">
+      <svg viewBox="0 0 64 64" className="w-16 h-16 -rotate-90" aria-hidden="true">
+        <circle cx="32" cy="32" r={r} fill="none" strokeWidth="7" className="stroke-gray-100 dark:stroke-ink-800" />
+        <circle cx="32" cy="32" r={r} fill="none" strokeWidth="7" strokeLinecap="round" stroke="url(#ring-g)"
+          strokeDasharray={c} strokeDashoffset={c * (1 - value / 100)} style={{ transition: "stroke-dashoffset .8s cubic-bezier(.22,1,.36,1)" }} />
+        <defs><linearGradient id="ring-g" x1="0" x2="1"><stop offset="0" stopColor="#7A55FF" /><stop offset="1" stopColor="#C4E44A" /></linearGradient></defs>
+      </svg>
+      <span className="absolute inset-0 flex items-center justify-center font-display text-sm font-extrabold text-gray-900 dark:text-white">{value}%</span>
     </div>
   );
 }

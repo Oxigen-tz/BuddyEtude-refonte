@@ -62,11 +62,16 @@ export default function StudentVerification({ verifiedDomain, onChange }) {
   };
 
   return (
-    <section className="p-5 rounded-2xl border border-sky-100 dark:border-sky-500/20 bg-sky-50/50 dark:bg-sky-500/5">
-      <div className="flex items-start gap-3">
-        <BadgeCheck className="w-6 h-6 text-sky-500 shrink-0" />
+    <section className={`relative overflow-hidden p-5 rounded-2xl border shadow-soft ${verifiedDomain
+      ? "border-sky-200 dark:border-sky-500/25 bg-gradient-to-br from-sky-50 to-white dark:from-sky-500/10 dark:to-ink-900"
+      : "border-gray-200/70 dark:border-ink-700 bg-white dark:bg-ink-900"}`}>
+      <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-sky-400/20 blur-2xl" aria-hidden="true" />
+      <div className="relative flex items-start gap-3">
+        <span className="shrink-0 w-9 h-9 rounded-xl bg-sky-500/10 dark:bg-sky-400/15 text-sky-600 dark:text-sky-300 flex items-center justify-center">
+          <BadgeCheck className="w-5 h-5" />
+        </span>
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-gray-900 dark:text-white">{t("verification.title")}</h3>
+          <h3 className="font-display text-lg font-bold text-gray-900 dark:text-white">{t("verification.title")}</h3>
           {verifiedDomain ? (
             <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{t("verification.verified", { domain: verifiedDomain })}</p>
           ) : (
@@ -83,7 +88,7 @@ export default function StudentVerification({ verifiedDomain, onChange }) {
           )}
 
           {step === "email" && (
-            <form onSubmit={sendCode} className="mt-3 flex flex-col sm:flex-row gap-2">
+            <form onSubmit={sendCode} className="mt-3 flex flex-col gap-2">
               <label htmlFor="school-email" className="sr-only">{t("verification.emailLabel")}</label>
               <Input id="school-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
                 placeholder={t("verification.emailPlaceholder")} className="rounded-xl bg-white dark:bg-ink-950" />
@@ -94,7 +99,7 @@ export default function StudentVerification({ verifiedDomain, onChange }) {
           )}
 
           {step === "code" && (
-            <form onSubmit={confirm} className="mt-3 flex flex-col sm:flex-row gap-2">
+            <form onSubmit={confirm} className="mt-3 flex flex-col gap-2">
               <label htmlFor="school-code" className="sr-only">{t("verification.codeLabel")}</label>
               <Input id="school-code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} required value={code}
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} placeholder="123456" className="rounded-xl bg-white dark:bg-ink-950 tracking-widest" />
