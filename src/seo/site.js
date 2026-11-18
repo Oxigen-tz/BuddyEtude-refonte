@@ -10,6 +10,9 @@ export const SITE = {
   email: "contact@buddyetude.com",
 };
 
+// Autres façons d'écrire le nom (recherches « buddy etude », « buddy étude »…)
+export const ALT_NAMES = ["Buddy Etude", "Buddy Étude", "BuddyÉtude"];
+
 // Pages indexables. La version anglaise de l'accueil est servie sur /?lang=en.
 export const PUBLIC_PAGES = {
   "/": {
@@ -66,8 +69,8 @@ export const FAQ = {
 // Données structurées communes (Organisation, site, application)
 export function baseJsonLd() {
   return [
-    { "@context": "https://schema.org", "@type": "Organization", name: SITE.name, url: SITE.url, logo: `${SITE.url}/icon-512.png`, email: SITE.email },
-    { "@context": "https://schema.org", "@type": "WebSite", name: SITE.name, url: SITE.url, inLanguage: ["fr", "en"] },
+    { "@context": "https://schema.org", "@type": "Organization", name: SITE.name, alternateName: ALT_NAMES, url: SITE.url, logo: `${SITE.url}/icon-512.png`, email: SITE.email },
+    { "@context": "https://schema.org", "@type": "WebSite", name: SITE.name, alternateName: ALT_NAMES, url: SITE.url, inLanguage: ["fr", "en"] },
     {
       "@context": "https://schema.org", "@type": "WebApplication", name: SITE.name, url: SITE.url,
       applicationCategory: "EducationalApplication", operatingSystem: "Web",
