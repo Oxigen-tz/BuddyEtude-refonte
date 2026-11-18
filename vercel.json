@@ -1,6 +1,18 @@
 {
   "rewrites": [
     {
+      "source": "/About",
+      "destination": "/About/index.html"
+    },
+    {
+      "source": "/Legal",
+      "destination": "/Legal/index.html"
+    },
+    {
+      "source": "/Privacy",
+      "destination": "/Privacy/index.html"
+    },
+    {
       "source": "/((?!sitemap.xml|robots.txt).*)",
       "destination": "/index.html"
     }

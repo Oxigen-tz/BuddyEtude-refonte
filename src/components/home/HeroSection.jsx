@@ -71,16 +71,19 @@ export default function HeroSection() {
         </motion.div>
 
         <h1 className="mt-7 font-display text-[2.9rem] leading-[0.98] sm:text-7xl lg:text-[6.2rem] font-extrabold tracking-[-0.04em] text-white">
+          {/* Vrais espaces entre les mots animés : sans eux, les moteurs lisaient le titre d'un seul bloc */}
           {words.map((x, i) => (
-            <motion.span
-              key={i}
-              initial={{ opacity: 0, y: 50, filter: "blur(14px)" }}
-              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              transition={{ delay: 0.15 + i * 0.08, duration: 0.9, ease: EASE }}
-              className={`inline-block mr-[0.22em] last:mr-0 ${x.hl ? "text-gradient animate-shine pb-2" : ""}`}
-            >
-              {x.w}
-            </motion.span>
+            <React.Fragment key={i}>
+              {i > 0 && " "}
+              <motion.span
+                initial={{ opacity: 0, y: 50, filter: "blur(14px)" }}
+                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                transition={{ delay: 0.15 + i * 0.08, duration: 0.9, ease: EASE }}
+                className={`inline-block ${x.hl ? "text-gradient animate-shine pb-2" : ""}`}
+              >
+                {x.w}
+              </motion.span>
+            </React.Fragment>
           ))}
         </h1>
 

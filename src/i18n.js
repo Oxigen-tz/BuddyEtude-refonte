@@ -412,6 +412,7 @@ const resources = {
         }
       },
       landing: {
+        faq: { eyebrow: "FAQ", title: "Tes questions, nos réponses", subtitle: "Tout ce qu'il faut savoir avant de te lancer." },
         manifesto: "Réviser seul, c'est long, démotivant, et on bloque vite. À deux, on s'explique, on se motive et on avance pour de vrai. BuddyEtude te trouve la bonne personne.",
         scrollHint: "Fais défiler",
         story: {
@@ -1552,6 +1553,7 @@ const resources = {
         }
       },
       landing: {
+        faq: { eyebrow: "FAQ", title: "Your questions, our answers", subtitle: "Everything you need to know before you start." },
         manifesto: "Studying alone is slow, demotivating, and you get stuck fast. Together, you explain things, keep each other going and really make progress. BuddyEtude finds you the right person.",
         scrollHint: "Scroll",
         story: {
@@ -2285,11 +2287,30 @@ const resources = {
   }
 };
 
+// Langue au démarrage :
+//  - ?lang=en / ?lang=fr dans l'adresse (version anglaise indexable : https://buddyetude.com/?lang=en) ;
+//  - robots des moteurs et des aperçus de liens : français, la langue principale du site
+//    (Googlebot annonce un navigateur en anglais américain, il indexait donc la version anglaise) ;
+//  - sinon : choix enregistré, puis langue du navigateur (détecteur).
+const initialLanguage = (() => {
+  if (typeof window === 'undefined') return undefined;
+  const fromUrl = new URLSearchParams(window.location.search).get('lang');
+  if (fromUrl === 'fr' || fromUrl === 'en') {
+    try { localStorage.setItem('i18nextLng', fromUrl); } catch { /* stockage indisponible */ }
+    return fromUrl;
+  }
+  if (/bot|crawl|spider|slurp|bingpreview|facebookexternalhit|linkedinbot|whatsapp|discordbot|twitterbot|telegrambot|embedly|quora|pinterest|vkshare|applebot|yandex|duckduck|baidu|lighthouse/i.test(navigator.userAgent)) return 'fr';
+  return undefined;
+})();
+
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
     resources,
+    lng: initialLanguage,
+    supportedLngs: ['fr', 'en'],
+    nonExplicitSupportedLngs: true,
     fallbackLng: 'en',
     interpolation: {
       escapeValue: false 

@@ -9,6 +9,7 @@ import FeaturesSection from "../components/home/FeaturesSection";
 import MentorSection from "../components/home/MentorSection";
 import SafetySection from "../components/home/SafetySection";
 import CTASection from "../components/home/CTASection";
+import FaqSection from "../components/home/FaqSection";
 import { useAuth } from "@/lib/AuthContext";
 
 // Page d'accueil toujours en thème sombre (classe "dark" locale), quel que soit le thème choisi
@@ -36,6 +37,7 @@ export default function Home() {
         <FeaturesSection />
         <MentorSection />
         <SafetySection />
+        <FaqSection />
         <CTASection />
       </main>
     </div>

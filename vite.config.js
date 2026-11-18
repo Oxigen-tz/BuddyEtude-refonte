@@ -1,10 +1,12 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from "path"
+import seo from "./scripts/vite-plugin-seo.js"
 
 // Configuration standard pour React + Vite
 export default defineConfig({
-  plugins: [react()],
+  // seo : pages publiques pré-remplies, sitemap.xml, données structurées (scripts/vite-plugin-seo.js)
+  plugins: [react(), seo()],
   resolve: {
     alias: {
       // C'est ce qui permet d'utiliser le "@" dans tes imports

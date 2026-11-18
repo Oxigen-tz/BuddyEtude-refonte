@@ -1,4 +1,14 @@
 User-agent: *
 Allow: /
+# Espace connecté : rien à indexer
+Disallow: /Dashboard
+Disallow: /Search
+Disallow: /Messages
+Disallow: /Sessions
+Disallow: /Settings
+Disallow: /Whiteboard
+Disallow: /Profile
+Disallow: /Admin
+Disallow: /Groups
 
 Sitemap: https://buddyetude.com/sitemap.xml

@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 function Word({ children, progress, range, accent }) {
   const opacity = useTransform(progress, range, [0.14, 1]);
   return (
-    <motion.span style={{ opacity }} className={`inline-block mr-[0.25em] ${accent ? "text-gradient" : ""}`}>
+    <motion.span style={{ opacity }} className={`inline-block ${accent ? "text-gradient" : ""}`}>
       {children}
     </motion.span>
   );
@@ -26,10 +26,16 @@ export default function Manifesto() {
       <p ref={ref} className="max-w-5xl mx-auto font-display text-[1.9rem] leading-[1.15] sm:text-5xl lg:text-[3.6rem] font-bold tracking-tight text-white">
         {words.map((w, i) => {
           const start = i / words.length;
-          return reduce ? (
-            <span key={i} className={`mr-[0.25em] ${brandIndex >= 0 && i >= brandIndex ? "text-gradient" : ""}`}>{w}</span>
-          ) : (
-            <Word key={i} progress={scrollYProgress} range={[start, start + 1 / words.length]} accent={brandIndex >= 0 && i >= brandIndex}>{w}</Word>
+          // Vrais espaces entre les mots (lecture par les moteurs et les lecteurs d'écran)
+          return (
+            <React.Fragment key={i}>
+              {i > 0 && " "}
+              {reduce ? (
+                <span className={brandIndex >= 0 && i >= brandIndex ? "text-gradient" : ""}>{w}</span>
+              ) : (
+                <Word progress={scrollYProgress} range={[start, start + 1 / words.length]} accent={brandIndex >= 0 && i >= brandIndex}>{w}</Word>
+              )}
+            </React.Fragment>
           );
         })}
       </p>

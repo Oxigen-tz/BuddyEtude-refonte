@@ -12,6 +12,7 @@ import Footer from '@/components/Footer';
 import PublicHeader from '@/components/PublicHeader';
 import LoginRequired from '@/components/LoginRequired';
 import { initTheme } from '@/lib/theme';
+import SeoManager from '@/components/SeoManager';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -126,6 +127,7 @@ function App() {
       <QueryClientProvider client={queryClientInstance}>
         {/* Active dès maintenant les comportements de React Router v7 (et supprime les avertissements console) */}
         <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <SeoManager />
           <AuthenticatedApp />
         </Router>
         {/* Un seul système de toasts (sonner). Le Toaster shadcn, inutilisé, posait sur mobile une
