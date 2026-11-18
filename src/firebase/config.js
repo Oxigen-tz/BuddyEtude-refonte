@@ -3,7 +3,7 @@ import { getAuth, connectAuthEmulator } from "firebase/auth";
 import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
 import { getAnalytics, isSupported as isAnalyticsSupported } from "firebase/analytics";
 import { getStorage, connectStorageEmulator } from "firebase/storage";
-import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
+import { initializeAppCheck, ReCaptchaEnterpriseProvider, ReCaptchaV3Provider } from "firebase/app-check";
 
 const env = import.meta.env;
 
@@ -29,12 +29,15 @@ const useEmulators = env.VITE_USE_EMULATORS === "true";
 const app = initializeApp(firebaseConfig);
 
 // App Check : Firestore / Storage n'acceptent que les requêtes venant du vrai site (et non d'un
-// script qui réutiliserait la clé API). Actif dès que la clé reCAPTCHA v3 est fournie ; à
-// "imposer" ensuite dans la console Firebase (App Check → APIs → Appliquer).
+// script qui réutiliserait la clé API). Actif dès que la clé est fournie ; à "imposer" ensuite
+// dans la console Firebase (App Check → APIs → Appliquer).
+// Fournisseur : Fraud Defense / reCAPTCHA Enterprise par défaut ; VITE_APPCHECK_PROVIDER=v3 pour
+// l'ancien reCAPTCHA v3 (obsolète).
 if (!useEmulators && env.VITE_APPCHECK_SITE_KEY) {
   try {
+    const AppCheckProvider = env.VITE_APPCHECK_PROVIDER === "v3" ? ReCaptchaV3Provider : ReCaptchaEnterpriseProvider;
     initializeAppCheck(app, {
-      provider: new ReCaptchaV3Provider(env.VITE_APPCHECK_SITE_KEY),
+      provider: new AppCheckProvider(env.VITE_APPCHECK_SITE_KEY),
       isTokenAutoRefreshEnabled: true,
     });
   } catch (error) {

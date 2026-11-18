@@ -123,9 +123,11 @@ vers quelqu'un qui vous a bloqué.
    le uid du compte (Authentication → Utilisateurs), avec un champ quelconque.
 6. **Initialiser le compteur** `stats/public.studentCount` au nombre de profils complets existants
    (la fonction le tient ensuite à jour).
-7. **App Check** (protection contre l'usage de la clé API hors du site) : console Firebase →
-   App Check → enregistrer l'app web avec reCAPTCHA v3, mettre la clé de site dans la variable
-   `VITE_APPCHECK_SITE_KEY` (Vercel), redéployer, vérifier les métriques, puis « Appliquer ».
+7. **App Check** (protection contre l'usage de la clé API hors du site) : créer une clé
+   **Fraud Defense** (ancien reCAPTCHA Enterprise, console Google Cloud → Sécurité), type site web,
+   domaines du site ; l'enregistrer dans Firebase → App Check → app web → Fraud Defense ; mettre la
+   même clé dans la variable `VITE_APPCHECK_SITE_KEY` (Vercel), redéployer, vérifier les métriques,
+   puis « Appliquer ».
 8. **Facultatif** : `VITE_SENTRY_DSN` pour le suivi des erreurs (sentry.io).
 
 Variables d'environnement : voir `.env.example`. Un projet Firebase de test (staging) se branche
