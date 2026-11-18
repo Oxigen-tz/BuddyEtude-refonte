@@ -99,6 +99,9 @@ export default function BuddyCard({ profile, match, onRequest, onOpenConversatio
                     {t(`buddyCard.levels.${profile.level}`)}
                   </span>
                 )}
+                {profile.school && (
+                  <span className="truncate max-w-[12rem]" title={profile.school}>{profile.school}</span>
+                )}
                 {profile.city && (
                   <span className="flex items-center gap-1">
                     <MapPin className="w-3.5 h-3.5 shrink-0" />
@@ -150,10 +153,11 @@ export default function BuddyCard({ profile, match, onRequest, onOpenConversatio
         )}
 
         {/* --- COMPATIBILITÉ --- */}
-        {!isOwnProfile && match && (match.sharedSubjects.length > 0 || match.sameLevel || match.sameCity) && (
+        {!isOwnProfile && match && (match.sharedSubjects.length > 0 || match.sameSchool || match.sameLevel || match.sameCity) && (
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
             <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
             {match.sharedSubjects.length > 0 && <span>{t('buddyCard.match.subjects', { count: match.sharedSubjects.length })}</span>}
+            {match.sameSchool && <span>{t('buddyCard.match.school')}</span>}
             {match.sameLevel && <span>{t('buddyCard.match.level')}</span>}
             {match.sameCity && <span>{t('buddyCard.match.city')}</span>}
           </div>

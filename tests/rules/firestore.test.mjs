@@ -90,6 +90,35 @@ export async function firestoreTests(env, t) {
   await t("trait : au nom de l'autre refusé", assertFails(addDoc(collection(b, "whiteboards", pair, "strokes"), { uid: A, tool: "pen", points: [1, 2] })));
   await t("trait : trop de points refusé", assertFails(addDoc(collection(a, "whiteboards", pair, "strokes"), { uid: A, tool: "pen", points: new Array(6001).fill(1) })));
   await t("trait : modification refusée", assertFails(updateDoc(doc(a, "whiteboards", pair, "strokes", stroke.id), { color: "red" })));
+  await t("tableau : ajout de pages et d'un fond PDF", assertSucceeds(updateDoc(doc(a, "whiteboards", pair), { pageCount: 3, backgrounds: { 1: "https://x/p1.jpg" } })));
+  await t("tableau : nombre de pages invalide refusé", assertFails(updateDoc(doc(a, "whiteboards", pair), { pageCount: 0 })));
+  await t("trait : sur une autre page", assertSucceeds(addDoc(collection(b, "whiteboards", pair, "strokes"), { uid: B, tool: "pen", points: [1, 2], page: 2, createdAt: serverTimestamp() })));
+  await t("trait : numéro de page invalide refusé", assertFails(addDoc(collection(b, "whiteboards", pair, "strokes"), { uid: B, tool: "pen", points: [1, 2], page: "deux" })));
+
+  // ------------------------------------------------------------ Groupes de révision
+  const groupRef = doc(collection(a, "groups"));
+  const gid = groupRef.id;
+  const D = "uidDora";
+  const d = as(D);
+  await t("groupe : création par Alice", assertSucceeds(setDoc(groupRef, { name: "Partiels L2", subject: "Maths", owner_uid: A, members: [A], member_names: { [A]: "Alice" }, createdAt: serverTimestamp() })));
+  await t("groupe : création avec d'autres membres d'office refusée", assertFails(setDoc(doc(collection(a, "groups")), { name: "x", owner_uid: A, members: [A, B] })));
+  await t("groupe : création au nom d'un autre refusée", assertFails(setDoc(doc(collection(c, "groups")), { name: "x", owner_uid: A, members: [A] })));
+  await t("groupe : ajout d'un binôme (Bob)", assertSucceeds(updateDoc(doc(a, "groups", gid), { members: [A, B], [`member_names.${B}`]: "Bob" })));
+  await t("groupe : ajout de quelqu'un qui n'est pas binôme refusé", assertFails(updateDoc(doc(a, "groups", gid), { members: [A, B, C] })));
+  await t("groupe : un membre ne peut pas ajouter quelqu'un", assertFails(updateDoc(doc(b, "groups", gid), { members: [A, B, D] })));
+  await t("groupe : liste de mes groupes (requête de l'app)", assertSucceeds(getDocs(query(collection(b, "groups"), where("members", "array-contains", B)))));
+  await t("groupe : un non-membre ne lit pas", assertFails(getDoc(doc(c, "groups", gid))));
+  await t("groupe : message d'un membre", assertSucceeds(addDoc(collection(b, "groups", gid, "messages"), { senderUid: B, senderName: "Bob", text: "Salut le groupe", createdAt: serverTimestamp() })));
+  await t("groupe : message d'un non-membre refusé", assertFails(addDoc(collection(c, "groups", gid, "messages"), { senderUid: C, text: "intrus" })));
+  await t("groupe : lecture des messages par un non-membre refusée", assertFails(getDocs(collection(c, "groups", gid, "messages"))));
+  await t("groupe : tableau blanc de groupe (membre)", assertSucceeds(setDoc(doc(b, "whiteboards", `grp-${gid}`), { group_id: gid, pageCount: 1 })));
+  await t("groupe : trait sur le tableau de groupe", assertSucceeds(addDoc(collection(a, "whiteboards", `grp-${gid}`, "strokes"), { uid: A, tool: "pen", points: [1, 2], page: 0, createdAt: serverTimestamp() })));
+  await t("groupe : tableau de groupe interdit à un non-membre", assertFails(getDocs(collection(c, "whiteboards", `grp-${gid}`, "strokes"))));
+  await t("groupe : un membre ne supprime pas le groupe", assertFails(deleteDoc(doc(b, "groups", gid))));
+  await t("groupe : un membre retire un autre membre refusé", assertFails(updateDoc(doc(b, "groups", gid), { members: [B] })));
+  await t("groupe : un membre quitte le groupe", assertSucceeds(updateDoc(doc(b, "groups", gid), { members: [A] })));
+  await t("groupe : l'ancien membre ne lit plus", assertFails(getDocs(collection(b, "groups", gid, "messages"))));
+  await t("groupe : suppression par le créateur", assertSucceeds(deleteDoc(doc(a, "groups", gid))));
   await t("trait : « Tout effacer » par le binôme", assertSucceeds(deleteDoc(doc(b, "whiteboards", pair, "strokes", stroke.id))));
 
   // ------------------------------------------------------------ Signalements, modération, bannissement

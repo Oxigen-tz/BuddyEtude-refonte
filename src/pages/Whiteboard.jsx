@@ -1,20 +1,23 @@
-import React, { useRef, useState, useEffect, useCallback } from "react";
+import React, { useRef, useState, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
-import { db } from "../firebase/config";
+import { db, storage } from "../firebase/config";
+import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import {
   doc, getDoc, setDoc, onSnapshot, collection, query, orderBy, addDoc, deleteDoc,
-  serverTimestamp, writeBatch,
+  serverTimestamp, writeBatch, updateDoc,
 } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { HexColorPicker } from "react-colorful";
 import { toast } from "sonner";
-import { X, Eraser, Pen, Trash2, Download, Circle, Palette, Plus, Undo2, Type } from "lucide-react";
+import { X, Eraser, Pen, Trash2, Download, Circle, Palette, Plus, Undo2, Type, ChevronLeft, ChevronRight, FileUp, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/AuthContext";
 import { pairMembers } from "@/lib/pairs";
 
-// Tableau blanc partagé par un binôme : whiteboards/<paire de uids>.
+// Tableau blanc partagé par un binôme (whiteboards/<paire de uids>) ou par un groupe
+// (whiteboards/grp-<id du groupe>). Plusieurs pages (champ "page" des traits, pageCount du
+// tableau) ; un PDF importé devient une page par page du PDF, en fond (backgrounds).
 // Chaque trait est un document de la sous-collection "strokes" (et non plus une image entière
 // réécrite à chaque trait) : pas de limite d'1 Mo, pas de conflit quand les deux dessinent en
 // même temps, et "Défaire" n'annule que ses propres traits.
@@ -25,6 +28,10 @@ const BRUSH_SIZES = [2, 6, 12, 24];
 const FONT_SIZES = { 2: 16, 6: 24, 12: 36, 24: 64 };
 const MAX_POINTS = 6000;     // coordonnées par trait (x, y à la suite) : voir firestore.rules
 const MIN_DISTANCE = 2;      // en dessous, un point n'apporte rien et alourdit le trait
+const MAX_PAGES = 200;       // voir firestore.rules
+const MAX_PDF_PAGES = 20;    // pages importées par PDF
+const MAX_PDF_SIZE = 30 * 1024 * 1024;
+const PDF_RENDER_SCALE = 1.5; // fonds rendus en 1800 × 1200 pour rester nets
 
 // "ink" = l'encre par défaut : noire en thème clair, blanche en thème sombre (l'ancien tableau
 // enregistrait du noir pur, invisible sur fond sombre)
@@ -38,8 +45,19 @@ export default function Whiteboard() {
   const { user } = useAuth();
 
   const boardId = new URLSearchParams(location.search).get("sessionId");
-  const members = pairMembers(boardId);
-  const isValidBoard = Boolean(members && user?.uid && members.includes(user.uid));
+  const isGroupBoard = /^grp-[A-Za-z0-9]+$/.test(boardId || "");
+  const groupId = isGroupBoard ? boardId.slice(4) : null;
+  const members = isGroupBoard ? null : pairMembers(boardId);
+  // Tableau de groupe : undefined = en chargement, null = pas membre / groupe introuvable
+  const [group, setGroup] = useState(undefined);
+  useEffect(() => {
+    if (!groupId || !user?.uid) return;
+    return onSnapshot(doc(db, "groups", groupId),
+      (snap) => setGroup(snap.exists() && (snap.data().members || []).includes(user.uid) ? { id: snap.id, ...snap.data() } : null),
+      () => setGroup(null));
+  }, [groupId, user?.uid]);
+  const isValidBoard = isGroupBoard ? Boolean(group) : Boolean(members && user?.uid && members.includes(user.uid));
+  const closeTo = isGroupBoard ? `/Groups?id=${groupId}` : "/Messages";
 
   const canvasRef = useRef(null);
   const [tool, setTool] = useState("pen");
@@ -51,6 +69,11 @@ export default function Whiteboard() {
   const isFinalizingRef = useRef(false);
 
   const [strokes, setStrokes] = useState([]);
+  const [page, setPage] = useState(0);
+  const [pageCount, setPageCount] = useState(1);
+  const [backgrounds, setBackgrounds] = useState({});      // { numéro de page: URL de l'image }
+  const [importing, setImporting] = useState(null);        // { done, total } pendant un import PDF
+  const pdfInputRef = useRef(null);
   const [legacyImage, setLegacyImage] = useState(null);   // ancien format (image entière)
   const drawingRef = useRef(null);                         // trait en cours : { tool, color, width, points }
 
@@ -65,12 +88,16 @@ export default function Whiteboard() {
     try { return JSON.parse(localStorage.getItem("buddyetude_saved_colors") || "[]"); } catch { return []; }
   });
 
-  const resolveColor = useCallback((c) => (c === INK ? (isDarkMode ? "#ffffff" : "#09090b") : c), [isDarkMode]);
+  const background = backgrounds[page] || null;
+  // Encre blanche en thème sombre, sauf sur un fond (page de PDF, toujours claire)
+  const lightInk = isDarkMode && !background;
+  const resolveColor = useCallback((c) => (c === INK ? (lightInk ? "#ffffff" : "#09090b") : c), [lightInk]);
 
-  // Pas un de nos binômes : retour à la messagerie
+  // Pas un de nos binômes / pas membre du groupe : retour
   useEffect(() => {
-    if (user && !isValidBoard) navigate("/Messages", { replace: true });
-  }, [user, isValidBoard, navigate]);
+    if (!user) return;
+    if (isGroupBoard ? group === null : !isValidBoard) navigate(isGroupBoard ? "/Groups" : "/Messages", { replace: true });
+  }, [user, isGroupBoard, group, isValidBoard, navigate]);
 
   // --- Lecture : document du tableau (création au premier passage) + traits en temps réel
   useEffect(() => {
@@ -79,7 +106,9 @@ export default function Whiteboard() {
 
     getDoc(boardRef).then((snap) => {
       if (!snap.exists()) {
-        return setDoc(boardRef, { participants: [...members].sort(), createdAt: serverTimestamp() });
+        return setDoc(boardRef, isGroupBoard
+          ? { group_id: groupId, pageCount: 1, createdAt: serverTimestamp() }
+          : { participants: [...members].sort(), pageCount: 1, createdAt: serverTimestamp() });
       }
     }).catch((error) => {
       console.error("Tableau inaccessible:", error);
@@ -87,7 +116,10 @@ export default function Whiteboard() {
     });
 
     const unsubBoard = onSnapshot(boardRef, (snap) => {
-      const image = snap.exists() ? snap.data().image : null;
+      const data = snap.exists() ? snap.data() : {};
+      setPageCount(Math.max(1, data.pageCount || 1));
+      setBackgrounds(data.backgrounds || {});
+      const image = data.image || null;
       if (!image) { setLegacyImage(null); return; }
       const img = new Image();
       img.onload = () => setLegacyImage(img);
@@ -137,18 +169,20 @@ export default function Whiteboard() {
     ctx.globalCompositeOperation = "source-over";
   }, [resolveColor]);
 
+  const pageStrokes = useMemo(() => strokes.filter((s) => (s.page || 0) === page), [strokes, page]);
+
   const redraw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     ctx.globalCompositeOperation = "source-over";
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (legacyImage) ctx.drawImage(legacyImage, 0, 0);
-    strokes.forEach((s) => drawStroke(ctx, s));
+    if (legacyImage && page === 0) ctx.drawImage(legacyImage, 0, 0);
+    pageStrokes.forEach((s) => drawStroke(ctx, s));
     // Le trait en cours est redessiné par-dessus : un trait du binôme reçu pendant qu'on dessine
     // ne l'efface plus
     if (drawingRef.current) drawStroke(ctx, drawingRef.current);
-  }, [strokes, legacyImage, drawStroke]);
+  }, [pageStrokes, legacyImage, page, drawStroke]);
 
   useEffect(() => { redraw(); }, [redraw]);
 
@@ -165,7 +199,7 @@ export default function Whiteboard() {
   const commitStroke = async (stroke) => {
     try {
       await addDoc(collection(db, "whiteboards", boardId, "strokes"), {
-        ...stroke, uid: user.uid, createdAt: serverTimestamp(),
+        ...stroke, page, uid: user.uid, createdAt: serverTimestamp(),
       });
     } catch (error) {
       console.error("Erreur de synchronisation du tableau:", error);
@@ -226,10 +260,9 @@ export default function Whiteboard() {
   };
 
   // Défaire : supprime MON dernier trait (celui du binôme n'est pas concerné)
-  const myStrokes = strokes.filter((s) => s.uid === user?.uid);
-  const canUndo = myStrokes.length > 0;
+  const canUndo = pageStrokes.some((s) => s.uid === user?.uid);
   const undoLastStroke = useCallback(async () => {
-    const last = [...strokes].reverse().find((s) => s.uid === user?.uid);
+    const last = [...pageStrokes].reverse().find((s) => s.uid === user?.uid);
     if (!last) return;
     try {
       await deleteDoc(doc(db, "whiteboards", boardId, "strokes", last.id));
@@ -237,7 +270,7 @@ export default function Whiteboard() {
       console.error(error);
       toast.error(t('whiteboard.saveError'));
     }
-  }, [strokes, user?.uid, boardId, t]);
+  }, [pageStrokes, user?.uid, boardId, t]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -253,33 +286,124 @@ export default function Whiteboard() {
   }, [undoLastStroke]);
 
   const clearBoard = async () => {
-    if (!window.confirm(t('whiteboard.clearConfirm'))) return;
+    if (!window.confirm(t(pageCount > 1 ? 'whiteboard.clearPageConfirm' : 'whiteboard.clearConfirm'))) return;
     try {
-      for (let i = 0; i < strokes.length; i += 450) {
+      for (let i = 0; i < pageStrokes.length; i += 450) {
         const batch = writeBatch(db);
-        strokes.slice(i, i + 450).forEach((s) => batch.delete(doc(db, "whiteboards", boardId, "strokes", s.id)));
+        pageStrokes.slice(i, i + 450).forEach((s) => batch.delete(doc(db, "whiteboards", boardId, "strokes", s.id)));
         await batch.commit();
       }
-      if (legacyImage) await setDoc(doc(db, "whiteboards", boardId), { image: null }, { merge: true });
+      if (legacyImage && page === 0) await setDoc(doc(db, "whiteboards", boardId), { image: null }, { merge: true });
     } catch (error) {
       console.error("Erreur lors de l'effacement du tableau:", error);
       toast.error(t('whiteboard.saveError'));
     }
   };
 
-  const downloadBoard = () => {
+  const downloadBoard = async () => {
     const canvas = canvasRef.current;
     const temp = document.createElement("canvas");
     temp.width = canvas.width;
     temp.height = canvas.height;
     const ctx = temp.getContext("2d");
-    ctx.fillStyle = isDarkMode ? "#1e1f20" : "#ffffff";
+    ctx.fillStyle = lightInk ? "#1e1f20" : "#ffffff";
     ctx.fillRect(0, 0, temp.width, temp.height);
+    if (background) {
+      // Le fond n'est exportable que si le stockage autorise la lecture depuis le site (CORS)
+      const img = await new Promise((resolve) => {
+        const i = new Image();
+        i.crossOrigin = "anonymous";
+        i.onload = () => resolve(i);
+        i.onerror = () => resolve(null);
+        i.src = background;
+      });
+      if (img) ctx.drawImage(img, 0, 0, temp.width, temp.height);
+      else toast.info(t('whiteboard.exportNoBackground'));
+    }
     ctx.drawImage(canvas, 0, 0);
     const link = document.createElement("a");
-    link.download = `BuddyEtude_Tableau_${new Date().toLocaleDateString().replace(/\//g, "-")}.png`;
-    link.href = temp.toDataURL("image/png");
+    link.download = `BuddyEtude_Tableau_p${page + 1}_${new Date().toLocaleDateString().replace(/\//g, "-")}.png`;
+    try {
+      link.href = temp.toDataURL("image/png");
+    } catch {
+      toast.error(t('whiteboard.saveError'));
+      return;
+    }
     link.click();
+  };
+
+  // --- Pages
+  const goToPage = (n) => {
+    if (n < 0 || n >= pageCount) return;
+    drawingRef.current = null;
+    setTextInput({ visible: false, x: 0, y: 0, text: "" });
+    setPage(n);
+  };
+  const addPage = async () => {
+    if (pageCount >= MAX_PAGES) return;
+    try {
+      await updateDoc(doc(db, "whiteboards", boardId), { pageCount: pageCount + 1 });
+      setPage(pageCount);
+    } catch (error) {
+      console.error(error);
+      toast.error(t('whiteboard.saveError'));
+    }
+  };
+
+  // --- Import d'un PDF : chaque page devient une page du tableau, avec le PDF en fond
+  const importPdf = async (file) => {
+    if (!file) return;
+    if (file.type !== "application/pdf") { toast.error(t('whiteboard.pdf.notPdf')); return; }
+    if (file.size > MAX_PDF_SIZE) { toast.error(t('whiteboard.pdf.tooBig')); return; }
+    try {
+      setImporting({ done: 0, total: 0 });
+      const [pdfjs, worker] = await Promise.all([
+        import("pdfjs-dist"),
+        import("pdfjs-dist/build/pdf.worker.min.mjs?url"),
+      ]);
+      pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
+      const pdf = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
+      // Tableau encore vierge : le PDF commence à la page 1, sinon il s'ajoute à la fin
+      const isBlank = pageCount === 1 && strokes.length === 0 && !backgrounds[0] && !legacyImage;
+      const start = isBlank ? 0 : pageCount;
+      const total = Math.min(pdf.numPages, MAX_PDF_PAGES, MAX_PAGES - start);
+      setImporting({ done: 0, total });
+
+      const width = CANVAS_WIDTH * PDF_RENDER_SCALE;
+      const height = CANVAS_HEIGHT * PDF_RENDER_SCALE;
+      const urls = {};
+      for (let i = 1; i <= total; i++) {
+        const pdfPage = await pdf.getPage(i);
+        const base = pdfPage.getViewport({ scale: 1 });
+        const scale = Math.min(width / base.width, height / base.height);
+        const viewport = pdfPage.getViewport({ scale });
+        const out = document.createElement("canvas");
+        out.width = width;
+        out.height = height;
+        const ctx = out.getContext("2d");
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, width, height);
+        ctx.translate((width - viewport.width) / 2, (height - viewport.height) / 2);
+        await pdfPage.render({ canvasContext: ctx, viewport }).promise;
+        const blob = await new Promise((resolve) => out.toBlob(resolve, "image/jpeg", 0.85));
+        const fileRef = storageRef(storage, `chat_files/${user.uid}/wb_${Date.now()}_${i}.jpg`);
+        await uploadBytes(fileRef, blob, { contentType: "image/jpeg" });
+        urls[start + i - 1] = await getDownloadURL(fileRef);
+        setImporting({ done: i, total });
+      }
+      await setDoc(doc(db, "whiteboards", boardId), {
+        pageCount: Math.max(pageCount, start + total),
+        backgrounds: urls,
+      }, { merge: true });
+      setPage(start);
+      toast.success(t(pdf.numPages > total ? 'whiteboard.pdf.truncated' : 'whiteboard.pdf.done', { count: total }));
+    } catch (error) {
+      console.error("Import PDF :", error);
+      toast.error(t('whiteboard.pdf.error'));
+    } finally {
+      setImporting(null);
+      if (pdfInputRef.current) pdfInputRef.current.value = "";
+    }
   };
 
   const handleSaveColor = () => {
@@ -300,13 +424,36 @@ export default function Whiteboard() {
       {/* EN-TÊTE */}
       <div className="bg-white/80 dark:bg-[#1e1f20]/90 backdrop-blur-md border-b border-gray-200 dark:border-[#333537] px-3 sm:px-6 py-3 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => navigate("/Messages")} aria-label={t('whiteboard.closeBoard')} className="hover:bg-gray-100 dark:hover:bg-[#282a2c] text-gray-700 dark:text-gray-300 rounded-xl">
+          <Button variant="ghost" onClick={() => navigate(closeTo)} aria-label={t('whiteboard.closeBoard')} className="hover:bg-gray-100 dark:hover:bg-[#282a2c] text-gray-700 dark:text-gray-300 rounded-xl">
             <X className="w-5 h-5 sm:mr-2" /> <span className="hidden sm:inline">{t('whiteboard.closeBoard')}</span>
           </Button>
           <div className="h-6 w-px bg-gray-300 dark:bg-[#333537] hidden md:block"></div>
-          <h2 className="font-bold text-gray-800 dark:text-gray-100 hidden md:block">{t('whiteboard.title')}</h2>
+          <h2 className="font-bold text-gray-800 dark:text-gray-100 hidden md:block truncate max-w-[16rem]">{group?.name || t('whiteboard.title')}</h2>
         </div>
+
+        {/* Pages */}
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" onClick={() => goToPage(page - 1)} disabled={page === 0} aria-label={t('whiteboard.prevPage')} className="rounded-xl h-9 w-9">
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          <span className="text-sm font-medium tabular-nums text-gray-700 dark:text-gray-300 min-w-[3.5rem] text-center" aria-live="polite">
+            {t('whiteboard.pageOf', { page: page + 1, count: pageCount })}
+          </span>
+          <Button variant="ghost" size="icon" onClick={() => goToPage(page + 1)} disabled={page >= pageCount - 1} aria-label={t('whiteboard.nextPage')} className="rounded-xl h-9 w-9">
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={addPage} disabled={pageCount >= MAX_PAGES} aria-label={t('whiteboard.addPage')} title={t('whiteboard.addPage')} className="rounded-xl h-9 w-9">
+            <Plus className="w-4 h-4" />
+          </Button>
+        </div>
+
         <div className="flex items-center gap-2">
+          <input ref={pdfInputRef} type="file" accept="application/pdf" className="hidden" onChange={(e) => importPdf(e.target.files?.[0])} />
+          <Button onClick={() => pdfInputRef.current?.click()} disabled={Boolean(importing)} variant="outline" aria-label={t('whiteboard.pdf.import')} title={t('whiteboard.pdf.import')}
+            className="border-gray-200 dark:border-[#333537] text-gray-700 dark:text-gray-300 rounded-xl">
+            {importing ? <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" /> : <FileUp className="w-4 h-4 sm:mr-2" />}
+            <span className="hidden sm:inline">{importing ? t('whiteboard.pdf.progress', { done: importing.done, total: importing.total || "…" }) : t('whiteboard.pdf.import')}</span>
+          </Button>
           <Button onClick={undoLastStroke} disabled={!canUndo} variant="outline" aria-label={t('whiteboard.undo')} title={t('whiteboard.undoTitle')}
             className="border-gray-200 dark:border-[#333537] text-gray-700 dark:text-gray-300 rounded-xl disabled:opacity-40">
             <Undo2 className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">{t('whiteboard.undo')}</span>
@@ -320,7 +467,9 @@ export default function Whiteboard() {
 
       {/* ZONE DE DESSIN */}
       <div className="flex-1 overflow-auto flex justify-center items-center p-4 md:p-8 relative">
-        <div className="relative shadow-2xl rounded-xl ring-1 ring-gray-200 dark:ring-[#333537] overflow-hidden bg-white dark:bg-[#1e1f20]">
+        <div className={`relative shadow-2xl rounded-xl ring-1 ring-gray-200 dark:ring-[#333537] overflow-hidden ${background ? "bg-white" : "bg-white dark:bg-[#1e1f20]"}`}>
+          {/* Fond de la page (PDF importé), sous le dessin : la gomme ne l'efface pas */}
+          {background && <img src={background} alt="" draggable={false} className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none" />}
           <canvas
             ref={canvasRef}
             width={CANVAS_WIDTH}
@@ -334,7 +483,7 @@ export default function Whiteboard() {
             onTouchEnd={(e) => { e.preventDefault(); stopDrawing(); }}
             onTouchCancel={(e) => { e.preventDefault(); stopDrawing(); }}
             style={{ width: "100%", maxWidth: `${CANVAS_WIDTH}px`, aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`, touchAction: "none" }}
-            className={tool === "text" ? "cursor-text" : "cursor-crosshair"}
+            className={`relative ${tool === "text" ? "cursor-text" : "cursor-crosshair"}`}
           />
 
           {textInput.visible && (

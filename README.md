@@ -1,8 +1,9 @@
 # BuddyEtude
 
-Plateforme de mise en relation entre étudiants pour réviser à deux : recherche de binômes par
-compatibilité (matières, niveau, ville), messagerie avec pièces jointes, sessions avec lien d'appel
-vidéo et rappels, tableau blanc collaboratif en temps réel, modération.
+Plateforme de mise en relation entre étudiants pour réviser à deux ou en groupe : recherche de
+binômes par compatibilité (matières, école, niveau, ville), messagerie avec pièces jointes, groupes
+de révision, sessions avec lien d'appel vidéo et rappels, tableau blanc collaboratif multipage
+(import de PDF), notifications par e-mail et push, application installable, modération.
 
 ## Stack
 
@@ -39,9 +40,9 @@ http://127.0.0.1:4000.
 | Commande                 | Ce qui est vérifié                                                         |
 | ------------------------ | -------------------------------------------------------------------------- |
 | `npm run lint`           | ESLint                                                                     |
-| `npm run test:rules`     | 89 cas : règles Firestore et Storage (qui peut lire / écrire quoi)          |
-| `npm run test:functions` | 14 cas : e-mails, rappels, compteur, statistiques, nettoyage, purges        |
-| `npm run test:e2e`       | Scénario complet dans Chrome avec trois étudiants (24 étapes)              |
+| `npm run test:rules`     | 112 cas : règles Firestore et Storage (qui peut lire / écrire quoi)         |
+| `npm run test:functions` | 15 cas : e-mails, rappels, résumé du lundi, statistiques, nettoyage, purges |
+| `npm run test:e2e`       | Scénario complet dans Chrome avec trois étudiants (29 étapes)              |
 | `npm test`               | Les trois suites de tests                                                  |
 
 Les tests tournent sur les émulateurs (projet fictif `demo-buddyetude`). Le scénario de bout en
@@ -77,12 +78,14 @@ autres utilisateurs. Une paire d'étudiants a un identifiant fixe `<uid1>_<uid2>
 | Collection                       | Contenu                                                                 |
 | -------------------------------- | ----------------------------------------------------------------------- |
 | `users/{uid}`                    | Profil public (visible si `profile_visible == true`)                    |
-| `users/{uid}/private/settings`   | Privé : tranche d'âge, accord parental, préférence e-mails              |
+| `users/{uid}/private/settings`   | Privé : tranche d'âge, accord parental, préférences e-mails / résumé    |
+| `users/{uid}/private/push`       | Privé : jetons des appareils pour les notifications push                |
 | `requests/{paire}`               | Demande de binôme : `pending` → `accepted` ; supprimée si refus/retrait |
 | `messages`                       | `chatId` = paire, `participants`, `unreadBy` (non-lus)                  |
 | `sessions`                       | Sessions (`start_at`, lien d'appel, rappels envoyés)                    |
 | `feedback/{session}_{uid}`       | Avis après session (lisible par la modération uniquement)               |
-| `whiteboards/{paire}/strokes`    | Un document par trait du tableau blanc                                  |
+| `whiteboards/{paire ou grp-id}`  | Tableau blanc : `pageCount`, fonds PDF (`backgrounds`), traits (`strokes`) |
+| `groups/{id}` (+ `messages`)     | Groupes de révision (6 membres max) et leur discussion                  |
 | `blocks/{bloqueur}_{bloqué}`     | Blocages                                                                |
 | `reports`                        | Signalements (traités dans la page Modération, purgés après 1 an)       |
 | `admins/{uid}`                   | Comptes de modération (créés à la main dans la console)                 |
@@ -129,6 +132,13 @@ vers quelqu'un qui vous a bloqué.
    même clé dans la variable `VITE_APPCHECK_SITE_KEY` (Vercel), redéployer, vérifier les métriques,
    puis « Appliquer ».
 8. **Facultatif** : `VITE_SENTRY_DSN` pour le suivi des erreurs (sentry.io).
+9. **Notifications push** : console Firebase → Paramètres du projet → Cloud Messaging →
+   Certificats Web Push → Générer une paire de clés ; mettre la clé dans `VITE_FCM_VAPID_KEY`
+   (Vercel) et redéployer. Le réglage « Notifications sur cet appareil » apparaît alors dans
+   Paramètres (sur iPhone : seulement une fois le site ajouté à l'écran d'accueil).
+10. **Export des pages PDF du tableau blanc** (facultatif) : autoriser la lecture des images depuis
+   le site : `gcloud storage buckets update gs://buddyetude.firebasestorage.app --cors-file=storage.cors.json`.
+   Sans cela, l'export d'une page avec un PDF en fond ne contient que les dessins.
 
 Variables d'environnement : voir `.env.example`. Un projet Firebase de test (staging) se branche
 avec les variables `VITE_FIREBASE_*`.

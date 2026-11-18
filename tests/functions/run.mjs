@@ -218,5 +218,22 @@ await t("suppression de compte : données privées et avis effacés", async () =
   throw new Error("données encore présentes");
 });
 
+await t("résumé du lundi : nouveaux compatibles, préférence respectée", async () => {
+  const E = await createUser("eva@test.com");
+  const F = await createUser("fred@test.com");
+  await write(`users/${E}`, { display_name: "Eva", profile_complete: true, profile_visible: true, subjects: [{ name: "Mathématiques" }], school: "IUT Vannes" });
+  await write(`users/${F}`, { display_name: "Fred", profile_complete: true, profile_visible: true, subjects: [{ name: "Physique" }], school: "iut vannes " });
+  await write(`users/${F}/private/settings`, { weekly_digest: false });
+  await sleep(1500);
+  const require = createRequire(import.meta.url);
+  await require("../../functions/index.js").weeklyDigest.run({});
+  const digests = (await list("mail")).filter((d) => /compatible/.test(subject(d.fields)));
+  const toEva = digests.find((d) => to(d.fields) === "eva@test.com");
+  if (!toEva) throw new Error("pas de résumé pour Eva");
+  const text = toEva.fields.message.mapValue.fields.text.stringValue;
+  if (!/Fred — même école/.test(text)) throw new Error(`contenu inattendu : ${text}`);
+  if (digests.some((d) => to(d.fields) === "fred@test.com")) throw new Error("résumé envoyé malgré la préférence");
+});
+
 console.log(`\nFunctions : ${pass} test(s) réussi(s), ${failures.length} échec(s)`);
 process.exit(failures.length ? 1 : 0);

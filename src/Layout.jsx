@@ -11,7 +11,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
   Search, LayoutDashboard, MessageSquare, Calendar,
-  User, LogOut, Menu, X, GraduationCap, Settings as SettingsIcon, Bell, CheckCircle2, Globe, UserPlus, ShieldAlert, MailWarning
+  User, LogOut, Menu, X, GraduationCap, Settings as SettingsIcon, Bell, CheckCircle2, Globe, UserPlus, ShieldAlert, MailWarning, UsersRound
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -23,6 +23,7 @@ const navItems = [
   { navKey: "Search", page: "Search", icon: Search },
   { navKey: "Messages", page: "Messages", icon: MessageSquare },
   { navKey: "Sessions", page: "Sessions", icon: Calendar },
+  { navKey: "Groups", page: "Groups", icon: UsersRound },
   { navKey: "Profile", page: "Profile", icon: User },
 ];
 

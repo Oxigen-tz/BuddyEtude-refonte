@@ -1,0 +1,7 @@
+[
+  {
+    "origin": ["https://buddyetude.com", "https://buddy-etude-refonte.vercel.app", "http://localhost:5173"],
+    "method": ["GET"],
+    "maxAgeSeconds": 3600
+  }
+]

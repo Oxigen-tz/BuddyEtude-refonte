@@ -30,7 +30,7 @@ export default defineConfig({
   // Modules Firebase pré-assemblés dès le démarrage : sinon Vite en découvre un en cours de
   // route, recharge la page et peut en charger deux copies (« Service functions is not available »).
   optimizeDeps: {
-    include: ["firebase/app", "firebase/auth", "firebase/firestore", "firebase/storage", "firebase/functions", "firebase/app-check"],
+    include: ["firebase/app", "firebase/auth", "firebase/firestore", "firebase/storage", "firebase/functions", "firebase/app-check", "firebase/messaging"],
   },
   server: {
     port: 5173,

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import InviteCard from "@/components/InviteCard";
 import { useAuth } from "@/lib/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -219,6 +220,8 @@ export default function Dashboard() {
         </div>
 
       </div>
+
+      <InviteCard />
     </div>
   );
 }

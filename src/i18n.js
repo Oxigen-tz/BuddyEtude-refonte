@@ -177,8 +177,8 @@ const resources = {
               { label: "Compte :", text: "nom, adresse e-mail et photo de profil (fournis par Google ou saisis à l'inscription). Le mot de passe est géré par Google Firebase ; nous n'y avons jamais accès. Votre adresse e-mail n'est jamais affichée aux autres étudiants." },
               { label: "Profil :", text: "ville, niveau d'études, matières, disponibilités, mode de révision, présentation." },
               { label: "Âge :", text: "tranche d'âge (15 ans ou plus / moins de 15 ans) et, le cas échéant, déclaration d'accord parental. Ces informations sont privées." },
-              { label: "Activité :", text: "demandes de binôme, messages et fichiers échangés, sessions planifiées, dessins du tableau blanc, avis laissés après une session, signalements et blocages." },
-              { label: "Préférences :", text: "choix de recevoir ou non les e-mails de notification, langue et thème d'affichage." },
+              { label: "Activité :", text: "demandes de binôme, messages et fichiers échangés, groupes de révision et leurs discussions, sessions planifiées, dessins du tableau blanc et documents PDF qui y sont importés, avis laissés après une session, signalements et blocages." },
+              { label: "Préférences :", text: "choix de recevoir ou non les e-mails de notification et le résumé du lundi, langue et thème d'affichage ; si vous activez les notifications push, un identifiant technique de votre appareil." },
               { label: "Données techniques :", text: "en cas d'erreur, un rapport technique (page, navigateur, message d'erreur) ; une vérification anti-abus (App Check) qui s'assure que les requêtes viennent bien du site." }
             ]
           },
@@ -186,7 +186,7 @@ const resources = {
             title: "3. Pourquoi et sur quelle base",
             items: [
               { label: "Faire fonctionner le service", text: "(compte, recherche de binômes, messagerie, sessions, tableau blanc) : exécution des conditions d'utilisation que vous acceptez en créant un compte." },
-              { label: "E-mails de notification", text: "(nouvelle demande, nouveau message, session, rappels) : exécution du service. Vous pouvez les désactiver à tout moment dans Paramètres → Préférences." },
+              { label: "Notifications", text: "(e-mails : nouvelle demande, nouveau message, session, rappels, résumé du lundi des nouveaux inscrits compatibles ; notifications push si vous les activez) : exécution du service. Chacune se désactive à tout moment dans Paramètres → Préférences." },
               { label: "Sécurité et modération", text: "(signalements, bannissement, protection contre les abus, suivi des erreurs) : intérêt légitime à proposer un service sûr et fiable." },
               { label: "Statistiques internes", text: "(nombre d'inscrits, de binômes, de sessions) : intérêt légitime ; ce sont des comptages globaux, sans profilage ni publicité." }
             ]
@@ -195,7 +195,7 @@ const resources = {
             title: "4. Qui voit vos données",
             items: [
               { label: "Les autres étudiants connectés", text: "voient votre profil (nom, photo, ville, niveau, matières, disponibilités, présentation), sauf si vous le masquez dans les Paramètres." },
-              { label: "Vos binômes", text: "voient les messages, fichiers, sessions et dessins que vous partagez avec eux, et eux seuls." },
+              { label: "Vos binômes et vos groupes", text: "voient les messages, fichiers, sessions et dessins que vous partagez avec eux, et eux seuls. Le résumé du lundi peut indiquer votre nom et vos matières communes aux étudiants compatibles qui viennent de s'inscrire, comme le fait déjà la recherche." },
               { label: "La modération", text: "voit les signalements, les avis après session et, en cas de signalement, les éléments nécessaires pour le traiter." },
               { label: "Personne d'autre :", text: "BuddyEtude ne vend ni ne loue vos données et n'affiche aucune publicité." }
             ]
@@ -204,7 +204,7 @@ const resources = {
             title: "5. Prestataires (sous-traitants)",
             paragraphs: ["Nous faisons appel à des prestataires qui traitent des données pour notre compte, uniquement pour les besoins décrits ici :"],
             items: [
-              { label: "Google (Firebase, Google Cloud) :", text: "comptes, base de données, fichiers, fonctions serveur, protection anti-abus. Les données de la base sont hébergées dans l'Union européenne." },
+              { label: "Google (Firebase, Google Cloud) :", text: "comptes, base de données, fichiers, fonctions serveur, notifications push, protection anti-abus. Les données de la base sont hébergées dans l'Union européenne." },
               { label: "Vercel :", text: "hébergement du site web (États-Unis)." },
               { label: "Brevo (France) :", text: "envoi des e-mails de notification." },
               { label: "Sentry :", text: "suivi des erreurs techniques, hébergé dans l'Union européenne." },
@@ -218,7 +218,7 @@ const resources = {
           {
             title: "7. Durées de conservation",
             items: [
-              { label: "Compte et contenus :", text: "tant que le compte existe. La suppression du compte (Paramètres → Supprimer mon compte) efface immédiatement le profil, les messages et fichiers envoyés, les demandes, les blocages, les données privées et les avis laissés ; les sessions sont annulées." },
+              { label: "Compte et contenus :", text: "tant que le compte existe. La suppression du compte (Paramètres → Supprimer mon compte) efface immédiatement le profil, les messages et fichiers envoyés, les demandes, les blocages, les données privées et les avis laissés ; les sessions sont annulées, les groupes créés sont supprimés et vous quittez les autres." },
               { label: "Comptes inactifs :", text: "supprimés après 3 ans sans connexion." },
               { label: "E-mails de notification envoyés :", text: "30 jours." },
               { label: "Avis et signalements traités :", text: "1 an." },
@@ -251,7 +251,8 @@ const resources = {
           Sessions: "Sessions",
           Profile: "Mon profil",
           Settings: "Paramètres",
-          Admin: "Modération"
+          Admin: "Modération",
+          Groups: "Groupes"
         },
         notifications: {
           title: "Notifications",
@@ -308,6 +309,54 @@ const resources = {
         }
       },
       // --- LANDING : barre de navigation ---
+      groups: {
+        title: "Groupes de révision",
+        subtitle: "Révisez à plusieurs (jusqu'à 6) avec vos binômes : discussion et tableau blanc communs.",
+        create: "Nouveau groupe",
+        createTitle: "Créer un groupe",
+        createDesc: "Vous pourrez ensuite y ajouter vos binômes, un par un.",
+        name: "Nom du groupe",
+        namePlaceholder: "Ex. : Partiels de L2 maths",
+        subject: "Matière (facultatif)",
+        subjectPlaceholder: "Ex. : Analyse",
+        createButton: "Créer le groupe",
+        emptyTitle: "Aucun groupe pour l'instant",
+        emptyDesc: "Créez un groupe et ajoutez-y vos binômes pour réviser à plusieurs.",
+        pick: "Choisissez un groupe pour afficher sa discussion.",
+        memberCount_one: "{{count}} membre",
+        memberCount_other: "{{count}} membres",
+        whiteboard: "Tableau blanc",
+        delete: "Supprimer le groupe",
+        leave: "Quitter le groupe",
+        owner: "Créateur du groupe",
+        you: "Vous",
+        remove: "Retirer {{name}}",
+        add: "Ajouter",
+        addPlaceholder: "Ajouter un binôme…",
+        noBuddyToAdd: "Tous vos binômes sont déjà dans le groupe (ou vous n'en avez pas encore).",
+        noMessages: "Aucun message. Lancez la discussion !",
+        inputPlaceholder: "Écrire au groupe…",
+        send: "Envoyer",
+        back: "Retour aux groupes",
+        leaveConfirm: "Quitter le groupe « {{name}} » ?",
+        deleteConfirm: "Supprimer définitivement le groupe « {{name}} », sa discussion et son tableau blanc ?",
+        toast: {
+          created: "Groupe créé.",
+          added: "{{name}} a rejoint le groupe.",
+          removed: "{{name}} a été retiré(e) du groupe.",
+          left: "Vous avez quitté le groupe.",
+          deleted: "Groupe supprimé.",
+          error: "Action impossible. Réessayez."
+        }
+      },
+      invite: {
+        title: "Invite tes camarades",
+        desc: "Plus il y a d'étudiants de ta promo, plus tu trouveras vite le bon binôme.",
+        button: "Inviter",
+        message: "Je révise avec BuddyEtude : on y trouve un binôme compatible, on discute et on travaille ensemble sur un tableau blanc. Inscris-toi, c'est gratuit :",
+        copied: "Lien d'invitation copié : colle-le dans ton groupe de promo !",
+        copyError: "Copie impossible. Partage l'adresse buddyetude.com."
+      },
       home: {
         nav: {
           login: "Connexion",
@@ -337,8 +386,8 @@ const resources = {
         subtitle: "Trouver un partenaire, discuter, planifier et réviser sur un tableau blanc partagé : tout se passe au même endroit.",
         items: {
           filters: {
-            title: "Recherche ciblée",
-            desc: "Filtrez par matière, niveau d'études, ville et mode (en ligne ou présentiel) pour trouver quelqu'un qui révise la même chose que vous."
+            title: "Binômes compatibles",
+            desc: "Les profils sont classés par compatibilité : matières en commun, même niveau, même école ou même ville, créneaux communs. Filtrez aussi par mode (en ligne ou présentiel)."
           },
           chat: {
             title: "Chat intégré",
@@ -354,7 +403,7 @@ const resources = {
           },
           schedule: {
             title: "Sessions planifiées",
-            desc: "Choisissez un binôme, une date, une heure et une durée, en ligne ou en présentiel. Vos sessions sont regroupées dans une page dédiée."
+            desc: "Date, heure, en ligne ou en présentiel : un lien d'appel vidéo se crée en un clic, la session s'ajoute à votre agenda et un rappel arrive par e-mail la veille et une heure avant."
           },
           subjects: {
             title: "Toutes les matières",
@@ -364,7 +413,7 @@ const resources = {
       },
       cta: {
         title: "Prêt à trouver votre binôme ?",
-        subtitle: "Connectez-vous avec Google, complétez votre profil et envoyez votre première demande de binôme. C'est gratuit.",
+        subtitle: "Inscrivez-vous avec Google ou votre adresse e-mail, complétez votre profil et envoyez votre première demande de binôme. C'est gratuit.",
         button: "Créer mon compte",
         buttonLoggedIn: "Accéder à mon tableau de bord"
       },
@@ -439,7 +488,8 @@ const resources = {
           subjects_one: "1 matière en commun",
           subjects_other: "{{count}} matières en commun",
           level: "Même niveau",
-          city: "Même ville"
+          city: "Même ville",
+          school: "Même école"
         },
         answerRequest: "Répondre à sa demande",
         contact: "Contacter",
@@ -748,6 +798,11 @@ const resources = {
           profileVisibilityDesc: "Permettre aux autres étudiants de vous trouver via la recherche.",
           emailNotifs: "Notifications par e-mail",
           emailNotifsDesc: "Nouvelle demande, nouveau message (au plus un e-mail par conversation et par demi-heure), rappels de session.",
+          push: "Notifications sur cet appareil",
+          pushDesc: "Nouveaux messages, demandes et rappels de session, même quand BuddyEtude est fermé.",
+          pushDenied: "Les notifications sont bloquées dans ton navigateur : autorise-les dans les réglages du site.",
+          weeklyDigest: "Résumé du lundi",
+          weeklyDigestDesc: "Chaque lundi, les nouveaux étudiants de la semaine qui partagent une matière ou ton école.",
           blocked: "Personnes bloquées",
           noBlocked: "Vous n'avez bloqué personne.",
           unknownUser: "Utilisateur",
@@ -773,6 +828,22 @@ const resources = {
         ink: "Encre (noir / blanc selon le thème)",
         textPlaceholder: "Écrivez ici...",
         clearConfirm: "Voulez-vous vraiment tout effacer ?",
+        clearPageConfirm: "Effacer tous les dessins de cette page ?",
+        pageOf: "{{page}} / {{count}}",
+        prevPage: "Page précédente",
+        nextPage: "Page suivante",
+        addPage: "Ajouter une page",
+        exportNoBackground: "Le fond PDF n'a pas pu être inclus dans l'image : seuls les dessins sont exportés.",
+        pdf: {
+          import: "Importer un PDF",
+          progress: "Import {{done}}/{{total}}",
+          notPdf: "Choisissez un fichier PDF.",
+          tooBig: "PDF trop lourd (30 Mo maximum).",
+          done_one: "{{count}} page importée : annotez-la !",
+          done_other: "{{count}} pages importées : annotez-les !",
+          truncated: "Seules les {{count}} premières pages ont été importées.",
+          error: "Le PDF n'a pas pu être importé."
+        },
         saveError: "Synchronisation impossible : vos derniers tracés n'ont pas été enregistrés.",
         tooLarge: "Le tableau est trop chargé pour être synchronisé. Exportez-le puis effacez-le pour continuer.",
         tools: {
@@ -958,8 +1029,8 @@ const resources = {
               { label: "Account:", text: "name, email address and profile photo (provided by Google or entered at sign-up). Passwords are handled by Google Firebase; we never have access to them. Your email address is never shown to other students." },
               { label: "Profile:", text: "city, level of study, subjects, availability, study mode, bio." },
               { label: "Age:", text: "age bracket (15 or over / under 15) and, where applicable, a declaration of parental consent. This information is private." },
-              { label: "Activity:", text: "study buddy requests, messages and files exchanged, scheduled sessions, whiteboard drawings, feedback after a session, reports and blocks." },
-              { label: "Preferences:", text: "whether you receive notification emails, language and display theme." },
+              { label: "Activity:", text: "study buddy requests, messages and files exchanged, study groups and their chats, scheduled sessions, whiteboard drawings and PDF documents imported into it, feedback after a session, reports and blocks." },
+              { label: "Preferences:", text: "whether you receive notification emails and the Monday digest, language and display theme; if you turn on push notifications, a technical identifier of your device." },
               { label: "Technical data:", text: "when an error occurs, a technical report (page, browser, error message); an anti-abuse check (App Check) that makes sure requests come from the real site." }
             ]
           },
@@ -967,7 +1038,7 @@ const resources = {
             title: "3. Why, and on what legal basis",
             items: [
               { label: "Running the service", text: "(account, buddy search, messaging, sessions, whiteboard): performance of the terms of use you accept when creating an account." },
-              { label: "Notification emails", text: "(new request, new message, session, reminders): performance of the service. You can turn them off at any time in Settings → Preferences." },
+              { label: "Notifications", text: "(emails: new request, new message, session, reminders, Monday digest of compatible new students; push notifications if you turn them on): performance of the service. Each can be turned off at any time in Settings → Preferences." },
               { label: "Security and moderation", text: "(reports, bans, abuse protection, error tracking): legitimate interest in providing a safe and reliable service." },
               { label: "Internal statistics", text: "(number of sign-ups, buddies, sessions): legitimate interest; these are overall counts, with no profiling or advertising." }
             ]
@@ -976,7 +1047,7 @@ const resources = {
             title: "4. Who sees your data",
             items: [
               { label: "Other signed-in students", text: "see your profile (name, photo, city, level, subjects, availability, bio), unless you hide it in Settings." },
-              { label: "Your study buddies", text: "see the messages, files, sessions and drawings you share with them, and only they do." },
+              { label: "Your study buddies and groups", text: "see the messages, files, sessions and drawings you share with them, and only they do. The Monday digest may show your name and shared subjects to compatible students who have just signed up, as the search already does." },
               { label: "Moderation", text: "sees reports, post-session feedback and, when something is reported, what is needed to handle it." },
               { label: "No one else:", text: "BuddyEtude does not sell or rent your data and shows no advertising." }
             ]
@@ -985,7 +1056,7 @@ const resources = {
             title: "5. Service providers (processors)",
             paragraphs: ["We rely on providers that process data on our behalf, only for the purposes described here:"],
             items: [
-              { label: "Google (Firebase, Google Cloud):", text: "accounts, database, files, server functions, abuse protection. Database data is hosted in the European Union." },
+              { label: "Google (Firebase, Google Cloud):", text: "accounts, database, files, server functions, push notifications, abuse protection. Database data is hosted in the European Union." },
               { label: "Vercel:", text: "website hosting (United States)." },
               { label: "Brevo (France):", text: "sending notification emails." },
               { label: "Sentry:", text: "technical error tracking, hosted in the European Union." },
@@ -999,7 +1070,7 @@ const resources = {
           {
             title: "7. Retention periods",
             items: [
-              { label: "Account and content:", text: "for as long as the account exists. Deleting your account (Settings → Delete my account) immediately erases your profile, the messages and files you sent, requests, blocks, private data and feedback you left; sessions are cancelled." },
+              { label: "Account and content:", text: "for as long as the account exists. Deleting your account (Settings → Delete my account) immediately erases your profile, the messages and files you sent, requests, blocks, private data and feedback you left; sessions are cancelled, groups you created are deleted and you leave the others." },
               { label: "Inactive accounts:", text: "deleted after 3 years without sign-in." },
               { label: "Notification emails sent:", text: "30 days." },
               { label: "Feedback and handled reports:", text: "1 year." },
@@ -1032,7 +1103,8 @@ const resources = {
           Sessions: "Sessions",
           Profile: "My Profile",
           Settings: "Settings",
-          Admin: "Moderation"
+          Admin: "Moderation",
+          Groups: "Groups"
         },
         notifications: {
           title: "Notifications",
@@ -1089,6 +1161,54 @@ const resources = {
         }
       },
       // --- LANDING: navigation bar ---
+      groups: {
+        title: "Study groups",
+        subtitle: "Study together (up to 6) with your study buddies: shared chat and whiteboard.",
+        create: "New group",
+        createTitle: "Create a group",
+        createDesc: "You can then add your study buddies, one by one.",
+        name: "Group name",
+        namePlaceholder: "E.g. Year 2 maths finals",
+        subject: "Subject (optional)",
+        subjectPlaceholder: "E.g. Calculus",
+        createButton: "Create group",
+        emptyTitle: "No groups yet",
+        emptyDesc: "Create a group and add your study buddies to study together.",
+        pick: "Pick a group to see its chat.",
+        memberCount_one: "{{count}} member",
+        memberCount_other: "{{count}} members",
+        whiteboard: "Whiteboard",
+        delete: "Delete group",
+        leave: "Leave group",
+        owner: "Group creator",
+        you: "You",
+        remove: "Remove {{name}}",
+        add: "Add",
+        addPlaceholder: "Add a study buddy…",
+        noBuddyToAdd: "All your study buddies are already in the group (or you don't have any yet).",
+        noMessages: "No messages yet. Start the conversation!",
+        inputPlaceholder: "Write to the group…",
+        send: "Send",
+        back: "Back to groups",
+        leaveConfirm: "Leave the group “{{name}}”?",
+        deleteConfirm: "Permanently delete the group “{{name}}”, its chat and its whiteboard?",
+        toast: {
+          created: "Group created.",
+          added: "{{name}} joined the group.",
+          removed: "{{name}} was removed from the group.",
+          left: "You left the group.",
+          deleted: "Group deleted.",
+          error: "Action failed. Please try again."
+        }
+      },
+      invite: {
+        title: "Invite your classmates",
+        desc: "The more students from your class join, the faster you'll find the right study buddy.",
+        button: "Invite",
+        message: "I'm studying with BuddyEtude: you find a compatible study buddy, chat and work together on a whiteboard. Sign up, it's free:",
+        copied: "Invitation link copied: paste it in your class group!",
+        copyError: "Couldn't copy. Share the address buddyetude.com."
+      },
       home: {
         nav: {
           login: "Login",
@@ -1118,8 +1238,8 @@ const resources = {
         subtitle: "Find a partner, chat, schedule and study on a shared whiteboard: everything happens in one place.",
         items: {
           filters: {
-            title: "Targeted search",
-            desc: "Filter by subject, study level, city and mode (online or in-person) to find someone studying the same material as you."
+            title: "Compatible buddies",
+            desc: "Profiles are ranked by compatibility: shared subjects, same level, same school or city, overlapping time slots. You can also filter by mode (online or in person)."
           },
           chat: {
             title: "Integrated chat",
@@ -1135,7 +1255,7 @@ const resources = {
           },
           schedule: {
             title: "Scheduled sessions",
-            desc: "Pick a buddy, a date, a time and a duration, online or in person. Your sessions are gathered on a dedicated page."
+            desc: "Date, time, online or in person: a video call link is created in one click, the session goes into your calendar, and an email reminder arrives the day before and one hour before."
           },
           subjects: {
             title: "All subjects",
@@ -1145,7 +1265,7 @@ const resources = {
       },
       cta: {
         title: "Ready to find your buddy?",
-        subtitle: "Sign in with Google, complete your profile and send your first buddy request. It's free.",
+        subtitle: "Sign up with Google or your email address, complete your profile and send your first buddy request. It's free.",
         button: "Create my account",
         buttonLoggedIn: "Go to my dashboard"
       },
@@ -1220,7 +1340,8 @@ const resources = {
           subjects_one: "1 subject in common",
           subjects_other: "{{count}} subjects in common",
           level: "Same level",
-          city: "Same city"
+          city: "Same city",
+          school: "Same school"
         },
         answerRequest: "Answer their request",
         contact: "Contact",
@@ -1529,6 +1650,11 @@ const resources = {
           profileVisibilityDesc: "Allow other students to find you through search.",
           emailNotifs: "Email notifications",
           emailNotifsDesc: "New request, new message (at most one email per conversation every half hour), session reminders.",
+          push: "Notifications on this device",
+          pushDesc: "New messages, requests and session reminders, even when BuddyEtude is closed.",
+          pushDenied: "Notifications are blocked in your browser: allow them in the site settings.",
+          weeklyDigest: "Monday digest",
+          weeklyDigestDesc: "Every Monday, the week's new students who share a subject or your school.",
           blocked: "Blocked people",
           noBlocked: "You haven't blocked anyone.",
           unknownUser: "User",
@@ -1554,6 +1680,22 @@ const resources = {
         ink: "Ink (black / white depending on the theme)",
         textPlaceholder: "Write here...",
         clearConfirm: "Are you sure you want to clear everything?",
+        clearPageConfirm: "Clear all drawings on this page?",
+        pageOf: "{{page}} / {{count}}",
+        prevPage: "Previous page",
+        nextPage: "Next page",
+        addPage: "Add a page",
+        exportNoBackground: "The PDF background couldn't be included in the image: only the drawings are exported.",
+        pdf: {
+          import: "Import a PDF",
+          progress: "Importing {{done}}/{{total}}",
+          notPdf: "Choose a PDF file.",
+          tooBig: "PDF too large (30 MB max).",
+          done_one: "{{count}} page imported: annotate it!",
+          done_other: "{{count}} pages imported: annotate them!",
+          truncated: "Only the first {{count}} pages were imported.",
+          error: "The PDF couldn't be imported."
+        },
         saveError: "Sync failed: your latest strokes were not saved.",
         tooLarge: "The whiteboard is too full to sync. Export it, then clear it to keep going.",
         tools: {

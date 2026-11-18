@@ -19,6 +19,14 @@ if (sentryDsn) {
   }).catch(() => {});
 }
 
+// Application installable et notifications push : service worker en production seulement
+// (en développement, il garderait d'anciennes versions en cache).
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <App />

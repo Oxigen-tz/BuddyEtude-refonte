@@ -221,6 +221,60 @@ async function scenario(browser) {
     await B.getByRole("button", { name: "Défaire" }).waitFor();
     if (await B.getByRole("button", { name: "Défaire" }).isEnabled()) throw new Error("Bob peut défaire le trait d'Alice");
   });
+  await step("Tableau blanc : nouvelle page vierge, puis retour à la page 1", async () => {
+    const painted = () => B.evaluate(() => {
+      const c = document.querySelector("canvas");
+      const d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data;
+      let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 0) n++;
+      return n;
+    });
+    await B.getByRole("button", { name: "Ajouter une page" }).click();
+    await B.getByText("2 / 2").waitFor({ timeout: 10000 });
+    await sleep(500);
+    if (await painted() > 0) throw new Error("la nouvelle page n'est pas vierge");
+    await B.getByRole("button", { name: "Page précédente" }).click();
+    await B.getByText("1 / 2").waitFor();
+    await sleep(500);
+    if (await painted() < 100) throw new Error("le trait de la page 1 a disparu");
+  });
+  await step("Tableau blanc : import d'un PDF (2 pages en fond)", async () => {
+    // PDF de 2 pages fabriqué par Chrome lui-même
+    const maker = await B.context().newPage();
+    await maker.setContent(`<h1 style="font:48px sans-serif">Chapitre 1</h1><div style="page-break-after:always"></div><h1 style="font:48px sans-serif">Chapitre 2</h1>`);
+    mkdirSync(OUTPUT, { recursive: true });
+    const pdfPath = `${OUTPUT}/cours.pdf`;
+    await maker.pdf({ path: pdfPath, format: "A4" });
+    await maker.close();
+    await B.locator('input[type="file"][accept="application/pdf"]').setInputFiles(pdfPath);
+    await B.getByText(/2 pages importées/).waitFor({ timeout: 60000 });
+    await B.getByText("3 / 4").waitFor();
+    await B.locator("img[src*='wb_']").waitFor({ timeout: 15000 });
+  });
+  await step("Groupe : Alice crée un groupe et ajoute Bob", async () => {
+    await A.goto(BASE + "/Groups");
+    await A.getByRole("button", { name: /Nouveau groupe/ }).first().click();
+    await A.locator("#group-name").fill(`Révisions ${RUN}`);
+    await A.locator("#group-subject").fill("Mathématiques");
+    await A.getByRole("button", { name: "Créer le groupe" }).click();
+    await A.getByText("Groupe créé.").waitFor({ timeout: 10000 });
+    await A.getByRole("combobox", { name: "Ajouter un binôme…" }).click();
+    await A.getByRole("option", { name: new RegExp(U.bob.name) }).click();
+    await A.getByRole("button", { name: "Ajouter", exact: true }).click();
+    await A.getByText(/a rejoint le groupe/).waitFor({ timeout: 10000 });
+  });
+  await step("Groupe : Bob voit le groupe, écrit, Alice reçoit", async () => {
+    await B.goto(BASE + "/Groups");
+    await B.getByRole("button", { name: new RegExp(`Révisions ${RUN}`) }).click();
+    await B.getByPlaceholder("Écrire au groupe…").fill("Bonjour le groupe !");
+    await B.getByRole("button", { name: "Envoyer" }).click();
+    await A.getByText("Bonjour le groupe !").waitFor({ timeout: 10000 });
+  });
+  await step("Groupe : tableau blanc du groupe accessible aux membres", async () => {
+    await B.getByRole("button", { name: /Tableau blanc/ }).click();
+    await B.waitForURL(/Whiteboard\?sessionId=grp-/);
+    await B.getByRole("heading", { name: `Révisions ${RUN}` }).waitFor({ timeout: 10000 });
+    await B.getByText("1 / 1").waitFor();
+  });
 
   await step("Session terminée → avis demandé et enregistré", async () => {
     await B.goto(BASE + "/Sessions");

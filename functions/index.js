@@ -17,7 +17,7 @@
 // Chaque utilisateur peut couper ces e-mails dans Paramètres → Préférences
 // (users/<uid>/private/settings.email_notifications = false).
 
-const { onDocumentCreated, onDocumentUpdated, onDocumentWritten } = require("firebase-functions/v2/firestore");
+const { onDocumentCreated, onDocumentUpdated, onDocumentWritten, onDocumentDeleted } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const functionsV1 = require("firebase-functions/v1");
@@ -31,6 +31,7 @@ const { initializeApp } = require("firebase-admin/app");
 const { getFirestore, FieldValue, Timestamp, AggregateField } = require("firebase-admin/firestore");
 const { getStorage } = require("firebase-admin/storage");
 const { getAuth } = require("firebase-admin/auth");
+const { getMessaging } = require("firebase-admin/messaging");
 
 initializeApp();
 const db = getFirestore();
@@ -90,6 +91,29 @@ async function sendMail(to, subject, content) {
   await db.collection("mail").add({ to, message: { subject, ...content }, createdAt: FieldValue.serverTimestamp() });
 }
 
+// Notifications push (téléphone / ordinateur) : jetons des appareils sur lesquels l'étudiant les
+// a activées (Paramètres), dans users/<uid>/private/push. Messages "data" affichés par public/sw.js.
+// Les jetons expirés sont retirés automatiquement.
+async function sendPush(uid, { title, body, link, tag }) {
+  if (!uid) return;
+  const ref = db.doc(`users/${uid}/private/push`);
+  const tokens = (await ref.get().catch(() => null))?.get("tokens") || [];
+  if (!tokens.length) return;
+  try {
+    const res = await getMessaging().sendEachForMulticast({
+      tokens,
+      data: { title: String(title).slice(0, 120), body: String(body || "").slice(0, 300), link: link || "/Dashboard", tag: tag || "" },
+      webpush: { headers: { Urgency: "high", TTL: "86400" } },
+    });
+    const dead = res.responses
+      .map((r, i) => (!r.success && /registration-token-not-registered|invalid-registration-token|invalid-argument/.test(r.error?.code || "") ? tokens[i] : null))
+      .filter(Boolean);
+    if (dead.length) await ref.update({ tokens: FieldValue.arrayRemove(...dead) });
+  } catch (error) {
+    logger.warn("Notification push non envoyée", { uid, error: error.message });
+  }
+}
+
 const formatStart = (ts) => ts?.toDate?.().toLocaleString("fr-FR", {
   timeZone: "Europe/Paris", weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit",
 }) || "";
@@ -104,6 +128,7 @@ exports.onRequestCreated = onDocumentCreated("requests/{pairId}", async (event) 
   if (r.message) lines.push(`Son message : « ${String(r.message).slice(0, 500)} »`);
   await sendMail(to, `${r.from_name || "Un étudiant"} veut réviser avec toi`,
     renderEmail({ title: "Nouvelle demande de binôme", lines, ctaLabel: "Répondre à la demande", ctaPath: `/Messages?chat=${r.from_uid}` }));
+  await sendPush(r.to_uid, { title: "Nouvelle demande de binôme", body: `${r.from_name || "Un étudiant"} veut réviser avec toi`, link: `/Messages?chat=${r.from_uid}`, tag: `request-${r.from_uid}` });
 });
 
 exports.onRequestAccepted = onDocumentUpdated("requests/{pairId}", async (event) => {
@@ -118,6 +143,7 @@ exports.onRequestAccepted = onDocumentUpdated("requests/{pairId}", async (event)
       ctaLabel: "Ouvrir la conversation",
       ctaPath: `/Messages?chat=${after.to_uid}`,
     }));
+  await sendPush(after.from_uid, { title: "Demande acceptée 🎉", body: `${after.to_name || "Ton binôme"} a accepté ta demande`, link: `/Messages?chat=${after.to_uid}`, tag: `request-${after.to_uid}` });
 });
 
 // ------------------------------------------------------------------ Messages
@@ -129,6 +155,13 @@ exports.onMessageCreated = onDocumentCreated("messages/{messageId}", async (even
   const senderName = await db.doc(`users/${m.senderUid}`).get().then((s) => s.get("display_name")).catch(() => null);
 
   for (const uid of m.unreadBy || []) {
+    // Push à chaque message (regroupées par conversation sur l'appareil)
+    await sendPush(uid, {
+      title: senderName || "Nouveau message",
+      body: m.text ? String(m.text).slice(0, 200) : (m.fileName ? `📎 ${m.fileName}` : ""),
+      link: `/Messages?chat=${m.senderUid}`,
+      tag: `chat-${m.chatId}`,
+    });
     // Anti-spam : un e-mail au plus par conversation et par demi-heure
     const stateRef = db.doc(`users/${uid}/private/notif_state`);
     const shouldSend = await db.runTransaction(async (tx) => {
@@ -151,6 +184,29 @@ exports.onMessageCreated = onDocumentCreated("messages/{messageId}", async (even
   }
 });
 
+// Groupe supprimé : sa discussion et son tableau blanc partent avec lui
+exports.onGroupDeleted = onDocumentDeleted("groups/{groupId}", async (event) => {
+  await db.recursiveDelete(db.collection(`groups/${event.params.groupId}/messages`));
+  await db.recursiveDelete(db.doc(`whiteboards/grp-${event.params.groupId}`));
+});
+
+// Discussion de groupe : notification push aux autres membres (pas d'e-mail)
+exports.onGroupMessageCreated = onDocumentCreated("groups/{groupId}/messages/{messageId}", async (event) => {
+  const m = event.data?.data();
+  if (!m) return;
+  const group = await db.doc(`groups/${event.params.groupId}`).get();
+  if (!group.exists) return;
+  for (const uid of group.get("members") || []) {
+    if (uid === m.senderUid) continue;
+    await sendPush(uid, {
+      title: `${group.get("name")} · ${m.senderName || "Nouveau message"}`,
+      body: String(m.text || "").slice(0, 200),
+      link: `/Groups?id=${event.params.groupId}`,
+      tag: `group-${event.params.groupId}`,
+    });
+  }
+});
+
 // ------------------------------------------------------------------ Sessions
 
 exports.onSessionCreated = onDocumentCreated("sessions/{sessionId}", async (event) => {
@@ -163,6 +219,7 @@ exports.onSessionCreated = onDocumentCreated("sessions/{sessionId}", async (even
   if (s.meeting_url) lines.push(`Lien d'appel : ${s.meeting_url}`);
   await sendMail(to, `Nouvelle session : ${s.title}`,
     renderEmail({ title: "Nouvelle session de révision 📅", lines, ctaLabel: "Voir mes sessions", ctaPath: "/Sessions" }));
+  await sendPush(otherUid, { title: "Nouvelle session 📅", body: `${s.title} — ${formatStart(s.start_at) || `${s.date} ${s.time}`}`, link: "/Sessions", tag: `session-${event.params.sessionId}` });
 });
 
 // Rappels : la veille (moins de 24 h avant) et 1 h avant. Index composite status + start_at
@@ -191,6 +248,7 @@ exports.sessionReminders = onSchedule({ schedule: "every 15 minutes", timeZone: 
       const to = await recipientEmail(uid);
       await sendMail(to, `Rappel : ${s.title} ${kind === "1h" ? "dans 1 heure" : "demain"}`,
         renderEmail({ title: "Rappel de session ⏰", lines, ctaLabel: "Voir la session", ctaPath: "/Sessions" }));
+      await sendPush(uid, { title: `Rappel : ${s.title}`, body: kind === "1h" ? "Commence dans moins d'une heure" : `Demain, ${formatStart(s.start_at)}`, link: "/Sessions", tag: `session-${docSnap.id}` });
     }
   }
   logger.info(`Rappels vérifiés : ${snap.size} session(s) dans les 24 h`);
@@ -386,6 +444,14 @@ exports.adminCleanupLegacy = onCall({ timeoutSeconds: 540, memory: "512MiB" }, a
 // (préférences, anti-spam) et avis laissés.
 exports.onUserDeleted = functionsV1.region("europe-west1").auth.user().onDelete(async (user) => {
   await db.recursiveDelete(db.collection(`users/${user.uid}/private`));
+  // Fichiers envoyés (pièces jointes, pages de PDF importées dans un tableau blanc)
+  await getStorage().bucket().deleteFiles({ prefix: `chat_files/${user.uid}/` })
+    .catch((e) => logger.warn("Fichiers non supprimés", { uid: user.uid, error: e.message }));
+  // Groupes : ceux qu'il a créés sont supprimés (avec leur discussion), il quitte les autres
+  for (const g of (await db.collection("groups").where("members", "array-contains", user.uid).get()).docs) {
+    if (g.get("owner_uid") === user.uid) await db.recursiveDelete(g.ref);
+    else await g.ref.update({ members: FieldValue.arrayRemove(user.uid), [`member_names.${user.uid}`]: FieldValue.delete() });
+  }
   const feedback = await db.collection("feedback").where("from_uid", "==", user.uid).get();
   const writer = db.bulkWriter();
   feedback.docs.forEach((d) => writer.delete(d.ref));
@@ -447,4 +513,69 @@ async function runPurge(now = Date.now()) {
 
 exports.dailyPurge = onSchedule({ schedule: "every day 04:00", timeZone: "Europe/Paris" }, async () => {
   logger.info("Purge quotidienne", await runPurge());
+});
+
+// ------------------------------------------------------------------ Résumé hebdomadaire
+
+// Chaque lundi : à chaque étudiant, les nouveaux inscrits de la semaine qui partagent une matière
+// ou son école (hors binômes, demandes en cours et blocages). Désactivable dans Paramètres
+// (weekly_digest = false) ou avec l'ensemble des e-mails (email_notifications = false).
+const { computeMatch } = require("./matching");
+
+async function runWeeklyDigest(now = Date.now()) {
+  const cutoff = now - 7 * DAY_MS;
+  const newUids = [];
+  let pageToken;
+  do {
+    const page = await getAuth().listUsers(1000, pageToken);
+    page.users.forEach((u) => { if (Date.parse(u.metadata.creationTime) >= cutoff) newUids.push(u.uid); });
+    pageToken = page.pageToken;
+  } while (pageToken);
+  if (!newUids.length) return { sent: 0 };
+
+  const newProfiles = (await db.getAll(...newUids.map((uid) => db.doc(`users/${uid}`))))
+    .filter((d) => d.exists && d.get("profile_complete") === true && d.get("profile_visible") !== false && !d.get("banned"))
+    .map((d) => ({ uid: d.id, ...d.data() }));
+  if (!newProfiles.length) return { sent: 0 };
+
+  let sent = 0;
+  for (const userDoc of (await db.collection("users").where("profile_complete", "==", true).get()).docs) {
+    const me = { uid: userDoc.id, ...userDoc.data() };
+    if (me.banned) continue;
+    let candidates = newProfiles
+      .filter((p) => p.uid !== me.uid)
+      .map((p) => ({ p, m: computeMatch(me, p) }))
+      .filter(({ m }) => m.sharedSubjects.length > 0 || m.sameSchool);
+    if (!candidates.length) continue;
+
+    const settings = await db.doc(`users/${me.uid}/private/settings`).get();
+    if (settings.exists && settings.get("weekly_digest") === false) continue;
+
+    // Déjà en relation (demande ou binôme) ou bloqué dans un sens ou dans l'autre : exclu
+    const related = new Set((await db.collection("requests").where("participants", "array-contains", me.uid).get())
+      .docs.flatMap((d) => d.get("participants") || []));
+    const blockRefs = candidates.flatMap(({ p }) => [db.doc(`blocks/${me.uid}_${p.uid}`), db.doc(`blocks/${p.uid}_${me.uid}`)]);
+    const blocked = new Set((await db.getAll(...blockRefs)).filter((d) => d.exists).flatMap((d) => d.id.split("_")));
+    candidates = candidates.filter(({ p }) => !related.has(p.uid) && !blocked.has(p.uid)).sort((a, b) => b.m.score - a.m.score);
+    if (!candidates.length) continue;
+
+    const to = await recipientEmail(me.uid);
+    if (!to) continue;
+    const n = candidates.length;
+    const lines = [
+      n === 1 ? "Un nouvel étudiant compatible avec toi s'est inscrit cette semaine :" : `${n} nouveaux étudiants compatibles avec toi se sont inscrits cette semaine :`,
+      ...candidates.slice(0, 5).map(({ p, m }) => {
+        const why = [...m.sharedSubjects.slice(0, 3), ...(m.sameSchool ? ["même école"] : [])].join(", ");
+        return `• ${p.display_name || "Un étudiant"} — ${why}`;
+      }),
+    ];
+    await sendMail(to, n === 1 ? "1 nouvel étudiant compatible cette semaine" : `${n} nouveaux étudiants compatibles cette semaine`,
+      renderEmail({ title: "Les nouveaux de la semaine 👋", lines, ctaLabel: "Voir les profils", ctaPath: "/Search" }));
+    sent++;
+  }
+  return { sent };
+}
+
+exports.weeklyDigest = onSchedule({ schedule: "every monday 09:00", timeZone: "Europe/Paris", timeoutSeconds: 540 }, async () => {
+  logger.info("Résumé hebdomadaire", await runWeeklyDigest());
 });

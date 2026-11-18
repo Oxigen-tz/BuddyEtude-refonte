@@ -177,30 +177,102 @@ service cloud.firestore {
     }
 
     // ---------------------------------------------------------- Tableaux blancs
-    // id = paire de uids. Les traits sont des documents de la sous-collection strokes.
+    // id = paire de uids (binôme) ou "grp-<id du groupe>" (groupe de révision).
+    // Les traits sont des documents de la sous-collection strokes ; "page" = numéro de page.
     match /whiteboards/{boardId} {
+      function isGroupBoard() { return boardId.matches('grp-[A-Za-z0-9]+'); }
+      function boardGroup() {
+        return get(/databases/$(database)/documents/groups/$(boardId.replace('^grp-', '')));
+      }
       function isBoardMember() {
-        return signedIn() && me() in boardId.split('_');
+        return signedIn() && (
+          (isGroupBoard() && me() in boardGroup().data.members)
+          || (!isGroupBoard() && me() in boardId.split('_'))
+        );
+      }
+      // Binôme : la demande doit être acceptée ; groupe : être membre suffit
+      function boardActive() { return isGroupBoard() || areBuddies(boardId); }
+      function validBoardData(d) {
+        return d.get('pageCount', 1) is int && d.get('pageCount', 1) >= 1 && d.get('pageCount', 1) <= 200
+          && d.get('backgrounds', {}) is map;
       }
 
       // resource == null : tableau pas encore créé (le premier onSnapshot doit pouvoir écouter)
       allow read: if isBoardMember();
 
-      allow create: if isBoardMember() && notBanned()
-        && isPairList(request.resource.data.participants, boardId)
-        && areBuddies(boardId);
+      allow create: if isBoardMember() && notBanned() && boardActive()
+        && validBoardData(request.resource.data)
+        && (isGroupBoard() || isPairList(request.resource.data.participants, boardId));
       allow update: if isBoardMember() && notBanned()
-        && request.resource.data.participants == resource.data.participants;
+        && validBoardData(request.resource.data)
+        && request.resource.data.get('participants', null) == resource.data.get('participants', null);
       allow delete: if false;
 
       match /strokes/{strokeId} {
         allow read: if isBoardMember();
         allow create: if isBoardMember() && notBanned()
           && request.resource.data.uid == me()
-          && areBuddies(boardId)
-          && request.resource.data.get('points', []).size() <= 6000;
-        // Défaire (ses propres traits) et "Tout effacer" (les deux membres)
+          && boardActive()
+          && request.resource.data.get('points', []).size() <= 6000
+          && request.resource.data.get('page', 0) is int
+          && request.resource.data.get('page', 0) >= 0 && request.resource.data.get('page', 0) < 200;
+        // Défaire (ses propres traits) et "Effacer la page" (tous les membres)
         allow delete: if isBoardMember();
+        allow update: if false;
+      }
+    }
+
+    // ------------------------------------------------------- Groupes de révision
+    // 2 à 6 membres. Le créateur (owner) ajoute ses binômes un par un, retire des membres,
+    // renomme ou supprime le groupe ; un membre peut quitter le groupe.
+    match /groups/{groupId} {
+      function addedMembers() { return request.resource.data.members.removeAll(resource.data.members); }
+      function validGroup(d) {
+        return d.name is string && d.name.size() >= 1 && d.name.size() <= 60
+          && d.get('subject', '') is string && d.get('subject', '').size() <= 60
+          && d.members is list && d.members.size() <= 6
+          && d.get('member_names', {}) is map;
+      }
+
+      allow read: if signedIn() && me() in resource.data.members;
+
+      allow create: if canWrite()
+        && request.resource.data.owner_uid == me()
+        && request.resource.data.members == [me()]
+        && validGroup(request.resource.data);
+
+      // Créateur : un seul nouveau membre à la fois, qui doit être son binôme
+      allow update: if canWrite()
+        && resource.data.owner_uid == me()
+        && request.resource.data.owner_uid == me()
+        && me() in request.resource.data.members
+        && validGroup(request.resource.data)
+        && onlyChanges(['name', 'subject', 'members', 'member_names'])
+        && (addedMembers().size() == 0
+            || (addedMembers().size() == 1
+                && areBuddies(pairOf(me(), addedMembers()[0]))
+                && !blockedBy(addedMembers()[0])));
+
+      // Membre : quitter le groupe (se retirer soi-même, rien d'autre)
+      allow update: if signedIn()
+        && me() in resource.data.members
+        && resource.data.owner_uid != me()
+        && request.resource.data.members == resource.data.members.removeAll([me()])
+        && onlyChanges(['members', 'member_names']);
+
+      allow delete: if signedIn() && resource.data.owner_uid == me();
+
+      // Discussion du groupe
+      match /messages/{messageId} {
+        function isGroupMember() {
+          return signedIn() && me() in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
+        }
+        allow read: if isGroupMember();
+        allow create: if canWrite() && isGroupMember()
+          && request.resource.data.senderUid == me()
+          && request.resource.data.text is string
+          && request.resource.data.text.size() >= 1 && request.resource.data.text.size() <= 4000;
+        allow delete: if signedIn() && resource.data.senderUid == me();
         allow update: if false;
       }
     }

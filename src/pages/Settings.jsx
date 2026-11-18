@@ -4,6 +4,7 @@ import { doc, getDoc, setDoc, deleteDoc, collection, query, where, getDocs, writ
 import { ref, deleteObject } from "firebase/storage";
 import { reauthenticateWithPopup, reauthenticateWithCredential, EmailAuthProvider, GoogleAuthProvider, OAuthProvider, deleteUser } from "firebase/auth";
 import { privateSettingsRef } from "../firebase/services";
+import { pushSupported, pushEnabledHere, enablePush, disablePush } from "@/lib/push";
 import { unblockUser } from "@/hooks/useBlocks";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/AuthContext";
@@ -102,23 +103,63 @@ export default function Settings() {
   const [deletePassword, setDeletePassword] = useState("");
   const isPasswordAccount = auth.currentUser?.providerData[0]?.providerId === "password";
 
-  // Notifications par e-mail (envoyées par les Cloud Functions) : réglage privé, activé par défaut
-  const [emailNotifs, setEmailNotifs] = useState(true);
+  // Préférences privées (users/<uid>/private/settings), lues par les Cloud Functions ;
+  // toutes activées par défaut : e-mails de notification, résumé hebdomadaire.
+  const [prefs, setPrefs] = useState({ email_notifications: true, weekly_digest: true });
   useEffect(() => {
     if (!user?.uid) return;
     getDoc(privateSettingsRef(user.uid))
-      .then((snap) => { if (snap.exists() && snap.data().email_notifications === false) setEmailNotifs(false); })
+      .then((snap) => {
+        if (!snap.exists()) return;
+        const d = snap.data();
+        setPrefs({ email_notifications: d.email_notifications !== false, weekly_digest: d.weekly_digest !== false });
+      })
       .catch(() => {});
   }, [user?.uid]);
-  const handleEmailNotifsChange = async (value) => {
-    setEmailNotifs(value);
+  const setPref = async (key, value) => {
+    setPrefs((p) => ({ ...p, [key]: value }));
     try {
-      await setDoc(privateSettingsRef(user.uid), { email_notifications: value }, { merge: true });
+      await setDoc(privateSettingsRef(user.uid), { [key]: value }, { merge: true });
       toast.success(t('settings.toast.saved'));
     } catch (error) {
       console.error(error);
-      setEmailNotifs(!value);
+      setPrefs((p) => ({ ...p, [key]: !value }));
       toast.error(t('settings.toast.error'));
+    }
+  };
+
+  // Notifications push sur cet appareil (affiché seulement si le navigateur le permet)
+  const [pushAvailable, setPushAvailable] = useState(false);
+  const [pushOn, setPushOn] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
+  useEffect(() => {
+    if (!user?.uid) return;
+    let cancelled = false;
+    pushSupported().then(async (ok) => {
+      if (cancelled || !ok) return;
+      setPushAvailable(true);
+      setPushOn(await pushEnabledHere(user.uid));
+    });
+    return () => { cancelled = true; };
+  }, [user?.uid]);
+  const handlePushChange = async (value) => {
+    setPushBusy(true);
+    try {
+      if (value) {
+        const result = await enablePush(user.uid);
+        if (result === "denied") { toast.error(t('settings.preferences.pushDenied')); return; }
+        if (result !== "granted") return;
+        setPushOn(true);
+      } else {
+        await disablePush(user.uid);
+        setPushOn(false);
+      }
+      toast.success(t('settings.toast.saved'));
+    } catch (error) {
+      console.error(error);
+      toast.error(t('settings.toast.error'));
+    } finally {
+      setPushBusy(false);
     }
   };
 
@@ -415,8 +456,37 @@ export default function Settings() {
                         </div>
                         <Switch
                           aria-label={t('settings.preferences.emailNotifs')}
-                          checked={emailNotifs}
-                          onCheckedChange={handleEmailNotifsChange}
+                          checked={prefs.email_notifications}
+                          onCheckedChange={(v) => setPref("email_notifications", v)}
+                          className="data-[state=checked]:bg-indigo-600"
+                        />
+                      </div>
+                      {pushAvailable && (
+                        <div className="flex items-center justify-between gap-8">
+                          <div className="flex-1">
+                            <p className="font-semibold text-gray-900 dark:text-gray-100">{t('settings.preferences.push')}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('settings.preferences.pushDesc')}</p>
+                          </div>
+                          <Switch
+                            aria-label={t('settings.preferences.push')}
+                            checked={pushOn}
+                            disabled={pushBusy}
+                            onCheckedChange={handlePushChange}
+                            className="data-[state=checked]:bg-indigo-600"
+                          />
+                        </div>
+                      )}
+                      {/* Résumé du lundi : nouveaux inscrits compatibles (fonction weeklyDigest) */}
+                      <div className="flex items-center justify-between gap-8">
+                        <div className="flex-1">
+                          <p className="font-semibold text-gray-900 dark:text-gray-100">{t('settings.preferences.weeklyDigest')}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('settings.preferences.weeklyDigestDesc')}</p>
+                        </div>
+                        <Switch
+                          aria-label={t('settings.preferences.weeklyDigest')}
+                          checked={prefs.email_notifications && prefs.weekly_digest}
+                          disabled={!prefs.email_notifications}
+                          onCheckedChange={(v) => setPref("weekly_digest", v)}
                           className="data-[state=checked]:bg-indigo-600"
                         />
                       </div>

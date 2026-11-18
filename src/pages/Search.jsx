@@ -21,6 +21,7 @@ import { useRequests, buildRelations } from "@/hooks/useRequests";
 import { useBlocks } from "@/hooks/useBlocks";
 import { pairId } from "@/lib/pairs";
 import { computeMatch } from "@/lib/matching";
+import InviteCard from "@/components/InviteCard";
 
 // Nombre maximum de profils chargés : suffisant pour quelques centaines d'inscrits ; au-delà,
 // il faudra filtrer côté serveur (par niveau ou par ville) plutôt que tout charger.
@@ -350,8 +351,10 @@ export default function Search() {
           >
             {t('search.noResults.reset')}
           </Button>
+          <div className="max-w-xl mx-auto mt-10 px-4 text-left"><InviteCard compact /></div>
         </div>
       ) : (
+        <>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredProfiles.map(({ profile: p, match }) => (
             <BuddyCard
@@ -365,6 +368,9 @@ export default function Search() {
             />
           ))}
         </div>
+        {/* Peu de résultats : proposer d'inviter des camarades */}
+        {filteredProfiles.length < 6 && <div className="mt-6"><InviteCard compact /></div>}
+        </>
       )}
 
       {/* --- POPUP DEMANDE DE BINÔME --- */}
