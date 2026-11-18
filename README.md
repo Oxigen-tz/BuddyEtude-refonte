@@ -27,7 +27,10 @@ npm run emulators                         # terminal 1 : auth, Firestore, Storag
 VITE_USE_EMULATORS=true npm run dev       # terminal 2 (Git Bash)
 ```
 
-Sous PowerShell : `$env:VITE_USE_EMULATORS="true"; npm run dev`. La connexion Google propose de
+Sous PowerShell : `$env:VITE_USE_EMULATORS="true"; npm run dev`. Les fonctions ont besoin de deux fichiers locaux
+(non versionnés) : `functions/.env.local` avec `APP_URL=http://localhost:5173` et
+`SMTP_USER=test@smtp.local`, et `functions/.secret.local` avec `SMTP_PASSWORD=emulator`
+(aucun e-mail réel n'est envoyé en local). La connexion Google propose de
 faux comptes (« Add new account »). Données et e-mails générés (collection `mail`) :
 http://127.0.0.1:4000.
 
@@ -37,7 +40,7 @@ http://127.0.0.1:4000.
 | ------------------------ | -------------------------------------------------------------------------- |
 | `npm run lint`           | ESLint                                                                     |
 | `npm run test:rules`     | 89 cas : règles Firestore et Storage (qui peut lire / écrire quoi)          |
-| `npm run test:functions` | 8 cas : e-mails, anti-spam, rappels de session, compteur public             |
+| `npm run test:functions` | 9 cas : e-mails, envoi, anti-spam, rappels de session, compteur public      |
 | `npm run test:e2e`       | Scénario complet dans Chrome avec trois étudiants (23 étapes)              |
 | `npm test`               | Les trois suites de tests                                                  |
 
@@ -84,7 +87,7 @@ autres utilisateurs. Une paire d'étudiants a un identifiant fixe `<uid1>_<uid2>
 | `reports`                        | Signalements (traités dans la page Modération)                          |
 | `admins/{uid}`                   | Comptes de modération (créés à la main dans la console)                 |
 | `stats/public`                   | Compteur d'étudiants de l'accueil (tenu par une Cloud Function)         |
-| `mail`                           | File d'e-mails, lue par l'extension « Trigger Email »                   |
+| `mail`                           | File d'e-mails, envoyés par la fonction `deliverMail` (SMTP Brevo)     |
 
 Les règles (`firestore.rules`) imposent notamment : messages, sessions et tableau blanc réservés
 aux binômes (demande acceptée), plus aucune création pour un compte banni, aucune demande possible
@@ -101,9 +104,16 @@ vers quelqu'un qui vous a bloqué.
    ```
    Les Cloud Functions demandent le plan Blaze (déjà actif). Adresse du site utilisée dans les
    e-mails : paramètre `APP_URL` (demandé au premier déploiement, défaut `https://buddyetude.com`).
-3. **Installer l'extension « Trigger Email from Firestore »** (console Firebase → Extensions),
-   collection `mail`, avec le serveur SMTP d'un service d'envoi (Brevo, Mailjet… ont des offres
-   gratuites). Sans elle, les e-mails restent dans la collection `mail` sans être envoyés.
+3. **Configurer l'envoi des e-mails** (Brevo, offre gratuite : 300 e-mails/jour). Domaine
+   authentifié dans Brevo (enregistrements DNS DKIM/DMARC), expéditeur
+   `notifications@buddyetude.com`, puis une clé SMTP (SMTP et API → Générer une clé SMTP) :
+   ```bash
+   firebase functions:secrets:set SMTP_PASSWORD     # coller la clé SMTP Brevo
+   firebase deploy --only functions                 # demande SMTP_USER (identifiant « Connexion »)
+   ```
+   La fonction `deliverMail` envoie chaque document de la collection `mail` et note le résultat
+   dans son champ `delivery.state` (`SUCCESS` ou `ERROR` avec `delivery.error`). Aucune
+   extension Firebase n'est nécessaire.
 4. **Activer les connexions Microsoft et e-mail** : console Firebase → Authentication → Méthodes
    de connexion. Microsoft demande une « inscription d'application » dans Azure (Microsoft Entra ID)
    pour obtenir l'identifiant et le secret client. Le bouton « Continuer avec Microsoft » n'apparaît qu'avec la

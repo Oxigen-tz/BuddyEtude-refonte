@@ -4,9 +4,11 @@
 //  - Rappels de session : 24 h et 1 h avant (tâche planifiée toutes les 15 minutes).
 //  - Compteur public d'étudiants (stats/public), affiché sur l'accueil.
 //
-// Les e-mails ne sont pas envoyés directement : ils sont écrits dans la collection "mail",
-// au format de l'extension officielle Firebase "Trigger Email from Firestore", qui les envoie
-// via le serveur SMTP configuré à son installation (Brevo, Mailjet, Gmail…).
+// Les e-mails passent par une file : chaque e-mail est d'abord écrit dans la collection "mail",
+// puis la fonction deliverMail l'envoie via le serveur SMTP (Brevo) et note le résultat dans
+// le champ "delivery" (SUCCESS / ERROR). Configuration au déploiement :
+//   - SMTP_USER (paramètre) : identifiant SMTP, ex. xxxx@smtp-brevo.com
+//   - SMTP_PASSWORD (secret) : firebase functions:secrets:set SMTP_PASSWORD
 //
 // Chaque utilisateur peut couper ces e-mails dans Paramètres → Préférences
 // (users/<uid>/private/settings.email_notifications = false).
@@ -14,7 +16,8 @@
 const { onDocumentCreated, onDocumentUpdated, onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { setGlobalOptions } = require("firebase-functions/v2");
-const { defineString } = require("firebase-functions/params");
+const { defineString, defineSecret } = require("firebase-functions/params");
+const nodemailer = require("nodemailer");
 const logger = require("firebase-functions/logger");
 // Imports modulaires : avec firebase-admin 12, admin.firestore.FieldValue / Timestamp ne sont
 // pas définis dans l'environnement d'exécution des fonctions (toutes les fonctions plantaient).
@@ -29,6 +32,12 @@ setGlobalOptions({ region: "europe-west1", maxInstances: 5 });
 
 // Adresse publique du site (liens dans les e-mails). Modifiable au déploiement.
 const APP_URL = defineString("APP_URL", { default: "https://buddyetude.com" });
+
+// Envoi SMTP (Brevo par défaut)
+const SMTP_HOST = defineString("SMTP_HOST", { default: "smtp-relay.brevo.com" });
+const SMTP_USER = defineString("SMTP_USER", { description: "Identifiant SMTP (Brevo : SMTP et API → Connexion)" });
+const MAIL_FROM = defineString("MAIL_FROM", { default: "BuddyEtude <notifications@buddyetude.com>" });
+const SMTP_PASSWORD = defineSecret("SMTP_PASSWORD");
 
 const MESSAGE_EMAIL_COOLDOWN_MS = 30 * 60 * 1000; // au plus un e-mail par conversation / 30 min
 
@@ -178,6 +187,63 @@ exports.sessionReminders = onSchedule({ schedule: "every 15 minutes", timeZone: 
     }
   }
   logger.info(`Rappels vérifiés : ${snap.size} session(s) dans les 24 h`);
+});
+
+// ------------------------------------------------------------------ Envoi des e-mails
+
+let transporter = null;
+function getTransporter() {
+  if (!transporter) {
+    transporter = nodemailer.createTransport({
+      host: SMTP_HOST.value(),
+      port: 587,
+      secure: false, // STARTTLS
+      auth: { user: SMTP_USER.value(), pass: SMTP_PASSWORD.value() },
+    });
+  }
+  return transporter;
+}
+
+exports.deliverMail = onDocumentCreated({ document: "mail/{mailId}", secrets: [SMTP_PASSWORD] }, async (event) => {
+  const ref = event.data?.ref;
+  if (!ref) return;
+
+  // Réserve l'e-mail (évite un double envoi si l'événement est livré deux fois)
+  const mail = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists || snap.get("delivery.state")) return null;
+    tx.update(ref, { "delivery.state": "PROCESSING", "delivery.startTime": FieldValue.serverTimestamp() });
+    return snap.data();
+  });
+  if (!mail) return;
+
+  // En local (émulateurs), aucun e-mail réel n'est envoyé
+  if (process.env.FUNCTIONS_EMULATOR === "true") {
+    await ref.update({ "delivery.state": "SKIPPED_EMULATOR", "delivery.endTime": FieldValue.serverTimestamp() });
+    return;
+  }
+
+  try {
+    const info = await getTransporter().sendMail({
+      from: MAIL_FROM.value(),
+      to: mail.to,
+      subject: mail.message?.subject,
+      text: mail.message?.text,
+      html: mail.message?.html,
+    });
+    await ref.update({
+      "delivery.state": "SUCCESS",
+      "delivery.messageId": info.messageId || null,
+      "delivery.endTime": FieldValue.serverTimestamp(),
+    });
+  } catch (error) {
+    logger.error("Envoi d'e-mail échoué", { mailId: ref.id, error: error.message });
+    await ref.update({
+      "delivery.state": "ERROR",
+      "delivery.error": String(error.message).slice(0, 500),
+      "delivery.endTime": FieldValue.serverTimestamp(),
+    });
+  }
 });
 
 // ------------------------------------------------------------------ Compteur public

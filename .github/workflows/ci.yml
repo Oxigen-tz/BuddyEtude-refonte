@@ -36,6 +36,15 @@ jobs:
           npm ci --prefix functions
           npm install -g firebase-tools@15
 
+      # Paramètres des fonctions pour les émulateurs (aucun e-mail réel n'est envoyé en local)
+      - name: Configuration locale des fonctions
+        run: |
+          printf 'APP_URL=https://buddyetude.com
+SMTP_USER=test@smtp.local
+' > functions/.env.local
+          printf 'SMTP_PASSWORD=emulator
+' > functions/.secret.local
+
       - name: Lint
         run: npm run lint
 

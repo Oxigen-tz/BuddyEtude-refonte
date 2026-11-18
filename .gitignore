@@ -32,3 +32,6 @@ dist-ssr
 # Modèle de configuration (sans secret), à versionner
 !.env.example
 tests/e2e/output/
+
+# Secrets des émulateurs Functions
+functions/.secret.local

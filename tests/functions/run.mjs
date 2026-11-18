@@ -67,6 +67,15 @@ await t("e-mail : nouvelle demande de binôme", async () => {
   if (!mail.fields.message.mapValue.fields.html.stringValue.includes("On révise ?")) throw new Error("message absent du corps");
 });
 
+await t("envoi : chaque e-mail est pris en charge (simulé en local)", async () => {
+  for (let i = 0; i < 30; i++) {
+    const mails = await list("mail");
+    if (mails.length && mails.every((d) => d.fields.delivery?.mapValue?.fields?.state?.stringValue === "SKIPPED_EMULATOR")) return;
+    await sleep(500);
+  }
+  throw new Error("delivery.state absent ou incorrect");
+});
+
 await t("e-mail : demande acceptée", async () => {
   await write(`requests/${pair}`, { from_uid: A, to_uid: B, from_name: "Alice", to_name: "Bob", participants: [A, B].sort(), status: "accepted", message: "On révise ?" });
   await waitForMails((f) => to(f) === "alice@test.com" && /accepté/.test(subject(f)), 1, "acceptation");
