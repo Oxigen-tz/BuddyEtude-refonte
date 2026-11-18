@@ -12,7 +12,7 @@ const resources = {
       },
       admin: {
         title: "Modération",
-        subtitle: "Signalements en attente et avis négatifs après les sessions.",
+        subtitle: "Statistiques, signalements et avis négatifs après les sessions.",
         forbidden: "Cette page est réservée à la modération.",
         reports: "Signalements en attente",
         noReports: "Aucun signalement en attente.",
@@ -22,6 +22,48 @@ const resources = {
         feedbackDesc: "Sessions notées 1 ou 2 étoiles.",
         noFeedback: "Aucun avis négatif.",
         about: "Concerne",
+        stats: {
+          title: "Statistiques",
+          refresh: "Actualiser",
+          error: "Statistiques indisponibles.",
+          accounts: "Comptes créés",
+          students: "Profils complets",
+          buddies: "Binômes formés",
+          messages7d: "Messages (7 jours)",
+          upcomingSessions: "Sessions à venir",
+          completedSessions: "Sessions terminées",
+          rating: "Note moyenne des sessions",
+          ratingCount_one: "{{count}} avis",
+          ratingCount_other: "{{count}} avis",
+          pendingRequests: "Demandes en attente",
+          pendingReports: "Signalements en attente",
+          signupsTitle: "Inscriptions par semaine",
+          weekOf: "Semaine du {{date}}",
+          week: "Semaine",
+          signups: "Inscriptions"
+        },
+        cleanup: {
+          title: "Anciennes données",
+          desc: "Messages, demandes, sessions et tableaux blancs créés avant la mise à jour (au format e-mail) ne sont plus visibles. « Analyser » compte ce qui reste, sans rien supprimer.",
+          preview: "Analyser",
+          confirm: "Supprimer définitivement",
+          nothing: "Aucune ancienne donnée à nettoyer.",
+          done: "Anciennes données supprimées.",
+          items: {
+            messages_one: "{{count}} ancien message",
+            messages_other: "{{count}} anciens messages",
+            files_one: "dont {{count}} fichier joint",
+            files_other: "dont {{count}} fichiers joints",
+            requests_one: "{{count}} ancienne demande",
+            requests_other: "{{count}} anciennes demandes",
+            sessions_one: "{{count}} ancienne session",
+            sessions_other: "{{count}} anciennes sessions",
+            whiteboards_one: "{{count}} ancien tableau blanc",
+            whiteboards_other: "{{count}} anciens tableaux blancs",
+            profiles_one: "{{count}} profil dont l'e-mail sera retiré",
+            profiles_other: "{{count}} profils dont l'e-mail sera retiré"
+          }
+        },
         toast: {
           banned: "{{name}} est banni(e).",
           dismissed: "Signalement classé.",
@@ -97,8 +139,11 @@ const resources = {
         },
         hosting: {
           title: "2. Hébergement",
-          intro: "Ce site est hébergé par :",
-          country: "États-Unis",
+          intro: "Le site et ses données sont hébergés par :",
+          site: "Site web",
+          data: "Comptes, base de données et fichiers (Firebase)",
+          us: "États-Unis",
+          ie: "Irlande",
           website: "Site web"
         },
         terms: {
@@ -107,6 +152,8 @@ const resources = {
           purpose: "BuddyEtude est une plateforme de mise en relation pour étudiants visant à faciliter l'entraide scolaire.",
           userLabel: "Responsabilité de l'utilisateur :",
           user: "L'utilisateur s'engage à fournir des informations réelles et à utiliser la plateforme dans un cadre strictement académique et respectueux. Tout contenu à caractère haineux, publicitaire, ou inapproprié entraînera la suppression immédiate du compte.",
+          ageLabel: "Âge :",
+          age: "BuddyEtude est ouvert aux étudiants de 15 ans et plus ; en dessous de 15 ans, l'accord d'un parent est obligatoire.",
           moderationLabel: "Modération :",
           moderation: "BuddyEtude se réserve le droit d'étudier les signalements et de bannir tout utilisateur ne respectant pas les règles de bienséance. Les messages échangés entre les utilisateurs peuvent être soumis à une modération en cas de signalement."
         },
@@ -116,29 +163,85 @@ const resources = {
         }
       },
       privacy: {
-        title: "Politique de Confidentialité",
-        intro: "La protection de vos données est une priorité absolue pour BuddyEtude. Nous nous engageons à respecter le Règlement Général sur la Protection des Données (RGPD).",
-        collected: {
-          title: "1. Données collectées",
-          identityLabel: "Données d'identification :",
-          identity: "Nom, prénom, adresse email (récupérés de manière sécurisée via Google Authentication).",
-          profileLabel: "Données de profil :",
-          profile: "Ville, niveau d'études, matières étudiées, biographie.",
-          usageLabel: "Données d'utilisation :",
-          usage: "Demandes de binômes envoyées/reçues, messages privés."
-        },
-        use: {
-          title: "2. Utilisation de vos données",
-          text: "Vos données sont exclusivement utilisées pour le bon fonctionnement de la plateforme : vous permettre de trouver des partenaires d'étude compatibles, vous connecter à la plateforme, et assurer la sécurité de vos échanges. <bold>BuddyEtude ne vendra jamais vos données personnelles à des tiers.</bold>"
-        },
-        retention: {
-          title: "3. Durée de conservation",
-          text: "Vos données sont conservées tant que votre compte est actif. En cas d'inactivité prolongée (supérieure à 3 ans) ou de demande de suppression, l'ensemble de vos données sera définitivement effacé de nos serveurs sécurisés."
-        },
-        rights: {
-          title: "4. Vos droits (RGPD)",
-          text: "Conformément à la loi informatique et libertés, vous disposez d'un droit d'accès, de rectification, de portabilité et de suppression de vos données. Vous pouvez exercer ce droit à tout moment en nous contactant directement à : <bold>{{email}}</bold>."
-        }
+        title: "Politique de confidentialité",
+        updated: "Dernière mise à jour : 18 novembre 2026",
+        intro: "BuddyEtude met en relation des étudiants pour réviser ensemble. Cette page explique quelles données nous traitons, pourquoi, avec qui, combien de temps, et comment exercer vos droits, conformément au Règlement général sur la protection des données (RGPD).",
+        sections: [
+          {
+            title: "1. Responsable du traitement",
+            paragraphs: ["Le responsable du traitement est l'éditeur du site, indiqué dans les Mentions légales. Pour toute question sur vos données : {{email}}."]
+          },
+          {
+            title: "2. Données traitées",
+            items: [
+              { label: "Compte :", text: "nom, adresse e-mail et photo de profil (fournis par Google ou saisis à l'inscription). Le mot de passe est géré par Google Firebase ; nous n'y avons jamais accès. Votre adresse e-mail n'est jamais affichée aux autres étudiants." },
+              { label: "Profil :", text: "ville, niveau d'études, matières, disponibilités, mode de révision, présentation." },
+              { label: "Âge :", text: "tranche d'âge (15 ans ou plus / moins de 15 ans) et, le cas échéant, déclaration d'accord parental. Ces informations sont privées." },
+              { label: "Activité :", text: "demandes de binôme, messages et fichiers échangés, sessions planifiées, dessins du tableau blanc, avis laissés après une session, signalements et blocages." },
+              { label: "Préférences :", text: "choix de recevoir ou non les e-mails de notification, langue et thème d'affichage." },
+              { label: "Données techniques :", text: "en cas d'erreur, un rapport technique (page, navigateur, message d'erreur) ; une vérification anti-abus (App Check) qui s'assure que les requêtes viennent bien du site." }
+            ]
+          },
+          {
+            title: "3. Pourquoi et sur quelle base",
+            items: [
+              { label: "Faire fonctionner le service", text: "(compte, recherche de binômes, messagerie, sessions, tableau blanc) : exécution des conditions d'utilisation que vous acceptez en créant un compte." },
+              { label: "E-mails de notification", text: "(nouvelle demande, nouveau message, session, rappels) : exécution du service. Vous pouvez les désactiver à tout moment dans Paramètres → Préférences." },
+              { label: "Sécurité et modération", text: "(signalements, bannissement, protection contre les abus, suivi des erreurs) : intérêt légitime à proposer un service sûr et fiable." },
+              { label: "Statistiques internes", text: "(nombre d'inscrits, de binômes, de sessions) : intérêt légitime ; ce sont des comptages globaux, sans profilage ni publicité." }
+            ]
+          },
+          {
+            title: "4. Qui voit vos données",
+            items: [
+              { label: "Les autres étudiants connectés", text: "voient votre profil (nom, photo, ville, niveau, matières, disponibilités, présentation), sauf si vous le masquez dans les Paramètres." },
+              { label: "Vos binômes", text: "voient les messages, fichiers, sessions et dessins que vous partagez avec eux, et eux seuls." },
+              { label: "La modération", text: "voit les signalements, les avis après session et, en cas de signalement, les éléments nécessaires pour le traiter." },
+              { label: "Personne d'autre :", text: "BuddyEtude ne vend ni ne loue vos données et n'affiche aucune publicité." }
+            ]
+          },
+          {
+            title: "5. Prestataires (sous-traitants)",
+            paragraphs: ["Nous faisons appel à des prestataires qui traitent des données pour notre compte, uniquement pour les besoins décrits ici :"],
+            items: [
+              { label: "Google (Firebase, Google Cloud) :", text: "comptes, base de données, fichiers, fonctions serveur, protection anti-abus. Les données de la base sont hébergées dans l'Union européenne." },
+              { label: "Vercel :", text: "hébergement du site web (États-Unis)." },
+              { label: "Brevo (France) :", text: "envoi des e-mails de notification." },
+              { label: "Sentry :", text: "suivi des erreurs techniques, hébergé dans l'Union européenne." },
+              { label: "Jitsi Meet :", text: "les appels vidéo se font sur meet.jit.si, un service externe ; BuddyEtude ne fait que générer le lien et n'enregistre pas les appels." }
+            ],
+          },
+          {
+            title: "6. Transferts hors de l'Union européenne",
+            paragraphs: ["Certains prestataires (Google, Vercel) sont établis aux États-Unis. Ces transferts sont encadrés par le cadre de protection des données UE–États-Unis (Data Privacy Framework) et/ou par les clauses contractuelles types de la Commission européenne."]
+          },
+          {
+            title: "7. Durées de conservation",
+            items: [
+              { label: "Compte et contenus :", text: "tant que le compte existe. La suppression du compte (Paramètres → Supprimer mon compte) efface immédiatement le profil, les messages et fichiers envoyés, les demandes, les blocages, les données privées et les avis laissés ; les sessions sont annulées." },
+              { label: "Comptes inactifs :", text: "supprimés après 3 ans sans connexion." },
+              { label: "E-mails de notification envoyés :", text: "30 jours." },
+              { label: "Avis et signalements traités :", text: "1 an." },
+              { label: "Rapports d'erreur :", text: "30 jours au plus." },
+              { label: "Sauvegardes :", text: "7 jours, renouvelées chaque jour." }
+            ]
+          },
+          {
+            title: "8. Mineurs",
+            paragraphs: ["En France, un mineur peut consentir seul au traitement de ses données à partir de 15 ans. En dessous de 15 ans, l'utilisation de BuddyEtude nécessite l'accord d'un titulaire de l'autorité parentale, déclaré dans le profil. Un parent peut demander à tout moment la suppression du compte de son enfant en écrivant à {{email}}."]
+          },
+          {
+            title: "9. Cookies et stockage local",
+            paragraphs: ["BuddyEtude n'utilise ni cookie publicitaire ni outil de mesure d'audience. Seuls sont utilisés les éléments strictement nécessaires au service, qui ne demandent pas de consentement : le maintien de votre connexion, vos préférences d'affichage (langue, thème) et la protection anti-abus."]
+          },
+          {
+            title: "10. Vos droits",
+            paragraphs: [
+              "Vous disposez d'un droit d'accès, de rectification, d'effacement, de limitation, d'opposition et de portabilité de vos données. Vous pouvez modifier votre profil et supprimer votre compte directement dans l'application ; pour les autres demandes, écrivez à {{email}}. Nous répondons dans un délai d'un mois.",
+              "Si vous estimez que vos droits ne sont pas respectés, vous pouvez adresser une réclamation à la CNIL (www.cnil.fr)."
+            ]
+          }
+        ]
       },
       layout: {
         nav: {
@@ -690,7 +793,7 @@ const resources = {
       },
       admin: {
         title: "Moderation",
-        subtitle: "Pending reports and negative feedback after sessions.",
+        subtitle: "Statistics, reports and negative feedback after sessions.",
         forbidden: "This page is reserved for moderation.",
         reports: "Pending reports",
         noReports: "No pending report.",
@@ -700,6 +803,48 @@ const resources = {
         feedbackDesc: "Sessions rated 1 or 2 stars.",
         noFeedback: "No negative feedback.",
         about: "About",
+        stats: {
+          title: "Statistics",
+          refresh: "Refresh",
+          error: "Statistics unavailable.",
+          accounts: "Accounts created",
+          students: "Complete profiles",
+          buddies: "Study buddies matched",
+          messages7d: "Messages (7 days)",
+          upcomingSessions: "Upcoming sessions",
+          completedSessions: "Completed sessions",
+          rating: "Average session rating",
+          ratingCount_one: "{{count}} review",
+          ratingCount_other: "{{count}} reviews",
+          pendingRequests: "Pending requests",
+          pendingReports: "Pending reports",
+          signupsTitle: "Sign-ups per week",
+          weekOf: "Week of {{date}}",
+          week: "Week",
+          signups: "Sign-ups"
+        },
+        cleanup: {
+          title: "Old data",
+          desc: "Messages, requests, sessions and whiteboards created before the update (email format) are no longer visible. “Analyze” counts what is left, without deleting anything.",
+          preview: "Analyze",
+          confirm: "Delete permanently",
+          nothing: "No old data to clean up.",
+          done: "Old data deleted.",
+          items: {
+            messages_one: "{{count}} old message",
+            messages_other: "{{count}} old messages",
+            files_one: "including {{count}} attached file",
+            files_other: "including {{count}} attached files",
+            requests_one: "{{count}} old request",
+            requests_other: "{{count}} old requests",
+            sessions_one: "{{count}} old session",
+            sessions_other: "{{count}} old sessions",
+            whiteboards_one: "{{count}} old whiteboard",
+            whiteboards_other: "{{count}} old whiteboards",
+            profiles_one: "{{count}} profile whose email will be removed",
+            profiles_other: "{{count}} profiles whose email will be removed"
+          }
+        },
         toast: {
           banned: "{{name}} has been banned.",
           dismissed: "Report dismissed.",
@@ -775,8 +920,11 @@ const resources = {
         },
         hosting: {
           title: "2. Hosting",
-          intro: "This website is hosted by:",
-          country: "United States",
+          intro: "The website and its data are hosted by:",
+          site: "Website",
+          data: "Accounts, database and files (Firebase)",
+          us: "United States",
+          ie: "Ireland",
           website: "Website"
         },
         terms: {
@@ -785,6 +933,8 @@ const resources = {
           purpose: "BuddyEtude is a platform that connects students to make peer support with studies easier.",
           userLabel: "User responsibility:",
           user: "Users agree to provide accurate information and to use the platform in a strictly academic and respectful way. Any hateful, promotional or inappropriate content will result in the immediate deletion of the account.",
+          ageLabel: "Age:",
+          age: "BuddyEtude is open to students aged 15 and over; under 15, a parent's consent is required.",
           moderationLabel: "Moderation:",
           moderation: "BuddyEtude reserves the right to review reports and to ban any user who does not follow the rules of courtesy. Messages exchanged between users may be moderated if they are reported."
         },
@@ -795,28 +945,84 @@ const resources = {
       },
       privacy: {
         title: "Privacy Policy",
-        intro: "Protecting your data is a top priority for BuddyEtude. We are committed to complying with the General Data Protection Regulation (GDPR).",
-        collected: {
-          title: "1. Data collected",
-          identityLabel: "Identification data:",
-          identity: "First name, last name, email address (retrieved securely via Google Authentication).",
-          profileLabel: "Profile data:",
-          profile: "City, level of study, subjects studied, biography.",
-          usageLabel: "Usage data:",
-          usage: "Study buddy requests sent/received, private messages."
-        },
-        use: {
-          title: "2. How your data is used",
-          text: "Your data is used solely to run the platform: helping you find compatible study partners, signing you in, and keeping your conversations secure. <bold>BuddyEtude will never sell your personal data to third parties.</bold>"
-        },
-        retention: {
-          title: "3. Retention period",
-          text: "Your data is kept for as long as your account is active. After prolonged inactivity (more than 3 years) or upon a deletion request, all of your data will be permanently erased from our secure servers."
-        },
-        rights: {
-          title: "4. Your rights (GDPR)",
-          text: "Under French data protection law, you have the right to access, rectify, port and delete your data. You can exercise this right at any time by contacting us directly at: <bold>{{email}}</bold>."
-        }
+        updated: "Last updated: November 18, 2026",
+        intro: "BuddyEtude connects students so they can study together. This page explains what data we process, why, with whom, for how long, and how to exercise your rights, in line with the General Data Protection Regulation (GDPR).",
+        sections: [
+          {
+            title: "1. Data controller",
+            paragraphs: ["The data controller is the site publisher listed in the Legal Notice. For any question about your data: {{email}}."]
+          },
+          {
+            title: "2. Data we process",
+            items: [
+              { label: "Account:", text: "name, email address and profile photo (provided by Google or entered at sign-up). Passwords are handled by Google Firebase; we never have access to them. Your email address is never shown to other students." },
+              { label: "Profile:", text: "city, level of study, subjects, availability, study mode, bio." },
+              { label: "Age:", text: "age bracket (15 or over / under 15) and, where applicable, a declaration of parental consent. This information is private." },
+              { label: "Activity:", text: "study buddy requests, messages and files exchanged, scheduled sessions, whiteboard drawings, feedback after a session, reports and blocks." },
+              { label: "Preferences:", text: "whether you receive notification emails, language and display theme." },
+              { label: "Technical data:", text: "when an error occurs, a technical report (page, browser, error message); an anti-abuse check (App Check) that makes sure requests come from the real site." }
+            ]
+          },
+          {
+            title: "3. Why, and on what legal basis",
+            items: [
+              { label: "Running the service", text: "(account, buddy search, messaging, sessions, whiteboard): performance of the terms of use you accept when creating an account." },
+              { label: "Notification emails", text: "(new request, new message, session, reminders): performance of the service. You can turn them off at any time in Settings → Preferences." },
+              { label: "Security and moderation", text: "(reports, bans, abuse protection, error tracking): legitimate interest in providing a safe and reliable service." },
+              { label: "Internal statistics", text: "(number of sign-ups, buddies, sessions): legitimate interest; these are overall counts, with no profiling or advertising." }
+            ]
+          },
+          {
+            title: "4. Who sees your data",
+            items: [
+              { label: "Other signed-in students", text: "see your profile (name, photo, city, level, subjects, availability, bio), unless you hide it in Settings." },
+              { label: "Your study buddies", text: "see the messages, files, sessions and drawings you share with them, and only they do." },
+              { label: "Moderation", text: "sees reports, post-session feedback and, when something is reported, what is needed to handle it." },
+              { label: "No one else:", text: "BuddyEtude does not sell or rent your data and shows no advertising." }
+            ]
+          },
+          {
+            title: "5. Service providers (processors)",
+            paragraphs: ["We rely on providers that process data on our behalf, only for the purposes described here:"],
+            items: [
+              { label: "Google (Firebase, Google Cloud):", text: "accounts, database, files, server functions, abuse protection. Database data is hosted in the European Union." },
+              { label: "Vercel:", text: "website hosting (United States)." },
+              { label: "Brevo (France):", text: "sending notification emails." },
+              { label: "Sentry:", text: "technical error tracking, hosted in the European Union." },
+              { label: "Jitsi Meet:", text: "video calls take place on meet.jit.si, an external service; BuddyEtude only generates the link and does not record calls." }
+            ]
+          },
+          {
+            title: "6. Transfers outside the European Union",
+            paragraphs: ["Some providers (Google, Vercel) are based in the United States. These transfers are covered by the EU–US Data Privacy Framework and/or the European Commission's standard contractual clauses."]
+          },
+          {
+            title: "7. Retention periods",
+            items: [
+              { label: "Account and content:", text: "for as long as the account exists. Deleting your account (Settings → Delete my account) immediately erases your profile, the messages and files you sent, requests, blocks, private data and feedback you left; sessions are cancelled." },
+              { label: "Inactive accounts:", text: "deleted after 3 years without sign-in." },
+              { label: "Notification emails sent:", text: "30 days." },
+              { label: "Feedback and handled reports:", text: "1 year." },
+              { label: "Error reports:", text: "30 days at most." },
+              { label: "Backups:", text: "7 days, renewed daily." }
+            ]
+          },
+          {
+            title: "8. Minors",
+            paragraphs: ["In France, minors can consent on their own to the processing of their data from the age of 15. Under 15, using BuddyEtude requires the consent of a holder of parental authority, declared in the profile. A parent can ask at any time for their child's account to be deleted by writing to {{email}}."]
+          },
+          {
+            title: "9. Cookies and local storage",
+            paragraphs: ["BuddyEtude uses no advertising cookies and no audience measurement tool. Only what is strictly necessary for the service is used, which requires no consent: keeping you signed in, your display preferences (language, theme) and abuse protection."]
+          },
+          {
+            title: "10. Your rights",
+            paragraphs: [
+              "You have the right to access, rectify, erase, restrict, object to and port your data. You can edit your profile and delete your account directly in the app; for any other request, write to {{email}}. We reply within one month.",
+              "If you believe your rights are not respected, you can lodge a complaint with the CNIL, the French data protection authority (www.cnil.fr)."
+            ]
+          }
+        ]
       },
       layout: {
         nav: {

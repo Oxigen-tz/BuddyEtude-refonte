@@ -11,7 +11,7 @@
     "typecheck": "tsc -p ./jsconfig.json",
     "preview": "vite preview",
     "test:rules": "firebase emulators:exec --only firestore,storage --project demo-buddyetude \"node tests/rules/run.mjs\"",
-    "test:e2e": "firebase emulators:exec --only auth,firestore,storage --project demo-buddyetude \"node tests/e2e/run.mjs\"",
+    "test:e2e": "firebase emulators:exec --only auth,firestore,storage,functions --project demo-buddyetude \"node tests/e2e/run.mjs\"",
     "test": "npm run test:rules && npm run test:functions && npm run test:e2e",
     "emulators": "firebase emulators:start --only auth,firestore,storage,functions",
     "test:functions": "firebase emulators:exec --only auth,firestore,functions --project demo-buddyetude \"node tests/functions/run.mjs\""

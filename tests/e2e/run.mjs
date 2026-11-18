@@ -145,6 +145,8 @@ async function scenario(browser) {
     await card(B, U.alice.name).getByRole("button", { name: /Répondre à sa demande/ }).click();
     await B.getByRole("button", { name: /Accepter/ }).click({ timeout: 10000 });
     await B.locator("form input:not([type=file])").waitFor({ timeout: 10000 });
+    // Attendre la confirmation du serveur avant de quitter la page
+    await B.getByText("Demande acceptée !").first().waitFor({ timeout: 15000 });
   });
 
   await B.goto(BASE + "/Dashboard");
@@ -273,6 +275,12 @@ async function scenario(browser) {
     await A.getByRole("button", { name: "Bannir" }).first().click();
     await A.getByText(/est banni/).waitFor({ timeout: 10000 });
     await A.getByText("2", { exact: false }).first().waitFor(); // avis négatif (2 étoiles) listé
+  });
+  await step("Modération : statistiques et analyse des anciennes données", async () => {
+    await A.getByText("Binômes formés").waitFor({ timeout: 20000 });
+    await A.getByText("Inscriptions par semaine").first().waitFor();
+    await A.getByRole("button", { name: "Analyser" }).click();
+    await A.getByText("Aucune ancienne donnée à nettoyer.").waitFor({ timeout: 20000 });
   });
   await step("Eve bannie n'apparaît plus dans la recherche", async () => {
     await A.goto(BASE + "/Search");

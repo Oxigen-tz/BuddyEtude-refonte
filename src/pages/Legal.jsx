@@ -9,11 +9,10 @@ const PUBLISHER = {
   email: "contact@buddyetude.com",
 };
 
-const HOST = {
-  name: "Vercel Inc.",
-  address: "440 N Barranca Ave #4133, Covina, CA 91723",
-  website: "https://vercel.com",
-};
+const HOSTS = [
+  { role: "site", name: "Vercel Inc.", address: "440 N Barranca Ave #4133, Covina, CA 91723", country: "us", website: "https://vercel.com" },
+  { role: "data", name: "Google Ireland Limited (Firebase)", address: "Gordon House, Barrow Street, Dublin 4", country: "ie", website: "https://firebase.google.com" },
+];
 
 export default function Legal() {
   const { t } = useTranslation();
@@ -42,18 +41,24 @@ export default function Legal() {
 
         <section>
           <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">{t("legal.hosting.title")}</h2>
-          <p>
-            {t("legal.hosting.intro")}<br/>
-            {HOST.name}<br/>
-            {HOST.address}, {t("legal.hosting.country")}<br/>
-            {t("legal.hosting.website")} : {HOST.website}
-          </p>
+          <p className="mb-3">{t("legal.hosting.intro")}</p>
+          <ul className="space-y-3">
+            {HOSTS.map((h) => (
+              <li key={h.name}>
+                <strong>{t(`legal.hosting.${h.role}`)}</strong><br/>
+                {h.name}<br/>
+                {h.address}, {t(`legal.hosting.${h.country}`)}<br/>
+                {t("legal.hosting.website")} : {h.website}
+              </li>
+            ))}
+          </ul>
         </section>
 
         <section>
           <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">{t("legal.terms.title")}</h2>
           <p className="mb-2"><strong>{t("legal.terms.purposeLabel")}</strong> {t("legal.terms.purpose")}</p>
           <p className="mb-2"><strong>{t("legal.terms.userLabel")}</strong> {t("legal.terms.user")}</p>
+          <p className="mb-2"><strong>{t("legal.terms.ageLabel")}</strong> {t("legal.terms.age")}</p>
           <p><strong>{t("legal.terms.moderationLabel")}</strong> {t("legal.terms.moderation")}</p>
         </section>
 

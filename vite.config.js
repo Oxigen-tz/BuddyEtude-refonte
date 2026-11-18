@@ -21,11 +21,16 @@ export default defineConfig({
         // le navigateur les garde en cache d'un déploiement à l'autre.
         manualChunks: {
           react: ["react", "react-dom", "react-router-dom"],
-          firebase: ["firebase/app", "firebase/auth", "firebase/firestore", "firebase/storage", "firebase/analytics"],
+          firebase: ["firebase/app", "firebase/auth", "firebase/firestore", "firebase/storage", "firebase/functions", "firebase/app-check"],
           i18n: ["i18next", "react-i18next", "i18next-browser-languagedetector"],
         },
       },
     },
+  },
+  // Modules Firebase pré-assemblés dès le démarrage : sinon Vite en découvre un en cours de
+  // route, recharge la page et peut en charger deux copies (« Service functions is not available »).
+  optimizeDeps: {
+    include: ["firebase/app", "firebase/auth", "firebase/firestore", "firebase/storage", "firebase/functions", "firebase/app-check"],
   },
   server: {
     port: 5173,

@@ -3,6 +3,10 @@
 //  - E-mails : nouvelle demande, demande acceptée, nouveau message, nouvelle session.
 //  - Rappels de session : 24 h et 1 h avant (tâche planifiée toutes les 15 minutes).
 //  - Compteur public d'étudiants (stats/public), affiché sur l'accueil.
+//  - Modération : statistiques (adminStats) et nettoyage des données de l'ancien format
+//    (adminCleanupLegacy), appelables seulement par un compte listé dans "admins".
+//  - Vie privée : effacement des données restantes à la suppression d'un compte, purge
+//    quotidienne des e-mails envoyés (30 jours), des avis et des signalements traités (1 an).
 //
 // Les e-mails passent par une file : chaque e-mail est d'abord écrit dans la collection "mail",
 // puis la fonction deliverMail l'envoie via le serveur SMTP (Brevo) et note le résultat dans
@@ -15,6 +19,8 @@
 
 const { onDocumentCreated, onDocumentUpdated, onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const functionsV1 = require("firebase-functions/v1");
 const { setGlobalOptions } = require("firebase-functions/v2");
 const { defineString, defineSecret } = require("firebase-functions/params");
 const nodemailer = require("nodemailer");
@@ -22,7 +28,8 @@ const logger = require("firebase-functions/logger");
 // Imports modulaires : avec firebase-admin 12, admin.firestore.FieldValue / Timestamp ne sont
 // pas définis dans l'environnement d'exécution des fonctions (toutes les fonctions plantaient).
 const { initializeApp } = require("firebase-admin/app");
-const { getFirestore, FieldValue, Timestamp } = require("firebase-admin/firestore");
+const { getFirestore, FieldValue, Timestamp, AggregateField } = require("firebase-admin/firestore");
+const { getStorage } = require("firebase-admin/storage");
 const { getAuth } = require("firebase-admin/auth");
 
 initializeApp();
@@ -255,4 +262,189 @@ exports.onProfileWrite = onDocumentWritten("users/{uid}", async (event) => {
   const after = event.data?.after.exists ? event.data.after.get("profile_complete") === true : false;
   if (before === after) return;
   await db.doc("stats/public").set({ studentCount: FieldValue.increment(after ? 1 : -1) }, { merge: true });
+});
+
+// ------------------------------------------------------------------ Modération
+
+const DAY_MS = 24 * 3600 * 1000;
+
+async function assertAdmin(request) {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Connexion requise.");
+  if (!(await db.doc(`admins/${uid}`).get()).exists) throw new HttpsError("permission-denied", "Réservé à la modération.");
+}
+
+const countOf = async (query) => (await query.count().get()).data().count;
+
+// Statistiques de la page Modération
+exports.adminStats = onCall(async (request) => {
+  await assertAdmin(request);
+  const now = Date.now();
+  const [students, buddies, pendingRequests, messages7d, upcomingSessions, completedSessions, pendingReports, ratings] = await Promise.all([
+    countOf(db.collection("users").where("profile_complete", "==", true)),
+    countOf(db.collection("requests").where("status", "==", "accepted")),
+    countOf(db.collection("requests").where("status", "==", "pending")),
+    countOf(db.collection("messages").where("createdAt", ">=", Timestamp.fromMillis(now - 7 * DAY_MS))),
+    countOf(db.collection("sessions").where("status", "==", "planned").where("start_at", ">", Timestamp.fromMillis(now))),
+    countOf(db.collection("sessions").where("status", "==", "completed")),
+    countOf(db.collection("reports").where("status", "==", "pending")),
+    db.collection("feedback").aggregate({ average: AggregateField.average("rating"), count: AggregateField.count() }).get(),
+  ]);
+
+  // Inscriptions par semaine (8 dernières semaines), d'après les comptes Authentication
+  const WEEKS = 8;
+  const firstWeekStart = now - WEEKS * 7 * DAY_MS;
+  const weeks = Array.from({ length: WEEKS }, (_, i) => ({ start: new Date(firstWeekStart + i * 7 * DAY_MS).toISOString(), count: 0 }));
+  let accounts = 0;
+  let pageToken;
+  do {
+    const page = await getAuth().listUsers(1000, pageToken);
+    for (const u of page.users) {
+      accounts++;
+      const index = Math.floor((Date.parse(u.metadata.creationTime) - firstWeekStart) / (7 * DAY_MS));
+      if (index >= 0 && index < WEEKS) weeks[index].count++;
+    }
+    pageToken = page.pageToken;
+  } while (pageToken);
+
+  return {
+    accounts, students, buddies, pendingRequests, messages7d, upcomingSessions, completedSessions, pendingReports,
+    ratingAverage: ratings.data().average ?? null,
+    ratingCount: ratings.data().count,
+    weeks,
+    generatedAt: new Date(now).toISOString(),
+  };
+});
+
+// Chemin Storage d'une URL de téléchargement Firebase (…/o/<chemin encodé>?alt=media…)
+function storagePathFromUrl(url) {
+  const match = /\/o\/([^?]+)/.exec(String(url || ""));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+// Nettoyage des données de l'ancien format (identifiées par e-mail au lieu de l'uid), devenues
+// invisibles : messages (et leurs fichiers), demandes, sessions, tableaux blancs. Retire aussi
+// l'e-mail des profils qui ne se sont pas reconnectés depuis. dryRun (par défaut) : compte
+// seulement, sans rien supprimer.
+exports.adminCleanupLegacy = onCall({ timeoutSeconds: 540, memory: "512MiB" }, async (request) => {
+  await assertAdmin(request);
+  const dryRun = request.data?.dryRun !== false;
+  const result = { dryRun, messages: 0, files: 0, requests: 0, sessions: 0, whiteboards: 0, profiles: 0 };
+  const writer = dryRun ? null : db.bulkWriter();
+  const bucket = dryRun ? null : getStorage().bucket();
+
+  for (const d of (await db.collection("messages").get()).docs) {
+    if (d.get("senderUid")) continue;
+    result.messages++;
+    const path = storagePathFromUrl(d.get("fileUrl"));
+    if (path) {
+      result.files++;
+      if (!dryRun) await bucket.file(path).delete({ ignoreNotFound: true }).catch((e) => logger.warn("Fichier non supprimé", { path, error: e.message }));
+    }
+    if (!dryRun) writer.delete(d.ref);
+  }
+  for (const d of (await db.collection("requests").get()).docs) {
+    if (d.get("from_uid")) continue;
+    result.requests++;
+    if (!dryRun) writer.delete(d.ref);
+  }
+  for (const d of (await db.collection("sessions").get()).docs) {
+    if (d.get("organizer_uid")) continue;
+    result.sessions++;
+    if (!dryRun) writer.delete(d.ref);
+  }
+  for (const ref of await db.collection("whiteboards").listDocuments()) {
+    if (!ref.id.includes("@")) continue;
+    result.whiteboards++;
+    if (!dryRun) await db.recursiveDelete(ref);
+  }
+  for (const d of (await db.collection("users").get()).docs) {
+    if (d.get("email") === undefined) continue;
+    result.profiles++;
+    if (!dryRun) {
+      writer.update(d.ref, {
+        email: FieldValue.delete(),
+        ...(d.get("profile_visible") === undefined ? { profile_visible: true } : {}),
+      });
+    }
+  }
+
+  if (!dryRun) {
+    await writer.close();
+    // Recompte le compteur public au passage
+    const students = await countOf(db.collection("users").where("profile_complete", "==", true));
+    await db.doc("stats/public").set({ studentCount: students }, { merge: true });
+    logger.info("Nettoyage des anciennes données", result);
+  }
+  return result;
+});
+
+// ------------------------------------------------------------------ Vie privée
+
+// Suppression d'un compte : la page Paramètres efface le profil, les messages, les demandes…
+// Ceci efface ce que le navigateur ne peut pas supprimer lui-même : données privées
+// (préférences, anti-spam) et avis laissés.
+exports.onUserDeleted = functionsV1.region("europe-west1").auth.user().onDelete(async (user) => {
+  await db.recursiveDelete(db.collection(`users/${user.uid}/private`));
+  const feedback = await db.collection("feedback").where("from_uid", "==", user.uid).get();
+  const writer = db.bulkWriter();
+  feedback.docs.forEach((d) => writer.delete(d.ref));
+  await writer.close();
+});
+
+// Purge : e-mails envoyés (30 jours), avis (1 an), signalements traités (1 an)
+async function purgeOlderThan(collection, cutoffMs, keep = () => false) {
+  const snap = await db.collection(collection).where("createdAt", "<", Timestamp.fromMillis(cutoffMs)).get();
+  const writer = db.bulkWriter();
+  let n = 0;
+  snap.docs.forEach((d) => { if (!keep(d)) { writer.delete(d.ref); n++; } });
+  await writer.close();
+  return n;
+}
+
+// Comptes sans connexion depuis 3 ans : même effacement que « Supprimer mon compte »
+// (messages et fichiers envoyés, demandes, profil), puis suppression du compte, ce qui
+// déclenche onUserDeleted pour les données privées et les avis.
+async function deleteAccountData(uid) {
+  const bucket = getStorage().bucket();
+  const writer = db.bulkWriter();
+  for (const d of (await db.collection("messages").where("senderUid", "==", uid).get()).docs) {
+    const path = storagePathFromUrl(d.get("fileUrl"));
+    if (path) await bucket.file(path).delete({ ignoreNotFound: true }).catch(() => {});
+    writer.delete(d.ref);
+  }
+  for (const d of (await db.collection("requests").where("participants", "array-contains", uid).get()).docs) writer.delete(d.ref);
+  await writer.close();
+  await db.recursiveDelete(db.doc(`users/${uid}`));
+  await getAuth().deleteUser(uid);
+}
+
+async function purgeInactiveAccounts(cutoffMs) {
+  let n = 0;
+  let pageToken;
+  do {
+    const page = await getAuth().listUsers(1000, pageToken);
+    for (const u of page.users) {
+      const last = Date.parse(u.metadata.lastSignInTime || u.metadata.creationTime);
+      if (last < cutoffMs && !(await db.doc(`admins/${u.uid}`).get()).exists) {
+        await deleteAccountData(u.uid).catch((e) => logger.error("Compte inactif non supprimé", { uid: u.uid, error: e.message }));
+        n++;
+      }
+    }
+    pageToken = page.pageToken;
+  } while (pageToken);
+  return n;
+}
+
+async function runPurge(now = Date.now()) {
+  return {
+    mail: await purgeOlderThan("mail", now - 30 * DAY_MS),
+    feedback: await purgeOlderThan("feedback", now - 365 * DAY_MS),
+    reports: await purgeOlderThan("reports", now - 365 * DAY_MS, (d) => d.get("status") === "pending"),
+    inactiveAccounts: await purgeInactiveAccounts(now - 3 * 365 * DAY_MS),
+  };
+}
+
+exports.dailyPurge = onSchedule({ schedule: "every day 04:00", timeZone: "Europe/Paris" }, async () => {
+  logger.info("Purge quotidienne", await runPurge());
 });

@@ -40,8 +40,8 @@ http://127.0.0.1:4000.
 | ------------------------ | -------------------------------------------------------------------------- |
 | `npm run lint`           | ESLint                                                                     |
 | `npm run test:rules`     | 89 cas : règles Firestore et Storage (qui peut lire / écrire quoi)          |
-| `npm run test:functions` | 9 cas : e-mails, envoi, anti-spam, rappels de session, compteur public      |
-| `npm run test:e2e`       | Scénario complet dans Chrome avec trois étudiants (23 étapes)              |
+| `npm run test:functions` | 14 cas : e-mails, rappels, compteur, statistiques, nettoyage, purges        |
+| `npm run test:e2e`       | Scénario complet dans Chrome avec trois étudiants (24 étapes)              |
 | `npm test`               | Les trois suites de tests                                                  |
 
 Les tests tournent sur les émulateurs (projet fictif `demo-buddyetude`). Le scénario de bout en
@@ -65,7 +65,7 @@ src/
   lib/          AuthContext, pairs (id de paire), matching (compatibilité), sessions (dates, .ics)
   firebase/     Configuration et services
   i18n.js       Traductions FR / EN
-functions/      Cloud Functions (e-mails, rappels, compteur)
+functions/      Cloud Functions (e-mails, rappels, compteur, modération, purges)
 tests/          rules/, functions/, e2e/
 ```
 
@@ -84,7 +84,7 @@ autres utilisateurs. Une paire d'étudiants a un identifiant fixe `<uid1>_<uid2>
 | `feedback/{session}_{uid}`       | Avis après session (lisible par la modération uniquement)               |
 | `whiteboards/{paire}/strokes`    | Un document par trait du tableau blanc                                  |
 | `blocks/{bloqueur}_{bloqué}`     | Blocages                                                                |
-| `reports`                        | Signalements (traités dans la page Modération)                          |
+| `reports`                        | Signalements (traités dans la page Modération, purgés après 1 an)       |
 | `admins/{uid}`                   | Comptes de modération (créés à la main dans la console)                 |
 | `stats/public`                   | Compteur d'étudiants de l'accueil (tenu par une Cloud Function)         |
 | `mail`                           | File d'e-mails, envoyés par la fonction `deliverMail` (SMTP Brevo)     |
@@ -138,6 +138,20 @@ avec les variables `VITE_FIREBASE_*`.
 Le passage de l'email à l'uid rend invisibles les anciennes demandes, conversations et sessions
 (créées au format email). Les profils sont conservés : leur email est retiré automatiquement à la
 prochaine connexion de chacun.
+
+## Modération et vie privée
+
+- **Page Modération** (comptes listés dans `admins`) : statistiques (fonction `adminStats`),
+  signalements, avis négatifs, et nettoyage des données de l'ancien format
+  (`adminCleanupLegacy` : « Analyser » compte sans rien supprimer, puis confirmation).
+- **Purge quotidienne** (`dailyPurge`, 4 h) : e-mails envoyés après 30 jours, avis et
+  signalements traités après 1 an, comptes sans connexion depuis 3 ans (sauf modération).
+- **Suppression d'un compte** (`onUserDeleted`) : efface aussi les données privées et les avis.
+- Pas de Google Analytics (cookies soumis à consentement) : les chiffres d'usage sont dans la
+  page Modération.
+
+Ces durées sont celles annoncées dans la Politique de confidentialité (`privacy.sections` dans
+`src/i18n.js`) : les modifier aux deux endroits.
 
 ## Ajouter une traduction
 

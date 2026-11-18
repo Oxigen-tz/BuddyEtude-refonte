@@ -130,5 +130,93 @@ await t("compteur : profil supprimé → -1", async () => {
   throw new Error("le compteur n'est pas revenu à 1");
 });
 
+// --- Modération (fonctions appelables) : jeton de l'émulateur Auth
+async function idToken(email) {
+  const res = await fetch(`${AUTH}/accounts:signInWithPassword?key=fake`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password: "secret123", returnSecureToken: true }) });
+  return (await res.json()).idToken;
+}
+async function call(name, data, token) {
+  const res = await fetch(`http://127.0.0.1:5001/${PROJECT}/europe-west1/${name}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: JSON.stringify({ data }),
+  });
+  return { status: res.status, body: await res.json() };
+}
+const exists = async (path) => (await fetch(`${FS}/${path}`, { headers: owner })).status === 200;
+
+await t("statistiques : refusées sans droit de modération", async () => {
+  const { status } = await call("adminStats", {}, await idToken("carla@test.com"));
+  if (status !== 403) throw new Error(`statut ${status} au lieu de 403`);
+});
+
+await t("statistiques : chiffres pour la modération", async () => {
+  await write(`admins/${A}`, { role: "admin" });
+  const { status, body } = await call("adminStats", {}, await idToken("alice@test.com"));
+  if (status !== 200) throw new Error(`statut ${status} : ${JSON.stringify(body)}`);
+  const r = body.result;
+  if (r.accounts !== 3 || r.buddies !== 1 || r.weeks.length !== 8 || r.weeks[7].count !== 3) throw new Error(JSON.stringify(r));
+});
+
+await t("nettoyage : anciennes données comptées puis supprimées", async () => {
+  await write("messages/old1", { chatId: "a@x.com_b@y.com", senderEmail: "a@x.com", text: "ancien" });
+  await write("requests/old1", { from: "a@x.com", to: "b@y.com", status: "pending" });
+  await write("sessions/old1", { title: "Ancienne", organizer_email: "a@x.com", status: "planned" });
+  await write("whiteboards/a@x.com_b@y.com", { image: "data:" });
+  await write("whiteboards/a@x.com_b@y.com/strokes/s1", { points: [] });
+  await write(`users/legacy1`, { display_name: "Ancien", email: "ancien@test.com" });
+  const token = await idToken("alice@test.com");
+  const dry = (await call("adminCleanupLegacy", { dryRun: true }, token)).body.result;
+  const expected = { messages: 1, requests: 1, sessions: 1, whiteboards: 1, profiles: 1 };
+  for (const [k, v] of Object.entries(expected)) if (dry[k] !== v) throw new Error(`simulation : ${k} = ${dry[k]}`);
+  if (!(await exists("messages/old1"))) throw new Error("la simulation a supprimé des données");
+  await call("adminCleanupLegacy", { dryRun: false }, token);
+  for (const p of ["messages/old1", "requests/old1", "sessions/old1", "whiteboards/a@x.com_b@y.com/strokes/s1"]) {
+    if (await exists(p)) throw new Error(`${p} encore présent`);
+  }
+  if (!(await exists("messages/m1")) || !(await exists(`requests/${pair}`))) throw new Error("des données actuelles ont été supprimées");
+  const legacy = (await get("users/legacy1")).fields;
+  if (legacy.email || legacy.profile_visible?.booleanValue !== true) throw new Error("profil ancien mal nettoyé");
+});
+
+await t("purge : vieux e-mails supprimés, signalement en attente conservé", async () => {
+  const old = new Date(Date.now() - 400 * 86400000);
+  await write("mail/old", { to: "x@test.com", message: { subject: "vieux" }, createdAt: old });
+  await write("reports/oldPending", { status: "pending", createdAt: old });
+  await write("reports/oldDone", { status: "dismissed", createdAt: old });
+  // Compte sans connexion depuis 4 ans (création directe dans l'émulateur Auth)
+  const fourYearsAgo = String(Date.now() - 4 * 365 * 86400000);
+  await fetch(`http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/projects/${PROJECT}/accounts:batchCreate`, {
+    method: "POST", headers: owner,
+    body: JSON.stringify({ users: [{ localId: "inactif1", email: "inactif@test.com", createdAt: fourYearsAgo, lastLoginAt: fourYearsAgo }] }),
+  });
+  await write("users/inactif1", { display_name: "Inactif" });
+  await write("users/inactif1/private/settings", { email_notifications: true });
+  await write("messages/inactifMsg", { chatId: "x_y", senderUid: "inactif1", text: "vieux", unreadBy: [] });
+  await sleep(1500);
+  const require = createRequire(import.meta.url);
+  await require("../../functions/index.js").dailyPurge.run({});
+  for (const p of ["users/inactif1", "users/inactif1/private/settings", "messages/inactifMsg"]) {
+    if (await exists(p)) throw new Error(`compte inactif : ${p} encore présent`);
+  }
+  if (!(await exists(`users/${A}`))) throw new Error("un compte actif a été supprimé");
+  if (await exists("mail/old")) throw new Error("vieil e-mail conservé");
+  if (await exists("reports/oldDone")) throw new Error("vieux signalement traité conservé");
+  if (!(await exists("reports/oldPending"))) throw new Error("signalement en attente supprimé");
+});
+
+await t("suppression de compte : données privées et avis effacés", async () => {
+  const D = await createUser("dora@test.com");
+  await write(`users/${D}/private/settings`, { email_notifications: true });
+  await write(`feedback/s1_${D}`, { from_uid: D, sessionId: "s1", rating: 4 });
+  const token = await idToken("dora@test.com");
+  await fetch(`${AUTH}/accounts:delete?key=fake`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ idToken: token }) });
+  for (let i = 0; i < 30; i++) {
+    if (!(await exists(`users/${D}/private/settings`)) && !(await exists(`feedback/s1_${D}`))) return;
+    await sleep(500);
+  }
+  throw new Error("données encore présentes");
+});
+
 console.log(`\nFunctions : ${pass} test(s) réussi(s), ${failures.length} échec(s)`);
 process.exit(failures.length ? 1 : 0);

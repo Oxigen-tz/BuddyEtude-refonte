@@ -7,6 +7,8 @@ import { db } from "../firebase/config";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import AdminStats from "@/components/admin/AdminStats";
+import LegacyCleanup from "@/components/admin/LegacyCleanup";
 
 // Modération : signalements en attente et avis négatifs après les sessions.
 // Accès : comptes listés dans la collection "admins" (document admins/<uid> créé à la main dans
@@ -93,6 +95,8 @@ export default function Admin() {
         </div>
       </div>
 
+      <AdminStats />
+
       <section className="mb-12">
         <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{t('admin.reports')} ({reports.length})</h2>
         {loading ? (
@@ -144,6 +148,8 @@ export default function Admin() {
           </ul>
         )}
       </section>
+
+      <LegacyCleanup />
     </div>
   );
 }
