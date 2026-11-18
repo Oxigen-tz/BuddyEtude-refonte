@@ -28,7 +28,7 @@ const db = getFirestore();
 setGlobalOptions({ region: "europe-west1", maxInstances: 5 });
 
 // Adresse publique du site (liens dans les e-mails). Modifiable au déploiement.
-const APP_URL = defineString("APP_URL", { default: "https://buddyetude.fr" });
+const APP_URL = defineString("APP_URL", { default: "https://buddyetude.com" });
 
 const MESSAGE_EMAIL_COOLDOWN_MS = 30 * 60 * 1000; // au plus un e-mail par conversation / 30 min
 

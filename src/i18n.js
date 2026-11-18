@@ -609,7 +609,7 @@ const resources = {
           cancel: "Annuler",
           confirm: "Supprimer définitivement",
           reauthCancelled: "Suppression annulée : la reconnexion Google n'a pas abouti.",
-          error: "La suppression a échoué. Réessayez ou écrivez à contact@buddyetude.fr."
+          error: "La suppression a échoué. Réessayez ou écrivez à contact@buddyetude.com."
         },
         title: "Paramètres",
         subtitle: "Consultez vos informations et personnalisez votre expérience.",
@@ -1287,7 +1287,7 @@ const resources = {
           cancel: "Cancel",
           confirm: "Delete permanently",
           reauthCancelled: "Deletion cancelled: the Google sign-in did not complete.",
-          error: "Deletion failed. Try again or write to contact@buddyetude.fr."
+          error: "Deletion failed. Try again or write to contact@buddyetude.com."
         },
         title: "Settings",
         subtitle: "View your information and personalize your experience.",

@@ -98,7 +98,7 @@ await t("e-mail : nouvelle session", async () => {
 
 await t("rappels : la veille et 1 h avant, sans doublon", async () => {
   process.env.GCLOUD_PROJECT = PROJECT;
-  process.env.APP_URL = "https://buddyetude.fr";
+  process.env.APP_URL = "https://buddyetude.com";
   const require = createRequire(import.meta.url);
   const functions = require("../../functions/index.js");
   await write(`sessions/s24`, { title: "Demain", organizer_uid: A, buddy_uid: B, participants: [A, B], status: "planned", start_at: new Date(Date.now() + 20 * 3600 * 1000), mode: "presentiel", location: "BU" });

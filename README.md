@@ -100,7 +100,7 @@ vers quelqu'un qui vous a bloqué.
    firebase deploy --only firestore,storage,functions
    ```
    Les Cloud Functions demandent le plan Blaze (déjà actif). Adresse du site utilisée dans les
-   e-mails : paramètre `APP_URL` (demandé au premier déploiement, défaut `https://buddyetude.fr`).
+   e-mails : paramètre `APP_URL` (demandé au premier déploiement, défaut `https://buddyetude.com`).
 3. **Installer l'extension « Trigger Email from Firestore »** (console Firebase → Extensions),
    collection `mail`, avec le serveur SMTP d'un service d'envoi (Brevo, Mailjet… ont des offres
    gratuites). Sans elle, les e-mails restent dans la collection `mail` sans être envoyés.

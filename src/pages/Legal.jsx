@@ -6,7 +6,7 @@ import { useTranslation, Trans } from "react-i18next";
 const PUBLISHER = {
   name: "Charles BERTREUX",
   address: "13 rue du chanoine joseph mahé, 56000 Vannes",
-  email: "contact@buddyetude.fr",
+  email: "contact@buddyetude.com",
 };
 
 const HOST = {

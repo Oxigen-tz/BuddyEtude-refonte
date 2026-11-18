@@ -2,7 +2,7 @@ import React from "react";
 import { GraduationCap, Heart, Target } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-const CONTACT_EMAIL = "contact@buddyetude.fr";
+const CONTACT_EMAIL = "contact@buddyetude.com";
 
 export default function About() {
   const { t } = useTranslation();

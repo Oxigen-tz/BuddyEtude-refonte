@@ -480,7 +480,7 @@ export default function Settings() {
         <Link to={createPageUrl("About")} className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">{t('footer.about')}</Link>
         <Link to={createPageUrl("Legal")} className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">{t('footer.legal')}</Link>
         <Link to={createPageUrl("Privacy")} className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">{t('footer.privacy')}</Link>
-        <span>contact@buddyetude.fr</span>
+        <span>contact@buddyetude.com</span>
         <span className="sm:ml-auto">© {new Date().getFullYear()} BuddyEtude</span>
       </nav>
     </div>

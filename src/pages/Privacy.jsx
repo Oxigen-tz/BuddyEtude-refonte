@@ -2,7 +2,7 @@ import React from "react";
 import { ShieldCheck } from "lucide-react";
 import { useTranslation, Trans } from "react-i18next";
 
-const CONTACT_EMAIL = "contact@buddyetude.fr";
+const CONTACT_EMAIL = "contact@buddyetude.com";
 
 export default function Privacy() {
   const { t } = useTranslation();

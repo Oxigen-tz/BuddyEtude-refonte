@@ -75,8 +75,8 @@ export default function Footer() {
             <h3 className="font-semibold text-gray-900 dark:text-white mb-4">{t("footer.support")}</h3>
             <ul className="space-y-3">
               <li>
-                <a href="mailto:contact@buddyetude.fr" className="text-gray-500 hover:text-indigo-600 dark:text-gray-400 text-sm transition-colors flex items-center gap-2">
-                  <Mail className="w-4 h-4" /> contact@buddyetude.fr
+                <a href="mailto:contact@buddyetude.com" className="text-gray-500 hover:text-indigo-600 dark:text-gray-400 text-sm transition-colors flex items-center gap-2">
+                  <Mail className="w-4 h-4" /> contact@buddyetude.com
                 </a>
               </li>
               <li><Link to={createPageUrl("Legal")} className="text-gray-500 hover:text-indigo-600 dark:text-gray-400 text-sm transition-colors">{t("footer.legal")}</Link></li>
