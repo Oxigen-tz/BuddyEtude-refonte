@@ -40,7 +40,19 @@ const resources = {
           signupsTitle: "Inscriptions par semaine",
           weekOf: "Semaine du {{date}}",
           week: "Semaine",
-          signups: "Inscriptions"
+          signups: "Inscriptions",
+          verified: "Étudiants vérifiés",
+          helpRequests: "Demandes d'aide",
+          funnelTitle: "Parcours des étudiants",
+          funnelDesc: "Combien de comptes atteignent chaque étape : c'est là où le chiffre chute qu'il faut agir.",
+          funnelStep: "{{rate}} de l'étape précédente",
+          funnel: {
+            accounts: "Compte créé",
+            profiles: "Profil complété",
+            requested: "A envoyé ou reçu une demande",
+            matched: "A trouvé un binôme",
+            hadSession: "A planifié une session"
+          }
         },
         cleanup: {
           title: "Anciennes données",
@@ -177,6 +189,7 @@ const resources = {
               { label: "Compte :", text: "nom, adresse e-mail et photo de profil (fournis par Google ou saisis à l'inscription). Le mot de passe est géré par Google Firebase ; nous n'y avons jamais accès. Votre adresse e-mail n'est jamais affichée aux autres étudiants." },
               { label: "Profil :", text: "ville, niveau d'études, matières, disponibilités, mode de révision, présentation." },
               { label: "Âge :", text: "tranche d'âge (15 ans ou plus / moins de 15 ans) et, le cas échéant, déclaration d'accord parental. Ces informations sont privées." },
+              { label: "Statut étudiant (facultatif) :", text: "si vous demandez le badge « étudiant vérifié », l'adresse de votre établissement sert uniquement à vous envoyer un code ; elle est effacée dès la validation (ou au bout d'un jour), et seul son nom de domaine (ex. univ-rennes.fr) reste affiché sur votre profil. Une empreinte chiffrée de l'adresse est conservée pour qu'elle ne vérifie qu'un seul compte." },
               { label: "Activité :", text: "demandes de binôme, messages et fichiers échangés, groupes de révision et leurs discussions, sessions planifiées, dessins du tableau blanc et documents PDF qui y sont importés, avis laissés après une session, signalements et blocages." },
               { label: "Préférences :", text: "choix de recevoir ou non les e-mails de notification et le résumé du lundi, langue et thème d'affichage ; si vous activez les notifications push, un identifiant technique de votre appareil." },
               { label: "Données techniques :", text: "en cas d'erreur, un rapport technique (page, navigateur, message d'erreur) ; une vérification anti-abus (App Check) qui s'assure que les requêtes viennent bien du site." }
@@ -208,7 +221,8 @@ const resources = {
               { label: "Vercel :", text: "hébergement du site web (États-Unis)." },
               { label: "Brevo (France) :", text: "envoi des e-mails de notification." },
               { label: "Sentry :", text: "suivi des erreurs techniques, hébergé dans l'Union européenne." },
-              { label: "Jitsi Meet :", text: "les appels vidéo se font sur meet.jit.si, un service externe ; BuddyEtude ne fait que générer le lien et n'enregistre pas les appels." }
+              { label: "Jitsi Meet :", text: "les appels vidéo se font sur meet.jit.si, un service externe ; BuddyEtude ne fait que générer le lien et n'enregistre pas les appels." },
+              { label: "Services publics de l'État :", text: "pendant que vous tapez une ville ou un établissement, le texte saisi est envoyé à geo.api.gouv.fr et data.enseignementsup-recherche.gouv.fr pour proposer des suggestions (aucune autre donnée)." }
             ],
           },
           {
@@ -349,6 +363,33 @@ const resources = {
           error: "Action impossible. Réessayez."
         }
       },
+      verification: {
+        title: "Étudiant vérifié",
+        desc: "Confirme une adresse e-mail de ton établissement pour afficher le badge ✓ sur ton profil. Seul le nom de domaine (ex. univ-rennes.fr) sera visible, jamais ton adresse.",
+        verified: "Ton statut est vérifié avec une adresse @{{domain}}.",
+        start: "Vérifier mon statut",
+        emailLabel: "Adresse e-mail de ton établissement",
+        emailPlaceholder: "prenom.nom@ton-ecole.fr",
+        sendCode: "Recevoir un code",
+        codeLabel: "Code reçu par e-mail",
+        confirm: "Valider",
+        changeEmail: "Changer d'adresse",
+        remove: "Retirer le badge",
+        removeConfirm: "Retirer le badge « étudiant vérifié » de ton profil ?",
+        codeSent: "Code envoyé à {{email}} (regarde aussi les spams).",
+        done: "C'est fait : tu es vérifié(e) avec @{{domain}} !",
+        errors: {
+          "invalid-email": "Adresse e-mail invalide.",
+          "personal-email": "Utilise l'adresse fournie par ton établissement (pas Gmail, Outlook…).",
+          "email-used": "Cette adresse a déjà servi à vérifier un autre compte.",
+          "too-many-codes": "Trop de codes demandés aujourd'hui. Réessaie demain.",
+          "no-code": "Demande d'abord un code.",
+          expired: "Code expiré : demandes-en un nouveau.",
+          "too-many-attempts": "Trop d'essais : demande un nouveau code.",
+          "wrong-code": "Code incorrect.",
+          generic: "La vérification a échoué. Réessaie."
+        }
+      },
       invite: {
         title: "Invite tes camarades",
         desc: "Plus il y a d'étudiants de ta promo, plus tu trouveras vite le bon binôme.",
@@ -443,6 +484,11 @@ const resources = {
           prepa: "Prépa",
           bts_iut: "BTS / IUT",
           licence: "Licence",
+          pass_las: "Santé (PASS / LAS)",
+          bachelor: "Bachelor",
+          ecole_ingenieur: "École d'ingénieurs",
+          ecole_commerce: "École de commerce",
+          formation_continue: "Formation continue / alternance",
           master: "Master",
           doctorat: "Doctorat"
         },
@@ -470,9 +516,27 @@ const resources = {
         },
         toast: {
           success: "Demande envoyée avec succès !",
+          helpSuccess: "Demande d'aide envoyée !",
           error: "Impossible d'envoyer la demande",
-          loadError: "Impossible de charger les profils."
-        }
+          loadError: "Impossible de charger les profils.",
+          dailyLimit: "Tu as atteint la limite de {{count}} demandes par jour. Réessaie demain."
+        },
+        mode: {
+          label: "Type de recherche",
+          buddy: "Trouver un binôme",
+          help: "Trouver de l'aide",
+          helpDesc: "Étudiants « Avancé » dans les matières où tu es « Débutant » ou « Intermédiaire », et qui acceptent d'aider. Tape une matière pour chercher de l'aide sur un autre sujet.",
+          helpNoNeed: "Ajoute à ton profil une matière au niveau « Débutant » ou « Intermédiaire », ou tape une matière ci-dessous, pour trouver qui peut t'aider."
+        },
+        helpDialog: {
+          title: "Demander de l'aide",
+          desc: "Explique à <bold>{{name}}</bold> sur quoi tu bloques : un chapitre, un exercice, une notion…",
+          subject: "Matière",
+          placeholder: "Bonjour ! Je débute en… et je bloque sur…"
+        },
+        verifiedOnly: "Étudiants vérifiés uniquement",
+        contactWarning: "Ton message contient des coordonnées ou un lien. Pour ta sécurité, évite de les partager avant de connaître la personne : vous pourrez discuter dans BuddyEtude dès qu'elle aura accepté.",
+        sendAnyway: "Envoyer quand même"
       },
       // --- NOUVEAU : CARTE DE PROFIL (résultats de recherche) ---
       buddyCard: {
@@ -484,6 +548,9 @@ const resources = {
         block: "Bloquer",
         blocked: "{{name}} est bloqué(e) : vous ne verrez plus son profil.",
         blockError: "Impossible de bloquer cette personne.",
+        verified: "Étudiant vérifié ({{domain}})",
+        canHelp: "Peut t'aider en {{subjects}}",
+        askHelp: "Demander de l'aide",
         match: {
           subjects_one: "1 matière en commun",
           subjects_other: "{{count}} matières en commun",
@@ -499,6 +566,11 @@ const resources = {
           prepa: "Prépa",
           bts_iut: "BTS/IUT",
           licence: "Licence",
+          pass_las: "Santé (PASS / LAS)",
+          bachelor: "Bachelor",
+          ecole_ingenieur: "École d'ingénieurs",
+          ecole_commerce: "École de commerce",
+          formation_continue: "Formation continue / alternance",
           master: "Master",
           doctorat: "Doctorat",
           autre: "Autre"
@@ -553,6 +625,9 @@ const resources = {
         pendingRequest: {
           title: "Nouvelle demande",
           desc: "<bold>{{name}}</bold> souhaite réviser avec vous. Acceptez pour lancer la messagerie.",
+          helpTitle: "Demande d'aide en {{subject}}",
+          helpDesc: "<bold>{{name}}</bold> débute en {{subject}} et aimerait ton aide. Accepte pour lancer la discussion.",
+          contactWarning: "Ce message contient des coordonnées ou un lien : restez sur BuddyEtude tant que vous ne vous connaissez pas.",
           accept: "Accepter",
           reject: "Refuser"
         },
@@ -728,6 +803,9 @@ const resources = {
         validation: {
           incomplete: "Ajoutez un nom affiché, au moins une matière, et votre niveau d'études ou votre établissement."
         },
+        mentor: "J'aide les débutants",
+        mentorDesc: "Les étudiants « Débutant » ou « Intermédiaire » pourront te demander de l'aide dans tes matières « Avancé ».",
+        mentorNeedsAdvanced: "Indique au moins une matière au niveau « Avancé » pour proposer ton aide.",
         subjectLevels: {
           debutant: "💡 Débutant (Besoin d'aide)",
           intermediaire: "🤝 Intermédiaire (Je gère)",
@@ -892,7 +970,19 @@ const resources = {
           signupsTitle: "Sign-ups per week",
           weekOf: "Week of {{date}}",
           week: "Week",
-          signups: "Sign-ups"
+          signups: "Sign-ups",
+          verified: "Verified students",
+          helpRequests: "Help requests",
+          funnelTitle: "Student journey",
+          funnelDesc: "How many accounts reach each step: act where the number drops.",
+          funnelStep: "{{rate}} of the previous step",
+          funnel: {
+            accounts: "Account created",
+            profiles: "Profile completed",
+            requested: "Sent or received a request",
+            matched: "Found a study buddy",
+            hadSession: "Scheduled a session"
+          }
         },
         cleanup: {
           title: "Old data",
@@ -1029,6 +1119,7 @@ const resources = {
               { label: "Account:", text: "name, email address and profile photo (provided by Google or entered at sign-up). Passwords are handled by Google Firebase; we never have access to them. Your email address is never shown to other students." },
               { label: "Profile:", text: "city, level of study, subjects, availability, study mode, bio." },
               { label: "Age:", text: "age bracket (15 or over / under 15) and, where applicable, a declaration of parental consent. This information is private." },
+              { label: "Student status (optional):", text: "if you request the “verified student” badge, your school address is only used to send you a code; it is erased as soon as you confirm (or after one day), and only its domain name (e.g. univ-rennes.fr) is shown on your profile. A hashed fingerprint of the address is kept so it can verify only one account." },
               { label: "Activity:", text: "study buddy requests, messages and files exchanged, study groups and their chats, scheduled sessions, whiteboard drawings and PDF documents imported into it, feedback after a session, reports and blocks." },
               { label: "Preferences:", text: "whether you receive notification emails and the Monday digest, language and display theme; if you turn on push notifications, a technical identifier of your device." },
               { label: "Technical data:", text: "when an error occurs, a technical report (page, browser, error message); an anti-abuse check (App Check) that makes sure requests come from the real site." }
@@ -1060,7 +1151,8 @@ const resources = {
               { label: "Vercel:", text: "website hosting (United States)." },
               { label: "Brevo (France):", text: "sending notification emails." },
               { label: "Sentry:", text: "technical error tracking, hosted in the European Union." },
-              { label: "Jitsi Meet:", text: "video calls take place on meet.jit.si, an external service; BuddyEtude only generates the link and does not record calls." }
+              { label: "Jitsi Meet:", text: "video calls take place on meet.jit.si, an external service; BuddyEtude only generates the link and does not record calls." },
+              { label: "French government open data services:", text: "while you type a city or a school, the typed text is sent to geo.api.gouv.fr and data.enseignementsup-recherche.gouv.fr to suggest options (no other data)." }
             ]
           },
           {
@@ -1201,6 +1293,33 @@ const resources = {
           error: "Action failed. Please try again."
         }
       },
+      verification: {
+        title: "Verified student",
+        desc: "Confirm an email address from your school to show the ✓ badge on your profile. Only the domain name (e.g. univ-rennes.fr) will be visible, never your address.",
+        verified: "Your status is verified with an @{{domain}} address.",
+        start: "Verify my status",
+        emailLabel: "Your school email address",
+        emailPlaceholder: "firstname.lastname@your-school.edu",
+        sendCode: "Get a code",
+        codeLabel: "Code received by email",
+        confirm: "Confirm",
+        changeEmail: "Change address",
+        remove: "Remove badge",
+        removeConfirm: "Remove the “verified student” badge from your profile?",
+        codeSent: "Code sent to {{email}} (check your spam folder too).",
+        done: "Done: you're verified with @{{domain}}!",
+        errors: {
+          "invalid-email": "Invalid email address.",
+          "personal-email": "Use the address provided by your school (not Gmail, Outlook…).",
+          "email-used": "This address has already been used to verify another account.",
+          "too-many-codes": "Too many codes requested today. Try again tomorrow.",
+          "no-code": "Request a code first.",
+          expired: "Code expired: request a new one.",
+          "too-many-attempts": "Too many attempts: request a new code.",
+          "wrong-code": "Wrong code.",
+          generic: "Verification failed. Please try again."
+        }
+      },
       invite: {
         title: "Invite your classmates",
         desc: "The more students from your class join, the faster you'll find the right study buddy.",
@@ -1295,6 +1414,11 @@ const resources = {
           prepa: "Prep school",
           bts_iut: "Associate degree",
           licence: "Bachelor's",
+          pass_las: "Health studies (PASS / LAS)",
+          bachelor: "Bachelor",
+          ecole_ingenieur: "Engineering school",
+          ecole_commerce: "Business school",
+          formation_continue: "Continuing education / work-study",
           master: "Master's",
           doctorat: "PhD"
         },
@@ -1323,8 +1447,26 @@ const resources = {
         toast: {
           success: "Request sent successfully!",
           error: "Couldn't send the request",
-          loadError: "Couldn't load profiles."
-        }
+          loadError: "Couldn't load profiles.",
+          helpSuccess: "Help request sent!",
+          dailyLimit: "You've reached the limit of {{count}} requests per day. Try again tomorrow."
+        },
+        mode: {
+          label: "Search type",
+          buddy: "Find a study buddy",
+          help: "Find help",
+          helpDesc: "“Advanced” students in the subjects where you're “Beginner” or “Intermediate”, who are happy to help. Type a subject to look for help on another topic.",
+          helpNoNeed: "Add a subject at “Beginner” or “Intermediate” level to your profile, or type a subject below, to find who can help you."
+        },
+        helpDialog: {
+          title: "Ask for help",
+          desc: "Tell <bold>{{name}}</bold> what you're stuck on: a chapter, an exercise, a concept…",
+          subject: "Subject",
+          placeholder: "Hi! I'm a beginner in… and I'm stuck on…"
+        },
+        verifiedOnly: "Verified students only",
+        contactWarning: "Your message contains contact details or a link. For your safety, avoid sharing them before you know the person: you can chat on BuddyEtude as soon as they accept.",
+        sendAnyway: "Send anyway"
       },
       // --- NEW: PROFILE CARD (search results) ---
       buddyCard: {
@@ -1336,6 +1478,9 @@ const resources = {
         block: "Block",
         blocked: "{{name}} is blocked: you will no longer see their profile.",
         blockError: "Could not block this person.",
+        verified: "Verified student ({{domain}})",
+        canHelp: "Can help you with {{subjects}}",
+        askHelp: "Ask for help",
         match: {
           subjects_one: "1 subject in common",
           subjects_other: "{{count}} subjects in common",
@@ -1351,6 +1496,11 @@ const resources = {
           prepa: "Prep school",
           bts_iut: "Associate degree",
           licence: "Bachelor's",
+          pass_las: "Health studies (PASS / LAS)",
+          bachelor: "Bachelor",
+          ecole_ingenieur: "Engineering school",
+          ecole_commerce: "Business school",
+          formation_continue: "Continuing education / work-study",
           master: "Master's",
           doctorat: "PhD",
           autre: "Other"
@@ -1405,6 +1555,9 @@ const resources = {
         pendingRequest: {
           title: "New request",
           desc: "<bold>{{name}}</bold> wants to study with you. Accept to start messaging.",
+          helpTitle: "Help request in {{subject}}",
+          helpDesc: "<bold>{{name}}</bold> is a beginner in {{subject}} and would like your help. Accept to start chatting.",
+          contactWarning: "This message contains contact details or a link: stay on BuddyEtude until you know each other.",
           accept: "Accept",
           reject: "Decline"
         },
@@ -1580,6 +1733,9 @@ const resources = {
         validation: {
           incomplete: "Add a display name, at least one subject, and your study level or school."
         },
+        mentor: "I help beginners",
+        mentorDesc: "Students at “Beginner” or “Intermediate” level can ask you for help in your “Advanced” subjects.",
+        mentorNeedsAdvanced: "Add at least one subject at “Advanced” level to offer your help.",
         subjectLevels: {
           debutant: "💡 Beginner (Needs help)",
           intermediaire: "🤝 Intermediate (Comfortable)",

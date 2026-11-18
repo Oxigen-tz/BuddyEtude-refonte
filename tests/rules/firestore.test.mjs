@@ -24,12 +24,17 @@ export async function firestoreTests(env, t) {
   await t("profil : créer le sien (sans email)", assertSucceeds(setDoc(doc(a, "users", A), { uid: A, display_name: "Alice", profile_complete: true, profile_visible: true, subjects: ["Maths"], level: "licence" })));
   await t("profil : email dans le profil refusé", assertFails(setDoc(doc(c, "users", C), { display_name: "Eve", email: "eve@test.com" })));
   await t("profil : écrire celui d'un autre refusé", assertFails(setDoc(doc(c, "users", A), { display_name: "pirate" }, { merge: true })));
+  await t("profil : se déclarer « étudiant vérifié » soi-même refusé", assertFails(setDoc(doc(a, "users", A), { verified_domain: "univ-test.fr" }, { merge: true })));
+  await t("profil : créer un profil déjà « vérifié » refusé", assertFails(setDoc(doc(c, "users", C), { display_name: "Eve", verified_domain: "x.fr" })));
   await t("profil : se débannir soi-même refusé", assertFails(setDoc(doc(banned, "users", BANNED), { banned: false }, { merge: true })));
   await t("profil : recherche (requête de l'app)", assertSucceeds(getDocs(query(collection(b, "users"), where("profile_complete", "==", true), where("profile_visible", "==", true), limit(300)))));
   await t("profil : recherche sans filtre de visibilité refusée", assertFails(getDocs(query(collection(b, "users"), where("profile_complete", "==", true)))));
   await t("profil : profil masqué illisible par un autre", assertFails(getDoc(doc(b, "users", BANNED))));
   await t("profil : profil masqué lisible par la modération", assertSucceeds(getDoc(doc(admin, "users", BANNED))));
   await t("profil : données privées lisibles par le propriétaire", assertSucceeds(setDoc(doc(a, "users", A, "private", "settings"), { email_notifications: false, age_bracket: "15plus" })));
+  await t("profil : code de vérification illisible même par le propriétaire", assertFails(getDoc(doc(a, "users", A, "private", "verification"))));
+  await t("profil : quota de demandes non modifiable par le propriétaire", assertFails(setDoc(doc(a, "users", A, "private", "quota"), { requests: [] })));
+  await t("profil : préférences push modifiables par le propriétaire", assertSucceeds(setDoc(doc(a, "users", A, "private", "push"), { tokens: ["t1"] })));
   await t("profil : données privées illisibles par un autre", assertFails(getDoc(doc(b, "users", A, "private", "settings"))));
   await t("profil : visiteur refusé", assertFails(getDocs(collection(anon, "users"))));
 

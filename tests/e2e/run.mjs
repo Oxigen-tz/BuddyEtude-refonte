@@ -93,8 +93,8 @@ async function googleLogin(page, { email, name, create }) {
 async function completeProfile(page, { level, subject }) {
   await page.goto(BASE + "/Profile");
   await page.getByRole("button", { name: /Enregistrer/ }).waitFor({ timeout: 15000 });
-  await page.getByRole("combobox").first().click();
-  await page.getByRole("option", { name: level }).click();
+  await page.getByRole("combobox", { name: "Niveau d'études" }).click();
+  await page.getByRole("option", { name: level, exact: true }).click();
   await page.getByRole("button", { name: subject }).click();
   await page.getByText("J'ai 15 ans ou plus").click();
   await page.getByRole("button", { name: /Enregistrer/ }).click();
@@ -132,8 +132,25 @@ async function scenario(browser) {
     const first = await A.locator("div.group h3").first().innerText();
     if (first !== U.bob.name) throw new Error(`premier profil : ${first}`);
   });
-  await step("Alice envoie une demande à Bob", async () => {
+  await step("Mentorat : Bob (« Avancé ») apparaît dans « Trouver de l'aide » pour Alice", async () => {
+    // Bob passe « Avancé » en Mathématiques (Alice y est « Intermédiaire »)
+    const bobUid = await uidOf(U.bob.name);
+    await fetch(`${FIRESTORE}/users/${bobUid}?updateMask.fieldPaths=subjects`, {
+      method: "PATCH", headers: { "Content-Type": "application/json", Authorization: "Bearer owner" },
+      body: JSON.stringify({ fields: { subjects: { arrayValue: { values: [{ mapValue: { fields: { name: { stringValue: "Mathématiques" }, level: { stringValue: "avance" } } } }] } } } }),
+    });
+    await A.reload();
+    await A.getByRole("tab", { name: /Trouver de l'aide/ }).click();
+    await card(A, U.bob.name).getByText("Peut t'aider en Mathématiques").waitFor({ timeout: 15000 });
+    await card(A, U.bob.name).getByRole("button", { name: /Demander de l'aide/ }).waitFor();
+    if (await card(A, U.eve.name).count()) throw new Error("Eve (pas « Avancé ») apparaît en mode aide");
+    await A.getByRole("tab", { name: /Trouver un binôme/ }).click();
+  });
+  await step("Alice envoie une demande à Bob (avertissement si numéro de téléphone)", async () => {
     await card(A, U.bob.name).getByRole("button", { name: /Contacter/ }).click();
+    await A.getByRole("dialog").locator("textarea").fill("Appelle-moi au 06 12 34 56 78");
+    await A.getByRole("dialog").getByRole("button", { name: /Envoyer/ }).click();
+    await A.getByRole("dialog").getByRole("alert").waitFor({ timeout: 5000 });
     await A.getByRole("dialog").locator("textarea").fill("Salut, on révise les maths ?");
     await A.getByRole("dialog").getByRole("button", { name: /Envoyer/ }).click();
     await card(A, U.bob.name).getByRole("button", { name: /Demande envoyée/ }).waitFor({ timeout: 10000 });

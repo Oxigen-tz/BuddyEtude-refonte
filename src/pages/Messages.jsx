@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useRequests, buildRelations } from "@/hooks/useRequests";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
+import { detectContactInfo } from "@/lib/safety";
 import { pairId } from "@/lib/pairs";
 import { createPageUrl } from "@/utils";
 import { Input } from "@/components/ui/input";
@@ -59,7 +60,7 @@ export default function Messages() {
     const relations = buildRelations(requests);
     return [...relations.entries()]
       .filter(([, r]) => r.status === "buddy" || r.status === "received")
-      .map(([uid, r]) => ({ uid, name: r.name, requestId: r.requestId, isPending: r.status === "received" }))
+      .map(([uid, r]) => ({ uid, name: r.name, requestId: r.requestId, isPending: r.status === "received", kind: r.kind, subject: r.subject, message: r.message }))
       // Demandes en attente en haut, puis ordre alphabétique
       .sort((a, b) => Number(b.isPending) - Number(a.isPending) || a.name.localeCompare(b.name));
   }, [requests]);
@@ -364,14 +365,27 @@ export default function Messages() {
                   <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
                     <UserPlus className="w-10 h-10 text-indigo-600 dark:text-indigo-400" />
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{t('messages.pendingRequest.title')}</h3>
-                  <p className="text-gray-500 dark:text-gray-400 mb-8">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                    {activeChat.kind === "help" ? t('messages.pendingRequest.helpTitle', { subject: activeChat.subject }) : t('messages.pendingRequest.title')}
+                  </h3>
+                  <p className="text-gray-500 dark:text-gray-400 mb-4">
                     <Trans
-                      i18nKey="messages.pendingRequest.desc"
-                      values={{ name: activeChat.name }}
+                      i18nKey={activeChat.kind === "help" ? "messages.pendingRequest.helpDesc" : "messages.pendingRequest.desc"}
+                      values={{ name: activeChat.name, subject: activeChat.subject }}
                       components={{ bold: <strong className="text-gray-900 dark:text-gray-100" /> }}
                     />
                   </p>
+                  {activeChat.message && (
+                    <blockquote className="text-left text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-[#131314] border border-gray-100 dark:border-[#333537] rounded-2xl p-4 mb-4 whitespace-pre-wrap break-words">
+                      {activeChat.message}
+                    </blockquote>
+                  )}
+                  {detectContactInfo(activeChat.message) && (
+                    <p role="note" className="flex gap-2 text-left text-xs text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10 rounded-xl p-3 mb-4">
+                      <AlertTriangle className="w-4 h-4 shrink-0" /> {t('messages.pendingRequest.contactWarning')}
+                    </p>
+                  )}
+                  <div className="mb-4" />
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
                     <Button onClick={handleAcceptRequest} className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl px-6 h-12">
                       <Check className="w-5 h-5 mr-2" /> {t('messages.pendingRequest.accept')}

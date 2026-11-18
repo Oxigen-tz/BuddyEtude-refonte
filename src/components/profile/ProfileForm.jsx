@@ -6,14 +6,13 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { X, Plus, Save, Loader2 } from "lucide-react";
+import { X, Plus, Save, Loader2, MapPin, School } from "lucide-react";
+import Autocomplete from "@/components/ui/Autocomplete";
+import { LEVEL_VALUES, POPULAR_SUBJECTS, suggestSubjects, suggestCities, suggestSchools } from "@/lib/catalog";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 
-// Valeurs techniques uniquement : le libellé de niveau vient de
-// buddyCard.levels.<value> (même liste que la carte de profil, une seule
-// source de vérité), résolu au rendu.
-const LEVEL_VALUES = ["college", "lycee", "prepa", "bts_iut", "licence", "master", "doctorat", "autre"];
+// Niveaux d'études, matières, villes et établissements : voir src/lib/catalog.js
 const STYLE_VALUES = ["visuel", "auditif", "pratique", "lecture", "mixte"];
 const SUBJECT_LEVEL_VALUES = ["debutant", "intermediaire", "avance"];
 
@@ -22,24 +21,12 @@ const SUBJECT_LEVEL_VALUES = ["debutant", "intermediaire", "avance"];
 // seul l'affichage passe par profileForm.availabilityLabels.<valeur>.
 const AVAILABILITIES = ["Matin", "Après-midi", "Soir", "Week-end"];
 
-const POPULAR_SUBJECTS = ["Mathématiques", "Physique", "Chimie", "SVT", "Anglais", "Informatique", "Économie"];
-
-const ALL_SUBJECTS = [
-  "Algorithmique", "Allemand", "Anatomie", "Anglais", "Architecture", "Arts Plastiques", 
-  "Biologie", "Chimie", "Commerce", "Comptabilité", "Design", "Droit", "Droit Administratif", 
-  "Droit Civil", "Droit Pénal", "Économie", "Espagnol", "Finance", "Français", "Géographie", 
-  "Génie Civil", "Génie Électrique", "Gestion", "Histoire", "Informatique", "Italien", 
-  "Littérature", "Management", "Marketing", "Mathématiques", "Mécanique", "Médecine", 
-  "Philosophie", "Physique", "Physique Quantique", "Programmation", "Psychologie", 
-  "Réseaux", "Sciences de l'Ingénieur", "Sociologie", "Statistiques", "STAPS", "SVT"
-];
-
 export default function ProfileForm({ profile, onSave, saving }) {
   const { t } = useTranslation();
   const [form, setForm] = useState({
     display_name: "", bio: "", school: "", level: "",
     subjects: [], goals: [], availability: [], study_style: "",
-    city: "", is_online: true, is_in_person: false,
+    city: "", is_online: true, is_in_person: false, mentor_available: true,
     age_bracket: "", parental_consent: false,
   });
 
@@ -127,12 +114,9 @@ export default function ProfileForm({ profile, onSave, saving }) {
 
   const getLevelLabel = (val) => t(`profileForm.subjectLevels.${val}`, val);
 
-  const filteredSuggestions = newSubjectName.trim() === "" 
-    ? [] 
-    : ALL_SUBJECTS.filter(s => 
-        s.toLowerCase().startsWith(newSubjectName.toLowerCase()) && 
-        !(Array.isArray(form.subjects) && form.subjects.some(existing => existing.name.toLowerCase() === s.toLowerCase()))
-      );
+  const filteredSuggestions = suggestSubjects(newSubjectName, (form.subjects || []).map((x) => x.name));
+  const hasAdvancedSubject = (form.subjects || []).some((x) => x.level === "avance");
+  const fieldClass = "h-10 bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-gray-100 rounded-xl";
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8 animate-in fade-in duration-300">
@@ -153,12 +137,16 @@ export default function ProfileForm({ profile, onSave, saving }) {
           </div>
           <div className="space-y-2">
             <Label className="dark:text-gray-300">{t('profileForm.city')}</Label>
-            <Input 
-              value={form.city} 
-              onChange={(e) => setForm({ ...form, city: e.target.value })} 
-              placeholder={t('profileForm.cityPlaceholder')} 
+            <Autocomplete
+              id="profile-city"
+              ariaLabel={t('profileForm.city')}
+              value={form.city}
+              onChange={(v) => setForm((f) => ({ ...f, city: v }))}
+              fetchOptions={suggestCities}
+              placeholder={t('profileForm.cityPlaceholder')}
               maxLength={60}
-              className="bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-gray-100 rounded-xl"
+              icon={MapPin}
+              inputClassName={`${fieldClass} pl-11`}
             />
           </div>
         </div>
@@ -175,18 +163,22 @@ export default function ProfileForm({ profile, onSave, saving }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="space-y-2">
             <Label className="dark:text-gray-300">{t('profileForm.school')}</Label>
-            <Input 
-              value={form.school} 
-              onChange={(e) => setForm({ ...form, school: e.target.value })} 
-              placeholder={t('profileForm.schoolPlaceholder')} 
-              maxLength={80}
-              className="bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-gray-100 rounded-xl"
+            <Autocomplete
+              id="profile-school"
+              ariaLabel={t('profileForm.school')}
+              value={form.school}
+              onChange={(v) => setForm((f) => ({ ...f, school: v }))}
+              fetchOptions={suggestSchools}
+              placeholder={t('profileForm.schoolPlaceholder')}
+              maxLength={120}
+              icon={School}
+              inputClassName={`${fieldClass} pl-11`}
             />
           </div>
           <div className="space-y-2">
             <Label className="dark:text-gray-300">{t('profileForm.level')}</Label>
             <Select value={form.level} onValueChange={(v) => setForm({ ...form, level: v })}>
-              <SelectTrigger className="bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-gray-100 rounded-xl">
+              <SelectTrigger aria-label={t('profileForm.level')} className="bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-gray-100 rounded-xl">
                 <SelectValue placeholder={t('profileForm.levelPlaceholder')} />
               </SelectTrigger>
               <SelectContent className="dark:bg-[#1e1f20] dark:border-[#333537] dark:text-gray-100">
@@ -276,6 +268,17 @@ export default function ProfileForm({ profile, onSave, saving }) {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Mentorat : aider les débutants dans ses matières « Avancé » */}
+        <div className="flex items-start justify-between gap-6 pt-3 border-t border-indigo-100 dark:border-[#333537]">
+          <div>
+            <p className="font-medium text-sm text-gray-900 dark:text-gray-100">{t('profileForm.mentor')}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              {hasAdvancedSubject ? t('profileForm.mentorDesc') : t('profileForm.mentorNeedsAdvanced')}
+            </p>
+          </div>
+          <Switch aria-label={t('profileForm.mentor')} checked={form.mentor_available !== false} onCheckedChange={(v) => setForm({ ...form, mentor_available: v })} />
         </div>
       </div>
 

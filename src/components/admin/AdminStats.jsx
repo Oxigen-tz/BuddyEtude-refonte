@@ -39,6 +39,8 @@ export default function AdminStats() {
     { key: "rating", value: stats.ratingAverage == null ? "–" : `${nf.format(stats.ratingAverage)} / 5`, hint: t("admin.stats.ratingCount", { count: stats.ratingCount }) },
     { key: "pendingRequests", value: stats.pendingRequests },
     { key: "pendingReports", value: stats.pendingReports },
+    { key: "verified", value: stats.verified ?? 0 },
+    { key: "helpRequests", value: stats.helpRequests ?? 0 },
   ] : [];
 
   return (
@@ -67,6 +69,7 @@ export default function AdminStats() {
               </div>
             ))}
           </div>
+          {stats.funnel && <Funnel steps={stats.funnel} />}
           <SignupsChart weeks={stats.weeks} />
         </>
       )}
@@ -120,6 +123,44 @@ function SignupsChart({ weeks }) {
         <thead><tr><th>{t("admin.stats.week")}</th><th>{t("admin.stats.signups")}</th></tr></thead>
         <tbody>{weeks.map((w) => <tr key={w.start}><td>{label(w)}</td><td>{w.count}</td></tr>)}</tbody>
       </table>
+    </figure>
+  );
+}
+
+// Entonnoir : part des comptes à chaque étape, et passage depuis l'étape précédente
+function Funnel({ steps }) {
+  const { t, i18n } = useTranslation();
+  const pct = new Intl.NumberFormat(i18n.language, { style: "percent", maximumFractionDigits: 0 });
+  const base = Math.max(1, steps[0]?.count || 0);
+  return (
+    <figure className="p-5 mb-6 bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] rounded-2xl">
+      <figcaption className="text-sm font-semibold text-gray-900 dark:text-white">{t("admin.stats.funnelTitle")}</figcaption>
+      <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{t("admin.stats.funnelDesc")}</p>
+      <ol className="space-y-3">
+        {steps.map((step, i) => {
+          const share = step.count / base;
+          const prev = i > 0 ? steps[i - 1].count : null;
+          return (
+            <li key={step.key}>
+              <div className="flex items-baseline justify-between gap-3 text-sm mb-1">
+                <span className="text-gray-700 dark:text-gray-300">{t(`admin.stats.funnel.${step.key}`)}</span>
+                <span className="tabular-nums text-gray-900 dark:text-white font-semibold">
+                  {step.count}
+                  <span className="ml-2 text-xs font-normal text-gray-500 dark:text-gray-400">{pct.format(share)}</span>
+                </span>
+              </div>
+              <div className="h-2.5 rounded-full bg-gray-100 dark:bg-[#282a2c] overflow-hidden">
+                <div className="h-full rounded-full bg-indigo-500 dark:bg-indigo-400" style={{ width: `${Math.max(share * 100, step.count ? 1.5 : 0)}%` }} />
+              </div>
+              {prev !== null && prev > 0 && (
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+                  {t("admin.stats.funnelStep", { rate: pct.format(step.count / prev) })}
+                </p>
+              )}
+            </li>
+          );
+        })}
+      </ol>
     </figure>
   );
 }

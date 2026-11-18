@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { db, auth, storage } from "../firebase/config";
+import { db, auth, storage, functions } from "../firebase/config";
 import { doc, getDoc, setDoc, deleteDoc, collection, query, where, getDocs, writeBatch, onSnapshot } from "firebase/firestore";
 import { ref, deleteObject } from "firebase/storage";
 import { reauthenticateWithPopup, reauthenticateWithCredential, EmailAuthProvider, GoogleAuthProvider, OAuthProvider, deleteUser } from "firebase/auth";
 import { privateSettingsRef } from "../firebase/services";
+import { httpsCallable } from "firebase/functions";
 import { pushSupported, pushEnabledHere, enablePush, disablePush } from "@/lib/push";
 import { unblockUser } from "@/hooks/useBlocks";
 import { Button } from "@/components/ui/button";
@@ -219,6 +220,8 @@ export default function Settings() {
       }
 
       // 4. Mes données privées puis mon profil
+      // Côté serveur : données privées, fichiers, groupes, avis (fonction deleteMyData)
+      await httpsCallable(functions, "deleteMyData")();
       await deleteDoc(privateSettingsRef(uid)).catch(() => {});
       await deleteDoc(doc(db, "users", uid));
 

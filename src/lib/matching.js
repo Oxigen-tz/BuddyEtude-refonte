@@ -29,3 +29,17 @@ export function computeMatch(me, other) {
 
   return { score, sharedSubjects, sameLevel, sameCity, sameSchool, sharedSlots };
 }
+
+// Mentorat : matières où `other` est « Avancé » (et accepte d'aider) alors que `me` y est
+// « Débutant » ou « Intermédiaire ». Si `subjectFilter` est donné, seulement cette matière.
+export function computeHelp(me, other, subjectFilter = "") {
+  if (!me || !other || other.mentor_available === false) return [];
+  const needs = new Set((me.subjects || [])
+    .filter((s) => typeof s !== "string" && (s.level === "debutant" || s.level === "intermediaire"))
+    .map((s) => norm(subjectName(s))));
+  const filter = norm(subjectFilter || "");
+  return (other.subjects || [])
+    .filter((s) => typeof s !== "string" && s.level === "avance")
+    .map(subjectName)
+    .filter((name) => name && (filter ? norm(name).includes(filter) : needs.has(norm(name))));
+}

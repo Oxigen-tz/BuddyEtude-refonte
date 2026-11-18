@@ -57,20 +57,25 @@ service cloud.firestore {
 
       // On n'écrit que son propre profil ; l'email n'y est plus stocké (vie privée)
       // et on ne peut pas modifier soi-même le bannissement
+      // banned (modération) et verified_* (badge « étudiant vérifié », posé par le serveur)
+      // ne sont jamais écrits par l'utilisateur lui-même
       allow create: if signedIn() && me() == userId
         && !('email' in request.resource.data)
-        && !('banned' in request.resource.data);
+        && !request.resource.data.keys().hasAny(['banned', 'verified_domain', 'verified_at']);
       allow update: if signedIn() && me() == userId
         && !('email' in request.resource.data)
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['banned']);
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['banned', 'verified_domain', 'verified_at']);
       allow delete: if signedIn() && me() == userId;
 
       // Modération : bannir / masquer un profil
       allow update: if isAdmin() && onlyChanges(['banned', 'profile_visible']);
 
       // Données privées (préférences de notification, âge…) : propriétaire seulement
+      // (sauf les documents tenus par le serveur : quota de demandes, code de vérification
+      // étudiant, anti-spam des e-mails, que l'utilisateur ne doit ni lire ni modifier)
       match /private/{docId} {
-        allow read, write: if signedIn() && me() == userId;
+        allow read, write: if signedIn() && me() == userId
+          && !(docId in ['quota', 'verification', 'notif_state']);
       }
     }
 

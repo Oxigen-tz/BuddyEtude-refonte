@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MapPin, GraduationCap, Send, Check, AlertTriangle, Loader2, MessageSquare, Inbox, Ban, Sparkles } from "lucide-react";
+import { MapPin, GraduationCap, Send, Check, AlertTriangle, Loader2, MessageSquare, Inbox, Ban, Sparkles, BadgeCheck, HandHelping } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,7 +17,7 @@ const REPORT_REASON_VALUES = ["harassment", "spam", "fake", "inappropriate", "ot
 
 // relation : null (aucune), "sent" (demande envoyée), "received" (demande reçue), "buddy" (binôme)
 // match : compatibilité calculée par lib/matching.js (matières en commun, niveau, ville)
-export default function BuddyCard({ profile, match, onRequest, onOpenConversation, relation, isOwnProfile }) {
+export default function BuddyCard({ profile, match, help = [], mode = "buddy", onRequest, onOpenConversation, relation, isOwnProfile }) {
   const { user } = useAuth();
   const { t } = useTranslation();
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
@@ -91,7 +91,14 @@ export default function BuddyCard({ profile, match, onRequest, onOpenConversatio
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0">
-              <h3 className="font-bold text-gray-900 dark:text-white text-base truncate font-serif">{name}</h3>
+              <h3 className="font-bold text-gray-900 dark:text-white text-base truncate font-serif flex items-center gap-1.5">
+                <span className="truncate">{name}</span>
+                {profile.verified_domain && (
+                  <BadgeCheck className="w-4 h-4 shrink-0 text-sky-500" aria-label={t('buddyCard.verified', { domain: profile.verified_domain })}>
+                    <title>{t('buddyCard.verified', { domain: profile.verified_domain })}</title>
+                  </BadgeCheck>
+                )}
+              </h3>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-xs text-gray-500 dark:text-gray-400 font-sans font-medium">
                 {profile.level && (
                   <span className="flex items-center gap-1">
@@ -152,6 +159,14 @@ export default function BuddyCard({ profile, match, onRequest, onOpenConversatio
           </div>
         )}
 
+        {/* --- MENTORAT : peut m'aider dans ces matières --- */}
+        {!isOwnProfile && help.length > 0 && (
+          <div className="mt-3 flex items-start gap-1.5 text-[11px] font-medium text-amber-700 dark:text-amber-400">
+            <HandHelping className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+            <span>{t('buddyCard.canHelp', { subjects: help.slice(0, 3).join(", ") })}</span>
+          </div>
+        )}
+
         {/* --- COMPATIBILITÉ --- */}
         {!isOwnProfile && match && (match.sharedSubjects.length > 0 || match.sameSchool || match.sameLevel || match.sameCity) && (
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
@@ -200,7 +215,9 @@ export default function BuddyCard({ profile, match, onRequest, onOpenConversatio
               className="w-full rounded-xl font-medium text-sm py-5 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white shadow-sm"
               onClick={() => onRequest(profile)}
             >
-              <Send className="w-4 h-4 mr-1.5" /> {t('buddyCard.contact')}
+              {mode === "help"
+                ? <><HandHelping className="w-4 h-4 mr-1.5" /> {t('buddyCard.askHelp')}</>
+                : <><Send className="w-4 h-4 mr-1.5" /> {t('buddyCard.contact')}</>}
             </Button>
           )}
         </div>

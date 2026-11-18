@@ -40,9 +40,9 @@ http://127.0.0.1:4000.
 | Commande                 | Ce qui est vérifié                                                         |
 | ------------------------ | -------------------------------------------------------------------------- |
 | `npm run lint`           | ESLint                                                                     |
-| `npm run test:rules`     | 112 cas : règles Firestore et Storage (qui peut lire / écrire quoi)         |
-| `npm run test:functions` | 15 cas : e-mails, rappels, résumé du lundi, statistiques, nettoyage, purges |
-| `npm run test:e2e`       | Scénario complet dans Chrome avec trois étudiants (29 étapes)              |
+| `npm run test:rules`     | 117 cas : règles Firestore et Storage (qui peut lire / écrire quoi)         |
+| `npm run test:functions` | 18 cas : e-mails, rappels, résumé, quota, vérification, statistiques, purges |
+| `npm run test:e2e`       | Scénario complet dans Chrome avec trois étudiants (30 étapes)              |
 | `npm test`               | Les trois suites de tests                                                  |
 
 Les tests tournent sur les émulateurs (projet fictif `demo-buddyetude`). Le scénario de bout en
@@ -162,6 +162,21 @@ prochaine connexion de chacun.
 
 Ces durées sont celles annoncées dans la Politique de confidentialité (`privacy.sections` dans
 `src/i18n.js`) : les modifier aux deux endroits.
+
+## Mentorat, vérification, anti-abus
+
+- **Mentorat** : un étudiant « Avancé » dans une matière (et qui n'a pas désactivé « J'aide les
+  débutants ») apparaît dans l'onglet « Trouver de l'aide » de la recherche pour ceux qui y sont
+  « Débutant » ou « Intermédiaire ». La demande porte `kind: "help"` et la matière.
+- **Étudiant vérifié** : code à 6 chiffres envoyé sur l'adresse de l'établissement
+  (`requestStudentVerification` / `confirmStudentVerification`) ; seul `verified_domain` est
+  écrit dans le profil (champ interdit en écriture aux utilisateurs par les règles). Messageries
+  grand public refusées, une adresse = un compte (`verified_emails`, empreinte SHA-256).
+- **Anti-abus** : 15 demandes par 24 h glissantes et par expéditeur (`users/<uid>/private/quota`,
+  appliqué par `onRequestCreated`), avertissement avant d'envoyer des coordonnées ou un lien à
+  un inconnu, et avertissement au destinataire.
+- **Listes** (`src/lib/catalog.js`) : 300 matières, 13 niveaux d'études, toutes les communes
+  (geo.api.gouv.fr) et tous les établissements de Parcoursup (data.enseignementsup-recherche.gouv.fr).
 
 ## Ajouter une traduction
 

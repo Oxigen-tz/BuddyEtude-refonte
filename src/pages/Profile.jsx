@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import StudentVerification from "@/components/profile/StudentVerification";
 import { db } from "../firebase/config";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { privateSettingsRef } from "../firebase/services";
@@ -7,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
   User, CheckCircle, Edit, MapPin, 
-  Monitor, Users, BookOpen, Target, Clock, ArrowLeft
+  Monitor, Users, BookOpen, Target, Clock, ArrowLeft, BadgeCheck
 } from "lucide-react";
 import ProfileForm from "../components/profile/ProfileForm";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -79,7 +80,7 @@ export default function Profile() {
       const docRef = doc(db, "users", user.uid);
       // Champs qui ne vont PAS dans le profil public : l'âge (document privé), l'email (n'est plus
       // stocké, voir firestore.rules) et le bannissement (réservé à la modération)
-      const { age_bracket, parental_consent, email: _email, banned: _banned, ...publicData } = formData;
+      const { age_bracket, parental_consent, email: _email, banned: _banned, verified_domain: _vd, verified_at: _va, ...publicData } = formData;
       await setDoc(privateSettingsRef(user.uid), {
         age_bracket,
         parental_consent: age_bracket === "under15" ? parental_consent === true : false,
@@ -172,7 +173,10 @@ export default function Profile() {
                 </div>
 
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{profile.display_name || t('profile.defaultStudent')}</h2>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    {profile.display_name || t('profile.defaultStudent')}
+                    {profile.verified_domain && <BadgeCheck className="w-5 h-5 text-sky-500" aria-label={t('buddyCard.verified', { domain: profile.verified_domain })} />}
+                  </h2>
                   <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-gray-600 dark:text-gray-300">
                     {profile.school && <span className="font-medium text-indigo-700 dark:text-indigo-400">{profile.school}</span>}
                     {profile.level && <span>• {levelLabel(profile.level)}</span>}
@@ -188,6 +192,10 @@ export default function Profile() {
             
             {/* Contenu du profil */}
             <div className="p-6 md:p-8 space-y-8">
+              <StudentVerification
+                verifiedDomain={profile.verified_domain || null}
+                onChange={(domain) => setProfile((prev) => ({ ...prev, verified_domain: domain || undefined }))}
+              />
               
               {/* Bio */}
               {profile.bio && (

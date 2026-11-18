@@ -20,7 +20,6 @@
 const { onDocumentCreated, onDocumentUpdated, onDocumentWritten, onDocumentDeleted } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
-const functionsV1 = require("firebase-functions/v1");
 const { setGlobalOptions } = require("firebase-functions/v2");
 const { defineString, defineSecret } = require("firebase-functions/params");
 const nodemailer = require("nodemailer");
@@ -32,6 +31,7 @@ const { getFirestore, FieldValue, Timestamp, AggregateField } = require("firebas
 const { getStorage } = require("firebase-admin/storage");
 const { getAuth } = require("firebase-admin/auth");
 const { getMessaging } = require("firebase-admin/messaging");
+const crypto = require("node:crypto");
 
 initializeApp();
 const db = getFirestore();
@@ -120,15 +120,41 @@ const formatStart = (ts) => ts?.toDate?.().toLocaleString("fr-FR", {
 
 // ------------------------------------------------------------------ Demandes de binôme
 
+// Anti-abus : au plus REQUESTS_PER_DAY demandes (binôme ou aide) par 24 h glissantes et par
+// expéditeur ; au-delà, la demande est supprimée sans prévenir le destinataire.
+// Même valeur que src/lib/safety.js (le site prévient avant d'atteindre la limite).
+const REQUESTS_PER_DAY = 15;
+
+async function withinRequestQuota(uid, now = Date.now()) {
+  const ref = db.doc(`users/${uid}/private/quota`);
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const recent = (snap.exists ? snap.get("requests") || [] : []).filter((ms) => ms > now - DAY_MS);
+    if (recent.length >= REQUESTS_PER_DAY) return false;
+    tx.set(ref, { requests: [...recent, now] }, { merge: true });
+    return true;
+  });
+}
+
 exports.onRequestCreated = onDocumentCreated("requests/{pairId}", async (event) => {
   const r = event.data?.data();
   if (!r || r.status !== "pending") return;
+  if (!(await withinRequestQuota(r.from_uid))) {
+    logger.warn("Limite de demandes atteinte : demande supprimée", { from: r.from_uid });
+    await event.data.ref.delete();
+    return;
+  }
+  const from = r.from_name || "Un étudiant";
+  const isHelp = r.kind === "help";
   const to = await recipientEmail(r.to_uid);
-  const lines = [`${r.from_name || "Un étudiant"} souhaite réviser avec toi sur BuddyEtude.`];
+  const lines = [isHelp
+    ? `${from} débute en ${r.subject || "une matière"} et aimerait ton aide : tu as indiqué y être avancé(e).`
+    : `${from} souhaite réviser avec toi sur BuddyEtude.`];
   if (r.message) lines.push(`Son message : « ${String(r.message).slice(0, 500)} »`);
-  await sendMail(to, `${r.from_name || "Un étudiant"} veut réviser avec toi`,
-    renderEmail({ title: "Nouvelle demande de binôme", lines, ctaLabel: "Répondre à la demande", ctaPath: `/Messages?chat=${r.from_uid}` }));
-  await sendPush(r.to_uid, { title: "Nouvelle demande de binôme", body: `${r.from_name || "Un étudiant"} veut réviser avec toi`, link: `/Messages?chat=${r.from_uid}`, tag: `request-${r.from_uid}` });
+  const subject = isHelp ? `${from} te demande de l'aide en ${r.subject || "révision"}` : `${from} veut réviser avec toi`;
+  await sendMail(to, subject,
+    renderEmail({ title: isHelp ? "Demande d'aide 🙋" : "Nouvelle demande de binôme", lines, ctaLabel: "Répondre à la demande", ctaPath: `/Messages?chat=${r.from_uid}` }));
+  await sendPush(r.to_uid, { title: isHelp ? "Demande d'aide 🙋" : "Nouvelle demande de binôme", body: subject, link: `/Messages?chat=${r.from_uid}`, tag: `request-${r.from_uid}` });
 });
 
 exports.onRequestAccepted = onDocumentUpdated("requests/{pairId}", async (event) => {
@@ -354,19 +380,48 @@ exports.adminStats = onCall(async (request) => {
   const firstWeekStart = now - WEEKS * 7 * DAY_MS;
   const weeks = Array.from({ length: WEEKS }, (_, i) => ({ start: new Date(firstWeekStart + i * 7 * DAY_MS).toISOString(), count: 0 }));
   let accounts = 0;
+  const accountUids = new Set();
   let pageToken;
   do {
     const page = await getAuth().listUsers(1000, pageToken);
     for (const u of page.users) {
       accounts++;
+      accountUids.add(u.uid);
       const index = Math.floor((Date.parse(u.metadata.creationTime) - firstWeekStart) / (7 * DAY_MS));
       if (index >= 0 && index < WEEKS) weeks[index].count++;
     }
     pageToken = page.pageToken;
   } while (pageToken);
 
+  // Entonnoir : combien d'étudiants franchissent chaque étape (lecture des demandes et sessions ;
+  // suffisant pour quelques milliers de documents)
+  const [profileDocs, requestDocs, sessionDocs, verified, helpRequests] = await Promise.all([
+    db.collection("users").where("profile_complete", "==", true).select().get(),
+    db.collection("requests").select("from_uid", "participants", "status").get(),
+    db.collection("sessions").select("participants").get(),
+    countOf(db.collection("users").where("verified_domain", ">", "")),
+    countOf(db.collection("requests").where("kind", "==", "help")),
+  ]);
+  const profiles = new Set(profileDocs.docs.map((d) => d.id));
+  const involved = new Set();
+  const matched = new Set();
+  requestDocs.forEach((d) => {
+    (d.get("participants") || []).forEach((u) => involved.add(u));
+    if (d.get("status") === "accepted") (d.get("participants") || []).forEach((u) => matched.add(u));
+  });
+  const withSession = new Set();
+  sessionDocs.forEach((d) => (d.get("participants") || []).forEach((u) => withSession.add(u)));
+  // Chaque étape ne compte que les étudiants qui ont aussi franchi les précédentes
+  let reached = accountUids;
+  const funnel = [["accounts", accountUids], ["profiles", profiles], ["requested", involved], ["matched", matched], ["hadSession", withSession]]
+    .map(([key, set], i) => {
+      if (i > 0) reached = new Set([...reached].filter((u) => set.has(u)));
+      return { key, count: reached.size };
+    });
+
   return {
     accounts, students, buddies, pendingRequests, messages7d, upcomingSessions, completedSessions, pendingReports,
+    verified, helpRequests, funnel,
     ratingAverage: ratings.data().average ?? null,
     ratingCount: ratings.data().count,
     weeks,
@@ -440,22 +495,32 @@ exports.adminCleanupLegacy = onCall({ timeoutSeconds: 540, memory: "512MiB" }, a
 // ------------------------------------------------------------------ Vie privée
 
 // Suppression d'un compte : la page Paramètres efface le profil, les messages, les demandes…
-// Ceci efface ce que le navigateur ne peut pas supprimer lui-même : données privées
-// (préférences, anti-spam) et avis laissés.
-exports.onUserDeleted = functionsV1.region("europe-west1").auth.user().onDelete(async (user) => {
-  await db.recursiveDelete(db.collection(`users/${user.uid}/private`));
+// puis appelle deleteMyData avant de supprimer le compte, pour effacer ce que le navigateur ne
+// peut pas supprimer lui-même : données privées, fichiers, groupes, avis laissés.
+// (Fonction appelable plutôt qu'un déclencheur de suppression de compte : ces déclencheurs
+// n'existent qu'en 1re génération, qui ne prend pas en charge Node 24.)
+async function cleanupUserData(uid) {
+  await db.recursiveDelete(db.collection(`users/${uid}/private`));
+  for (const d of (await db.collection("verified_emails").where("uid", "==", uid).get()).docs) await d.ref.delete();
   // Fichiers envoyés (pièces jointes, pages de PDF importées dans un tableau blanc)
-  await getStorage().bucket().deleteFiles({ prefix: `chat_files/${user.uid}/` })
-    .catch((e) => logger.warn("Fichiers non supprimés", { uid: user.uid, error: e.message }));
+  await getStorage().bucket().deleteFiles({ prefix: `chat_files/${uid}/` })
+    .catch((e) => logger.warn("Fichiers non supprimés", { uid, error: e.message }));
   // Groupes : ceux qu'il a créés sont supprimés (avec leur discussion), il quitte les autres
-  for (const g of (await db.collection("groups").where("members", "array-contains", user.uid).get()).docs) {
-    if (g.get("owner_uid") === user.uid) await db.recursiveDelete(g.ref);
-    else await g.ref.update({ members: FieldValue.arrayRemove(user.uid), [`member_names.${user.uid}`]: FieldValue.delete() });
+  for (const g of (await db.collection("groups").where("members", "array-contains", uid).get()).docs) {
+    if (g.get("owner_uid") === uid) await g.ref.delete(); // onGroupDeleted efface la suite
+    else await g.ref.update({ members: FieldValue.arrayRemove(uid), [`member_names.${uid}`]: FieldValue.delete() });
   }
-  const feedback = await db.collection("feedback").where("from_uid", "==", user.uid).get();
+  const feedback = await db.collection("feedback").where("from_uid", "==", uid).get();
   const writer = db.bulkWriter();
   feedback.docs.forEach((d) => writer.delete(d.ref));
   await writer.close();
+}
+
+exports.deleteMyData = onCall({ timeoutSeconds: 300 }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Connexion requise.");
+  await cleanupUserData(uid);
+  return { ok: true };
 });
 
 // Purge : e-mails envoyés (30 jours), avis (1 an), signalements traités (1 an)
@@ -469,8 +534,8 @@ async function purgeOlderThan(collection, cutoffMs, keep = () => false) {
 }
 
 // Comptes sans connexion depuis 3 ans : même effacement que « Supprimer mon compte »
-// (messages et fichiers envoyés, demandes, profil), puis suppression du compte, ce qui
-// déclenche onUserDeleted pour les données privées et les avis.
+// (messages et fichiers envoyés, demandes, profil, données privées, groupes, avis), puis
+// suppression du compte.
 async function deleteAccountData(uid) {
   const bucket = getStorage().bucket();
   const writer = db.bulkWriter();
@@ -481,6 +546,7 @@ async function deleteAccountData(uid) {
   }
   for (const d of (await db.collection("requests").where("participants", "array-contains", uid).get()).docs) writer.delete(d.ref);
   await writer.close();
+  await cleanupUserData(uid);
   await db.recursiveDelete(db.doc(`users/${uid}`));
   await getAuth().deleteUser(uid);
 }
@@ -502,12 +568,23 @@ async function purgeInactiveAccounts(cutoffMs) {
   return n;
 }
 
+// Vérification étudiante commencée mais jamais validée : l'adresse est effacée après 1 jour
+// (index de groupe de collections déclaré dans firestore.indexes.json)
+async function purgeAbandonedVerifications(now) {
+  const snap = await db.collectionGroup("private").where("expiresAt", "<", now - DAY_MS).get();
+  const writer = db.bulkWriter();
+  snap.docs.forEach((d) => { if (d.id === "verification") writer.delete(d.ref); });
+  await writer.close();
+  return snap.size;
+}
+
 async function runPurge(now = Date.now()) {
   return {
     mail: await purgeOlderThan("mail", now - 30 * DAY_MS),
     feedback: await purgeOlderThan("feedback", now - 365 * DAY_MS),
     reports: await purgeOlderThan("reports", now - 365 * DAY_MS, (d) => d.get("status") === "pending"),
     inactiveAccounts: await purgeInactiveAccounts(now - 3 * 365 * DAY_MS),
+    abandonedVerifications: await purgeAbandonedVerifications(now),
   };
 }
 
@@ -578,4 +655,91 @@ async function runWeeklyDigest(now = Date.now()) {
 
 exports.weeklyDigest = onSchedule({ schedule: "every monday 09:00", timeZone: "Europe/Paris", timeoutSeconds: 540 }, async () => {
   logger.info("Résumé hebdomadaire", await runWeeklyDigest());
+});
+
+// ------------------------------------------------------------------ Étudiant vérifié
+
+// Badge « étudiant vérifié » : l'étudiant reçoit un code à 6 chiffres sur une adresse de son
+// établissement. Seul le domaine (ex. « viacesi.fr ») est enregistré dans son profil, jamais
+// l'adresse ; une même adresse ne peut vérifier qu'un compte. Les messageries grand public
+// (Gmail, Outlook…) sont refusées.
+const FREE_MAIL_DOMAINS = new Set([
+  "gmail.com", "googlemail.com", "outlook.com", "outlook.fr", "hotmail.com", "hotmail.fr", "live.com", "live.fr",
+  "msn.com", "yahoo.com", "yahoo.fr", "ymail.com", "icloud.com", "me.com", "mac.com", "aol.com", "aol.fr",
+  "orange.fr", "wanadoo.fr", "free.fr", "sfr.fr", "neuf.fr", "laposte.net", "bbox.fr", "numericable.fr",
+  "gmx.fr", "gmx.com", "gmx.de", "proton.me", "protonmail.com", "pm.me", "tutanota.com", "yandex.com",
+  "yandex.ru", "mail.ru", "mail.com", "zoho.com", "hey.com", "fastmail.com", "qq.com", "163.com",
+]);
+const CODE_TTL_MS = 30 * 60 * 1000;
+const MAX_CODES_PER_DAY = 5;
+const MAX_ATTEMPTS = 5;
+const sha256 = (value) => crypto.createHash("sha256").update(value).digest("hex");
+
+exports.requestStudentVerification = onCall(async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Connexion requise.");
+  const email = String(request.data?.email || "").trim().toLowerCase();
+  const match = /^[^\s@]+@([a-z0-9.-]+\.[a-z]{2,})$/.exec(email);
+  if (!match) throw new HttpsError("invalid-argument", "invalid-email");
+  const domain = match[1];
+  if (FREE_MAIL_DOMAINS.has(domain)) throw new HttpsError("invalid-argument", "personal-email");
+  const owner = await db.doc(`verified_emails/${sha256(email)}`).get();
+  if (owner.exists && owner.get("uid") !== uid) throw new HttpsError("already-exists", "email-used");
+
+  const ref = db.doc(`users/${uid}/private/verification`);
+  const now = Date.now();
+  const code = String(crypto.randomInt(100000, 1000000));
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const sends = (snap.exists ? snap.get("sends") || [] : []).filter((ms) => ms > now - DAY_MS);
+    if (sends.length >= MAX_CODES_PER_DAY) throw new HttpsError("resource-exhausted", "too-many-codes");
+    tx.set(ref, {
+      email, domain, codeHash: sha256(`${uid}:${code}`), expiresAt: now + CODE_TTL_MS, attempts: 0, sends: [...sends, now],
+    });
+  });
+  await sendMail(email, `Ton code BuddyEtude : ${code}`, renderEmail({
+    title: "Vérifie ton statut d'étudiant",
+    lines: [`Ton code de vérification : ${code}`, "Il est valable 30 minutes. Si tu n'as rien demandé, ignore cet e-mail."],
+    ctaLabel: "Revenir sur BuddyEtude",
+    ctaPath: "/Settings",
+  }));
+  return { domain };
+});
+
+exports.confirmStudentVerification = onCall(async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Connexion requise.");
+  const code = String(request.data?.code || "").trim();
+  const ref = db.doc(`users/${uid}/private/verification`);
+  const snap = await ref.get();
+  if (!snap.exists || !snap.get("codeHash")) throw new HttpsError("failed-precondition", "no-code");
+  if (Date.now() > snap.get("expiresAt")) throw new HttpsError("deadline-exceeded", "expired");
+  if ((snap.get("attempts") || 0) >= MAX_ATTEMPTS) throw new HttpsError("resource-exhausted", "too-many-attempts");
+  if (sha256(`${uid}:${code}`) !== snap.get("codeHash")) {
+    await ref.update({ attempts: FieldValue.increment(1) });
+    throw new HttpsError("invalid-argument", "wrong-code");
+  }
+  const { email, domain } = snap.data();
+  const emailRef = db.doc(`verified_emails/${sha256(email)}`);
+  await db.runTransaction(async (tx) => {
+    const owner = await tx.get(emailRef);
+    if (owner.exists && owner.get("uid") !== uid) throw new HttpsError("already-exists", "email-used");
+    tx.set(emailRef, { uid, verifiedAt: FieldValue.serverTimestamp() });
+    tx.set(db.doc(`users/${uid}`), { verified_domain: domain, verified_at: FieldValue.serverTimestamp() }, { merge: true });
+    // L'adresse n'est pas conservée : seul le domaine reste dans le profil
+    tx.set(ref, { verifiedDomain: domain, verifiedAt: FieldValue.serverTimestamp() });
+  });
+  return { domain };
+});
+
+exports.removeStudentVerification = onCall(async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Connexion requise.");
+  const owned = await db.collection("verified_emails").where("uid", "==", uid).get();
+  const batch = db.batch();
+  owned.docs.forEach((d) => batch.delete(d.ref));
+  batch.set(db.doc(`users/${uid}`), { verified_domain: FieldValue.delete(), verified_at: FieldValue.delete() }, { merge: true });
+  batch.delete(db.doc(`users/${uid}/private/verification`));
+  await batch.commit();
+  return { ok: true };
 });

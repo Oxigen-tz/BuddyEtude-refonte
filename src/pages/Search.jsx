@@ -4,7 +4,8 @@ import { collection, query, where, onSnapshot, setDoc, doc, getDoc, limit, serve
 import { useAuth } from "@/lib/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search as SearchIcon, Filter, Users, Loader2, MapPin, Monitor, BookOpen, Lock } from "lucide-react";
+import { Search as SearchIcon, Filter, Users, Loader2, MapPin, Monitor, BookOpen, Lock, HandHelping, BadgeCheck, AlertTriangle } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import BuddyCard from "@/components/search/BuddyCard";
 import Autocomplete from "@/components/ui/Autocomplete";
@@ -20,7 +21,9 @@ import { createPageUrl } from "@/utils";
 import { useRequests, buildRelations } from "@/hooks/useRequests";
 import { useBlocks } from "@/hooks/useBlocks";
 import { pairId } from "@/lib/pairs";
-import { computeMatch } from "@/lib/matching";
+import { computeMatch, computeHelp } from "@/lib/matching";
+import { LEVEL_VALUES as PROFILE_LEVELS, suggestSubjects, suggestCities } from "@/lib/catalog";
+import { REQUESTS_PER_DAY, detectContactInfo } from "@/lib/safety";
 import InviteCard from "@/components/InviteCard";
 
 // Nombre maximum de profils chargés : suffisant pour quelques centaines d'inscrits ; au-delà,
@@ -29,7 +32,7 @@ const MAX_PROFILES = 300;
 
 // On ne garde ici que les valeurs techniques ; le libellé affiché vient de
 // search.levels.<value> / search.types.<value> via t(), résolu au rendu.
-const LEVEL_VALUES = ["all", "college", "lycee", "prepa", "bts_iut", "licence", "master", "doctorat"];
+const LEVEL_VALUES = ["all", ...PROFILE_LEVELS.filter((v) => v !== "autre")];
 const TYPE_VALUES = ["all", "online", "inperson"];
 
 // Un profil n'apparaît dans la recherche que s'il est exploitable :
@@ -51,10 +54,15 @@ export default function Search() {
   const [subjectFilter, setSubjectFilter] = useState("");
   const [cityFilter, setCityFilter] = useState("");
   const [levelFilter, setLevelFilter] = useState("all");
-  const [typeFilter, setTypeFilter] = useState("all"); 
+  const [typeFilter, setTypeFilter] = useState("all");
+  // "buddy" : trouver un binôme ; "help" : trouver quelqu'un d'« Avancé » pour m'aider (mentorat)
+  const [mode, setMode] = useState("buddy");
+  const [verifiedOnly, setVerifiedOnly] = useState(false); 
 
-  const [requestDialog, setRequestDialog] = useState(null);
+  const [requestDialog, setRequestDialog] = useState(null);   // { profile, kind, helpSubjects }
   const [requestMessage, setRequestMessage] = useState("");
+  const [requestSubject, setRequestSubject] = useState("");
+  const [contactWarning, setContactWarning] = useState(false);
   
   const [profiles, setProfiles] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -126,85 +134,68 @@ export default function Search() {
     );
   }
 
-  // 1. Recherche dynamique des Villes via l'API officielle française
-  const searchFrenchCities = async (queryText) => {
-    const response = await fetch(
-      `https://geo.api.gouv.fr/communes?nom=${encodeURIComponent(queryText)}&fields=nom&boost=population&limit=6`
-    );
-    if (!response.ok) return [];
-    const data = await response.json();
-    return data.map((commune) => commune.nom);
-  };
-
-  // 2. Recherche dynamique des Matières sur le web avec filtre anti-géographie
-  const searchSubjects = async (queryText) => {
-    if (!queryText || queryText.trim().length < 2) return [];
-
-    try {
-      const response = await fetch(
-        `https://fr.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(queryText)}&limit=15&namespace=0&format=json&origin=*`
-      );
-      const data = await response.json();
-      const results = data[1] || [];
-
-      const forbiddenWords = [
-        "nord", "pas-de-calais", "france", "paris", "lyon", "marseille", 
-        "region", "département", "académie", "canton", "arrondissement",
-        "territoire", "provence", "bretagne", "corse", "guadeloupe"
-      ];
-
-      const cleanResults = results.filter(item => {
-        const lower = item.toLowerCase();
-        const hasForbiddenWord = forbiddenWords.some(word => lower.includes(word));
-        const isTooComplex = lower.includes(" du ") || lower.includes(" de la ") || lower.split(" ").length > 4;
-
-        return !hasForbiddenWord && !isTooComplex;
-      });
-
-      return cleanResults.slice(0, 6);
-    } catch (error) {
-      console.error("Erreur de recherche:", error);
-      return [];
-    }
-  };
-
   const openConversation = (uid) => navigate(`${createPageUrl("Messages")}?chat=${encodeURIComponent(uid)}`);
+
+  const openRequest = (profile, kind = "buddy", helpSubjects = []) => {
+    setRequestDialog({ profile, kind, helpSubjects });
+    setRequestSubject(helpSubjects[0] || "");
+    setRequestMessage("");
+    setContactWarning(false);
+  };
+  const closeRequest = () => {
+    setRequestDialog(null);
+    setRequestMessage("");
+    setContactWarning(false);
+  };
 
   const handleSendRequest = async () => {
     if (!requestDialog || !user) return;
+    const target = requestDialog.profile;
 
     // Garde-fous : jamais de demande à soi-même, ni de doublon (dans un sens ou dans l'autre)
-    if (requestDialog.id === user.uid || relations.has(requestDialog.id)) {
-      setRequestDialog(null);
-      setRequestMessage("");
+    if (target.id === user.uid || relations.has(target.id)) {
+      closeRequest();
       return;
     }
-    
+
+    // Anti-abus : nombre de demandes par jour (la limite réelle est vérifiée côté serveur)
+    const dayAgo = Date.now() - 24 * 3600 * 1000;
+    const sentToday = requests.outgoing.filter((r) => (r.createdAt?.toMillis?.() || Date.now()) > dayAgo).length;
+    if (sentToday >= REQUESTS_PER_DAY) {
+      toast.error(t('search.toast.dailyLimit', { count: REQUESTS_PER_DAY }));
+      return;
+    }
+
+    // Coordonnées ou lien envoyés à un inconnu : on prévient une fois avant l'envoi
+    if (!contactWarning && detectContactInfo(requestMessage)) {
+      setContactWarning(true);
+      return;
+    }
+
     setIsSending(true);
     try {
-      let defaultSubject = t('search.defaultSubject');
-      if (Array.isArray(requestDialog.subjects) && requestDialog.subjects.length > 0) {
-        defaultSubject = typeof requestDialog.subjects[0] === "string" 
-          ? requestDialog.subjects[0] 
-          : requestDialog.subjects[0].name;
+      const isHelp = requestDialog.kind === "help";
+      let subject = isHelp ? requestSubject : t('search.defaultSubject');
+      if (!isHelp && Array.isArray(target.subjects) && target.subjects.length > 0) {
+        subject = typeof target.subjects[0] === "string" ? target.subjects[0] : target.subjects[0].name;
       }
 
       // Une seule demande par paire : son id est la paire de uids (voir firestore.rules)
-      await setDoc(doc(db, "requests", pairId(user.uid, requestDialog.id)), {
+      await setDoc(doc(db, "requests", pairId(user.uid, target.id)), {
         from_uid: user.uid,
         from_name: myProfile?.display_name || user.displayName || user.full_name || t('search.defaultStudent'),
-        to_uid: requestDialog.id,
-        to_name: requestDialog.display_name || requestDialog.full_name,
-        participants: [user.uid, requestDialog.id].sort(),
+        to_uid: target.id,
+        to_name: target.display_name || target.full_name,
+        participants: [user.uid, target.id].sort(),
         message: requestMessage,
         status: "pending",
-        subject: defaultSubject,
+        kind: isHelp ? "help" : "buddy",
+        subject,
         createdAt: serverTimestamp(),
       });
 
-      toast.success(t('search.toast.success'));
-      setRequestDialog(null);
-      setRequestMessage("");
+      toast.success(t(isHelp ? 'search.toast.helpSuccess' : 'search.toast.success'));
+      closeRequest();
     } catch (error) {
       console.error(error);
       toast.error(t('search.toast.error'));
@@ -215,11 +206,12 @@ export default function Search() {
 
   const filteredProfiles = profiles.filter(p => {
     if (blocked.has(p.id)) return false;
+    if (verifiedOnly && !p.verified_domain) return false;
     if (levelFilter !== "all" && p.level !== levelFilter) return false;
     if (typeFilter === "online" && !p.is_online) return false;
     if (typeFilter === "inperson" && !p.is_in_person) return false;
     if (cityFilter && !p.city?.toLowerCase().includes(cityFilter.toLowerCase())) return false;
-    if (subjectFilter) {
+    if (subjectFilter && mode === "buddy") {
       const hasSubject = p.subjects?.some(s => {
         const subjectName = typeof s === "string" ? s : s.name;
         return subjectName?.toLowerCase().includes(subjectFilter.toLowerCase());
@@ -235,8 +227,10 @@ export default function Search() {
     return true;
   })
     // Les profils les plus compatibles en premier (matières en commun, niveau, ville…)
-    .map((p) => ({ profile: p, match: computeMatch(myProfile, p) }))
-    .sort((a, b) => b.match.score - a.match.score);
+    .map((p) => ({ profile: p, match: computeMatch(myProfile, p), help: computeHelp(myProfile, p, subjectFilter) }))
+    // Mode « aide » : seulement ceux qui sont « Avancé » là où j'ai besoin d'aide
+    .filter((r) => mode === "buddy" || r.help.length > 0)
+    .sort((a, b) => (mode === "help" ? b.help.length - a.help.length : 0) || b.match.score - a.match.score);
 
   const resetFilters = () => {
     setSearch("");
@@ -244,7 +238,10 @@ export default function Search() {
     setCityFilter("");
     setLevelFilter("all");
     setTypeFilter("all");
+    setVerifiedOnly(false);
   };
+
+  const needsHelpSomewhere = (myProfile?.subjects || []).some((s) => s.level === "debutant" || s.level === "intermediaire");
 
   return (
     <div className="max-w-6xl mx-auto animate-in fade-in duration-500">
@@ -259,6 +256,21 @@ export default function Search() {
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('search.subtitle')}</p>
         </div>
       </div>
+
+      {/* --- MODE : binôme ou aide (mentorat) --- */}
+      <div role="tablist" aria-label={t('search.mode.label')} className="inline-flex p-1 mb-4 rounded-xl bg-gray-100 dark:bg-[#1e1f20] border border-gray-200 dark:border-[#333537]">
+        {[["buddy", Users], ["help", HandHelping]].map(([value, Icon]) => (
+          <button key={value} role="tab" aria-selected={mode === value} onClick={() => setMode(value)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${mode === value ? "bg-white dark:bg-[#282a2c] text-indigo-700 dark:text-indigo-300 shadow-sm" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"}`}>
+            <Icon className="w-4 h-4" /> {t(`search.mode.${value}`)}
+          </button>
+        ))}
+      </div>
+      {mode === "help" && (
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 max-w-3xl">
+          {needsHelpSomewhere || subjectFilter ? t('search.mode.helpDesc') : t('search.mode.helpNoNeed')}
+        </p>
+      )}
 
       {/* --- PANNEAU DE FILTRES MULTIPLES --- */}
       <div className="bg-white dark:bg-[#1e1f20] p-5 rounded-2xl border border-gray-100 dark:border-[#333537] shadow-sm mb-8 space-y-4 transition-colors duration-300">
@@ -277,7 +289,9 @@ export default function Search() {
           
           <div className="flex-1">
             <Autocomplete
-              fetchOptions={searchSubjects}
+              ariaLabel={t('search.subjectPlaceholder')}
+              minChars={1}
+              fetchOptions={(q) => suggestSubjects(q)}
               value={subjectFilter}
               onChange={setSubjectFilter}
               placeholder={t('search.subjectPlaceholder')}
@@ -290,7 +304,8 @@ export default function Search() {
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
             <Autocomplete
-              fetchOptions={searchFrenchCities}
+              ariaLabel={t('search.cityPlaceholder')}
+              fetchOptions={suggestCities}
               value={cityFilter}
               onChange={setCityFilter}
               placeholder={t('search.cityPlaceholder')}
@@ -326,6 +341,12 @@ export default function Search() {
             </SelectContent>
           </Select>
         </div>
+
+        {/* Ligne 3 : étudiants vérifiés uniquement */}
+        <label className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300 cursor-pointer w-fit">
+          <Switch checked={verifiedOnly} onCheckedChange={setVerifiedOnly} aria-label={t('search.verifiedOnly')} />
+          <BadgeCheck className="w-4 h-4 text-sky-500" /> {t('search.verifiedOnly')}
+        </label>
       </div>
 
       {/* --- RÉSULTATS --- */}
@@ -356,12 +377,14 @@ export default function Search() {
       ) : (
         <>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredProfiles.map(({ profile: p, match }) => (
+          {filteredProfiles.map(({ profile: p, match, help }) => (
             <BuddyCard
               key={p.id}
               profile={p}
               match={match}
-              onRequest={(profile) => setRequestDialog(profile)}
+              help={help}
+              mode={mode}
+              onRequest={(profile) => openRequest(profile, mode, help)}
               onOpenConversation={() => openConversation(p.id)}
               relation={relations.get(p.id)?.status || null}
               isOwnProfile={p.id === user.uid}
@@ -374,28 +397,49 @@ export default function Search() {
       )}
 
       {/* --- POPUP DEMANDE DE BINÔME --- */}
-      <Dialog open={!!requestDialog} onOpenChange={() => setRequestDialog(null)}>
+      <Dialog open={!!requestDialog} onOpenChange={closeRequest}>
         <DialogContent className="rounded-3xl sm:rounded-3xl dark:bg-[#1e1f20] dark:border-[#333537] dark:text-gray-100 p-8">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">{t('search.requestDialog.title')}</DialogTitle>
+            <DialogTitle className="text-2xl font-bold">{t(requestDialog?.kind === "help" ? 'search.helpDialog.title' : 'search.requestDialog.title')}</DialogTitle>
           </DialogHeader>
           <DialogDescription className="text-sm text-gray-500 dark:text-gray-400 mt-2">
             <Trans
-              i18nKey="search.requestDialog.desc"
-              values={{ name: requestDialog?.display_name || requestDialog?.full_name }}
+              i18nKey={requestDialog?.kind === "help" ? "search.helpDialog.desc" : "search.requestDialog.desc"}
+              values={{ name: requestDialog?.profile.display_name || requestDialog?.profile.full_name }}
               components={{ bold: <strong className="text-indigo-600 dark:text-indigo-400 font-semibold" /> }}
             />
           </DialogDescription>
+          {requestDialog?.kind === "help" && requestDialog.helpSubjects.length > 0 && (
+            <div className="mt-6 space-y-2">
+              <label htmlFor="help-subject" className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('search.helpDialog.subject')}</label>
+              <Select value={requestSubject} onValueChange={setRequestSubject}>
+                <SelectTrigger id="help-subject" className="rounded-xl bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="dark:bg-[#1e1f20] dark:border-[#333537] dark:text-gray-100 rounded-xl">
+                  {requestDialog.helpSubjects.map((name) => <SelectItem key={name} value={name}>{name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <Textarea
             value={requestMessage}
-            onChange={(e) => setRequestMessage(e.target.value)}
-            placeholder={t('search.requestDialog.placeholder')}
+            onChange={(e) => { setRequestMessage(e.target.value); setContactWarning(false); }}
+            maxLength={1000}
+            aria-label={t('search.requestDialog.placeholder')}
+            placeholder={t(requestDialog?.kind === "help" ? 'search.helpDialog.placeholder' : 'search.requestDialog.placeholder')}
             className="h-32 mt-6 resize-none bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-gray-100 focus-visible:ring-indigo-500/50 rounded-2xl p-4"
           />
+          {contactWarning && (
+            <div role="alert" className="mt-4 flex gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 text-sm text-amber-900 dark:text-amber-200">
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{t('search.contactWarning')}</span>
+            </div>
+          )}
           <DialogFooter className="mt-8 flex gap-3 sm:gap-4">
             <Button 
               variant="outline" 
-              onClick={() => setRequestDialog(null)} 
+              onClick={closeRequest} 
               className="rounded-xl border-gray-200 dark:border-[#333537] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#282a2c] flex-1 sm:flex-none py-6 font-medium"
             >
               {t('search.requestDialog.cancel')}
@@ -406,7 +450,7 @@ export default function Search() {
               onClick={handleSendRequest}
             >
               {isSending ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
-              {t('search.requestDialog.send')}
+              {contactWarning ? t('search.sendAnyway') : t('search.requestDialog.send')}
             </Button>
           </DialogFooter>
         </DialogContent>

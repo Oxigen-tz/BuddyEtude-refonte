@@ -210,6 +210,8 @@ await t("suppression de compte : données privées et avis effacés", async () =
   await write(`users/${D}/private/settings`, { email_notifications: true });
   await write(`feedback/s1_${D}`, { from_uid: D, sessionId: "s1", rating: 4 });
   const token = await idToken("dora@test.com");
+  const res = await call("deleteMyData", {}, token);
+  if (res.status !== 200) throw new Error(`deleteMyData : statut ${res.status}`);
   await fetch(`${AUTH}/accounts:delete?key=fake`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ idToken: token }) });
   for (let i = 0; i < 30; i++) {
     if (!(await exists(`users/${D}/private/settings`)) && !(await exists(`feedback/s1_${D}`))) return;
@@ -233,6 +235,52 @@ await t("résumé du lundi : nouveaux compatibles, préférence respectée", asy
   const text = toEva.fields.message.mapValue.fields.text.stringValue;
   if (!/Fred — même école/.test(text)) throw new Error(`contenu inattendu : ${text}`);
   if (digests.some((d) => to(d.fields) === "fred@test.com")) throw new Error("résumé envoyé malgré la préférence");
+});
+
+await t("anti-abus : au-delà de 15 demandes par jour, la demande est supprimée", async () => {
+  const S = await createUser("spam@test.com");
+  for (let i = 0; i < 16; i++) {
+    const target = `cible${String(i).padStart(2, "0")}`;
+    await write(`requests/${[S, target].sort().join("_")}`, { from_uid: S, to_uid: target, from_name: "Spam", participants: [S, target].sort(), status: "pending" });
+    await sleep(150);
+  }
+  for (let i = 0; i < 40; i++) {
+    const left = (await list("requests")).filter((d) => d.fields.from_uid?.stringValue === S).length;
+    if (left === 15) return;
+    await sleep(500);
+  }
+  throw new Error("la 16e demande n'a pas été supprimée");
+});
+
+await t("étudiant vérifié : messagerie perso refusée, code par e-mail, badge posé", async () => {
+  const V = await createUser("vera@test.com");
+  await write(`users/${V}`, { display_name: "Vera", profile_complete: true });
+  const token = await idToken("vera@test.com");
+  const personal = await call("requestStudentVerification", { email: "vera@gmail.com" }, token);
+  if (personal.status !== 400 || !/personal-email/.test(JSON.stringify(personal.body))) throw new Error(`Gmail accepté : ${JSON.stringify(personal.body)}`);
+  const ok = await call("requestStudentVerification", { email: "Vera.Test@etu.univ-test.fr" }, token);
+  if (ok.status !== 200) throw new Error(`envoi du code : ${JSON.stringify(ok.body)}`);
+  const [mail] = await waitForMails((f) => to(f) === "vera.test@etu.univ-test.fr", 1, "code");
+  const code = /(\d{6})/.exec(subject(mail.fields))[1];
+  const wrong = await call("confirmStudentVerification", { code: code === "000000" ? "111111" : "000000" }, token);
+  if (wrong.status === 200) throw new Error("mauvais code accepté");
+  const good = await call("confirmStudentVerification", { code }, token);
+  if (good.status !== 200 || good.body.result.domain !== "etu.univ-test.fr") throw new Error(`validation : ${JSON.stringify(good.body)}`);
+  const profile = (await get(`users/${V}`)).fields;
+  if (profile.verified_domain?.stringValue !== "etu.univ-test.fr") throw new Error("badge absent du profil");
+  if (JSON.stringify(await get(`users/${V}/private/verification`)).includes("vera.test@")) throw new Error("adresse conservée après vérification");
+  // La même adresse ne peut pas vérifier un deuxième compte
+  const W = await createUser("walt@test.com");
+  const reuse = await call("requestStudentVerification", { email: "vera.test@etu.univ-test.fr" }, await idToken("walt@test.com"));
+  if (reuse.status === 200) throw new Error(`adresse réutilisée (${W})`);
+});
+
+await t("statistiques : entonnoir et mentorat", async () => {
+  const { body } = await call("adminStats", {}, await idToken("alice@test.com"));
+  const r = body.result;
+  if (!Array.isArray(r.funnel) || r.funnel.length !== 5 || r.funnel[0].key !== "accounts") throw new Error(JSON.stringify(r.funnel));
+  if (r.verified < 1) throw new Error(`vérifiés : ${r.verified}`);
+  r.funnel.forEach((step, i) => { if (i > 0 && step.count > r.funnel[i - 1].count) throw new Error(`entonnoir qui remonte : ${JSON.stringify(r.funnel)}`); });
 });
 
 console.log(`\nFunctions : ${pass} test(s) réussi(s), ${failures.length} échec(s)`);

@@ -58,6 +58,9 @@ export function buildRelations({ incoming, outgoing }) {
         status: r.status === "accepted" ? "buddy" : "received",
         requestId: r.id,
         name: r.from_name || "?",
+        kind: r.kind || "buddy",
+        subject: r.subject || "",
+        message: r.message || "",
       });
     }
   });
