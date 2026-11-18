@@ -13,6 +13,10 @@
       "destination": "/Privacy/index.html"
     },
     {
+      "source": "/Etablissements",
+      "destination": "/Etablissements/index.html"
+    },
+    {
       "source": "/((?!sitemap.xml|robots.txt).*)",
       "destination": "/index.html"
     }

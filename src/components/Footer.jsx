@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Mail, Instagram, Github } from "lucide-react";
 import { createPageUrl } from "@/utils";
 import Logo from "@/components/Logo";
+import { SupportLink } from "@/components/SupportCard";
 
 function XIcon({ className = "w-5 h-5" }) {
   return (
@@ -52,6 +53,8 @@ export default function Footer() {
             <ul className="space-y-3">
               <li><Link to={createPageUrl("About")} className={linkClass}>{t("footer.about")}</Link></li>
               <li><Link to={createPageUrl("Search")} className={linkClass}>{t("footer.findBuddy")}</Link></li>
+              <li><Link to={createPageUrl("Etablissements")} className={linkClass}>{t("footer.schools")}</Link></li>
+              <li><SupportLink className={linkClass} /></li>
             </ul>
           </div>
 

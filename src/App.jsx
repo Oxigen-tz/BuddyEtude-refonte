@@ -21,7 +21,7 @@ const MainPage = (mainPageKey && Pages[mainPageKey]) || (() => null);
 // Pages consultables sans compte. Toutes les autres affichent l'écran "Connexion requise"
 // aux visiteurs : avant, /Dashboard affichait "Bonjour, Étudiant" avec un bouton Déconnexion,
 // et /Profile restait bloquée sur son squelette de chargement.
-const PUBLIC_PAGES = [mainPageKey, 'About', 'Legal', 'Privacy'];
+const PUBLIC_PAGES = [mainPageKey, 'About', 'Legal', 'Privacy', 'Etablissements'];
 
 const LayoutWrapper = ({ children, currentPageName }) => {
   const { user } = useAuth();

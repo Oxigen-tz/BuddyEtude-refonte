@@ -1,6 +1,7 @@
 import React from "react";
 import { GraduationCap, Heart, Target } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import SupportCard from "@/components/SupportCard";
 
 const CONTACT_EMAIL = "contact@buddyetude.com";
 
@@ -44,6 +45,7 @@ export default function About() {
           {t("about.join.button")}
         </a>
       </div>
+      <SupportCard className="mt-8 max-w-md mx-auto" />
     </div>
   );
 }

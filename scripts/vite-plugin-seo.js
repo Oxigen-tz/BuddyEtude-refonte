@@ -23,6 +23,7 @@ const FEATURES = [
 
 const nav = `<nav style="margin-top:40px;display:flex;flex-wrap:wrap;gap:16px;font-size:14px">
   <a href="/" style="color:inherit">Accueil</a><a href="/About" style="color:inherit">À propos</a>
+  <a href="/Etablissements" style="color:inherit">Pour les établissements</a>
   <a href="/Legal" style="color:inherit">Mentions légales et CGU</a><a href="/Privacy" style="color:inherit">Confidentialité</a></nav>`;
 
 function bodyFor(route) {

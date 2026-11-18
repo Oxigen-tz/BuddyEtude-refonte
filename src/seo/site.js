@@ -31,6 +31,11 @@ export const PUBLIC_PAGES = {
     fr: { title: "À propos · BuddyEtude", description: "BuddyEtude a été créé par un étudiant pour que personne ne révise seul : l'histoire et les objectifs du projet." },
     en: { title: "About · BuddyEtude", description: "BuddyEtude was built by a student so that nobody has to study alone: the story and goals of the project." },
   },
+  "/Etablissements": {
+    priority: "0.7", changefreq: "monthly",
+    fr: { title: "BuddyEtude pour les établissements · Tutorat entre étudiants", description: "Universités, écoles, BDE : organisez le tutorat et l'entraide entre étudiants avec BuddyEtude. Mise en relation par niveau, mentorat, visio, tableau blanc. Établissements pilotes recherchés." },
+    en: { title: "BuddyEtude for schools · Peer tutoring", description: "Universities, schools, student unions: organise peer tutoring and student support with BuddyEtude. Level-based matching, mentoring, video, whiteboard. Pilot schools wanted." },
+  },
   "/Legal": {
     priority: "0.3", changefreq: "yearly",
     fr: { title: "Mentions légales et CGU · BuddyEtude", description: "Mentions légales et conditions générales d'utilisation de BuddyEtude, la plateforme gratuite pour trouver un binôme d'études." },

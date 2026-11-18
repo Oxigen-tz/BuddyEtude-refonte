@@ -552,6 +552,7 @@ const resources = {
         platform: "Plateforme",
         about: "À propos de nous",
         findBuddy: "Trouver un binôme",
+        schools: "Pour les établissements",
         support: "Support & Légal",
         legal: "Mentions Légales & CGU",
         privacy: "Politique de Confidentialité",
@@ -917,6 +918,64 @@ const resources = {
         }
       },
       // --- NOUVEAU : PAGE PARAMÈTRES ---
+      // --- Soutien et page « Pour les établissements » ---
+      support: {
+        title: "Soutenir BuddyEtude",
+        desc: "Le site est gratuit et sans publicité. Un petit don aide à payer les serveurs et à le garder ainsi.",
+        button: "Soutenir le projet"
+      },
+      schools: {
+        eyebrow: "Pour les établissements",
+        title1: "Le tutorat entre étudiants,",
+        titleHighlight: "enfin simple à organiser",
+        subtitle: "BuddyEtude aide vos étudiants à trouver un binôme ou un tuteur de leur niveau, puis à réviser ensemble en ligne. Nous recherchons des universités, écoles et BDE pilotes pour construire la suite avec eux.",
+        ctaPilot: "Devenir établissement pilote",
+        ctaPlatform: "Voir la plateforme",
+        trust: { free: "Toujours gratuit pour les étudiants", noAds: "Sans publicité ni revente de données", europe: "Données hébergées dans l'UE" },
+        problems: {
+          eyebrow: "Le constat",
+          title: "Réviser seul, c'est là que beaucoup décrochent",
+          isolation: { title: "L'isolement pendant les révisions", desc: "Beaucoup d'étudiants, surtout en première année ou loin de chez eux, ne savent pas avec qui travailler." },
+          spreadsheets: { title: "Un tutorat difficile à faire vivre", desc: "Tableurs, e-mails, groupes de messagerie : organiser et suivre le tutorat demande beaucoup de temps aux équipes." },
+          matching: { title: "Des binômes mal assortis", desc: "Rapprocher les étudiants selon la matière, le niveau et les disponibilités est presque impossible à la main." }
+        },
+        features: {
+          eyebrow: "Disponible dès aujourd'hui",
+          title: "Une plateforme déjà complète",
+          subtitle: "Tout ce qui suit fonctionne déjà, gratuitement, pour n'importe quel étudiant.",
+          matching: { title: "Mise en relation par niveau", desc: "Les étudiants sont rapprochés selon leurs matières en commun, leur niveau dans chacune, leur établissement et leurs disponibilités." },
+          mentoring: { title: "Mentorat entre étudiants", desc: "Les étudiants avancés dans une matière peuvent aider ceux qui débutent, qui leur expliquent sur quoi ils bloquent." },
+          sessions: { title: "Sessions en visio", desc: "Sessions planifiées avec lien d'appel vidéo, rappels par e-mail et ajout à l'agenda." },
+          whiteboard: { title: "Tableau blanc partagé", desc: "Dessiner, écrire et annoter des cours en PDF à plusieurs, en temps réel, sur plusieurs pages." },
+          groups: { title: "Groupes de révision", desc: "Jusqu'à six étudiants, avec une discussion et un tableau blanc communs." },
+          safety: { title: "Un cadre sûr", desc: "Badge « étudiant vérifié » par l'adresse e-mail de l'établissement, signalement, blocage et modération." }
+        },
+        pilot: {
+          eyebrow: "Avec les établissements pilotes",
+          title: "Ce que nous construisons avec vous",
+          subtitle: "Les besoins propres aux établissements seront développés avec les premiers partenaires, à partir de leurs retours.",
+          space: { title: "Un espace réservé à vos étudiants", desc: "Un accès limité aux adresses e-mail de votre établissement, pour que vos étudiants se retrouvent entre eux." },
+          tracking: { title: "Le suivi du tutorat", desc: "Voir qui accompagne qui et combien de sessions ont eu lieu, sans tableur." },
+          stats: { title: "Des statistiques anonymes", desc: "Les matières les plus demandées, l'activité au fil du semestre : de quoi ajuster votre accompagnement." },
+          launch: { title: "Un accompagnement au lancement", desc: "Présentation aux étudiants, avec vos équipes ou le BDE, et supports de communication." }
+        },
+        steps: {
+          eyebrow: "Comment ça se passe",
+          title: "Un pilote en trois étapes",
+          call: { title: "Un premier échange", desc: "Une demi-heure pour comprendre votre organisation, vos besoins et vos contraintes." },
+          launch: { title: "Le lancement", desc: "Nous présentons BuddyEtude à vos étudiants avec vous, et restons disponibles tout au long du semestre." },
+          review: { title: "Le bilan", desc: "En fin de semestre : retours des étudiants, chiffres d'utilisation et suite à donner ensemble." }
+        },
+        promise: "Les étudiants n'ont jamais rien à payer. Leurs données ne sont ni vendues ni utilisées pour de la publicité.",
+        contact: {
+          title: "Parlons de votre établissement",
+          desc: "Une question, une idée, l'envie de tester avec une promotion ? Écrivez-nous, nous répondons rapidement."
+        },
+        mail: {
+          subject: "Établissement pilote BuddyEtude",
+          body: "Bonjour,\n\nJe souhaiterais en savoir plus sur BuddyEtude pour notre établissement.\n\nÉtablissement :\nVotre fonction :\nNombre d'étudiants concernés :\nVos besoins :\n\nMerci !"
+        }
+      },
       // --- Paramètres et profil (refonte visuelle) ---
       settingsUi: {
         nav: {
@@ -1693,6 +1752,7 @@ const resources = {
         platform: "Platform",
         about: "About us",
         findBuddy: "Find a buddy",
+        schools: "For schools",
         support: "Support & Legal",
         legal: "Legal Notice & Terms",
         privacy: "Privacy Policy",
@@ -2058,6 +2118,64 @@ const resources = {
         }
       },
       // --- NEW: SETTINGS PAGE ---
+      // --- Support and "For schools" page ---
+      support: {
+        title: "Support BuddyEtude",
+        desc: "The site is free and ad-free. A small donation helps pay for the servers and keep it that way.",
+        button: "Support the project"
+      },
+      schools: {
+        eyebrow: "For schools",
+        title1: "Peer tutoring,",
+        titleHighlight: "finally easy to organise",
+        subtitle: "BuddyEtude helps your students find a study buddy or a tutor at their level, then study together online. We are looking for pilot universities, schools and student unions to build what comes next with them.",
+        ctaPilot: "Become a pilot school",
+        ctaPlatform: "See the platform",
+        trust: { free: "Always free for students", noAds: "No ads, no data resale", europe: "Data hosted in the EU" },
+        problems: {
+          eyebrow: "The problem",
+          title: "Studying alone is where many students drop out",
+          isolation: { title: "Isolation during revision", desc: "Many students, especially in first year or far from home, don't know who to study with." },
+          spreadsheets: { title: "Tutoring that's hard to sustain", desc: "Spreadsheets, emails, group chats: organising and following tutoring takes teams a lot of time." },
+          matching: { title: "Poorly matched pairs", desc: "Matching students by subject, level and availability is almost impossible by hand." }
+        },
+        features: {
+          eyebrow: "Available today",
+          title: "A platform that's already complete",
+          subtitle: "Everything below already works, for free, for any student.",
+          matching: { title: "Level-based matching", desc: "Students are matched by shared subjects, their level in each, their school and their availability." },
+          mentoring: { title: "Peer mentoring", desc: "Students advanced in a subject can help beginners, who explain what they're stuck on." },
+          sessions: { title: "Video sessions", desc: "Planned sessions with a video call link, email reminders and calendar export." },
+          whiteboard: { title: "Shared whiteboard", desc: "Draw, write and annotate PDF notes together in real time, across several pages." },
+          groups: { title: "Study groups", desc: "Up to six students, with a shared chat and whiteboard." },
+          safety: { title: "A safe environment", desc: "“Verified student” badge via the school email address, reporting, blocking and moderation." }
+        },
+        pilot: {
+          eyebrow: "With pilot schools",
+          title: "What we're building with you",
+          subtitle: "School-specific needs will be developed with our first partners, based on their feedback.",
+          space: { title: "A space reserved for your students", desc: "Access limited to your school's email addresses, so your students find each other." },
+          tracking: { title: "Tutoring follow-up", desc: "See who supports whom and how many sessions took place, without spreadsheets." },
+          stats: { title: "Anonymous statistics", desc: "Most requested subjects, activity over the semester: what you need to adjust your support." },
+          launch: { title: "Launch support", desc: "Presentation to students, with your teams or the student union, and communication materials." }
+        },
+        steps: {
+          eyebrow: "How it works",
+          title: "A pilot in three steps",
+          call: { title: "A first conversation", desc: "Half an hour to understand your organisation, needs and constraints." },
+          launch: { title: "Launch", desc: "We present BuddyEtude to your students with you, and stay available throughout the semester." },
+          review: { title: "Review", desc: "At the end of the semester: student feedback, usage figures and next steps together." }
+        },
+        promise: "Students never pay anything. Their data is never sold or used for advertising.",
+        contact: {
+          title: "Let's talk about your school",
+          desc: "A question, an idea, want to try it with one class? Write to us, we reply quickly."
+        },
+        mail: {
+          subject: "BuddyEtude pilot school",
+          body: "Hello,\n\nI would like to know more about BuddyEtude for our school.\n\nSchool:\nYour role:\nNumber of students involved:\nYour needs:\n\nThank you!"
+        }
+      },
       // --- Settings and profile (visual redesign) ---
       settingsUi: {
         nav: {

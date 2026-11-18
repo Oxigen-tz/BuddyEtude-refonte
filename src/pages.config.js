@@ -26,6 +26,7 @@ export const PAGES = {
     "About": lazy(() => import('./pages/About')),
     "Admin": lazy(() => import('./pages/Admin')),
     "Groups": lazy(() => import('./pages/Groups')),
+    "Etablissements": lazy(() => import('./pages/Etablissements')),
 }
 
 export const pagesConfig = {

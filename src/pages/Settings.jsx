@@ -20,6 +20,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { SettingsSection, SettingRow, ThemeCard, IconTile } from "@/components/settings/SettingsUI";
 import { getThemePreference, setThemePreference } from "@/lib/theme";
+import SupportCard from "@/components/SupportCard";
 
 // Supprime des documents par lots (une écriture groupée Firestore est limitée à 500 opérations)
 const deleteInBatches = async (refs) => {
@@ -333,6 +334,8 @@ export default function Settings() {
               })}
             </div>
 
+            <SupportCard className="hidden lg:block mt-6" />
+
             {/* Liens d'information (ordinateur) */}
             <div className="hidden lg:block mt-6 px-3">
               <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500 mb-2">{t('settingsUi.infoTitle')}</p>
@@ -340,6 +343,7 @@ export default function Settings() {
                 <li><Link to={createPageUrl("About")} className="text-gray-500 dark:text-gray-400 hover:text-brand-600 dark:hover:text-brand-300 transition-colors">{t('footer.about')}</Link></li>
                 <li><Link to={createPageUrl("Legal")} className="text-gray-500 dark:text-gray-400 hover:text-brand-600 dark:hover:text-brand-300 transition-colors">{t('footer.legal')}</Link></li>
                 <li><Link to={createPageUrl("Privacy")} className="text-gray-500 dark:text-gray-400 hover:text-brand-600 dark:hover:text-brand-300 transition-colors">{t('footer.privacy')}</Link></li>
+                <li><Link to={createPageUrl("Etablissements")} className="text-gray-500 dark:text-gray-400 hover:text-brand-600 dark:hover:text-brand-300 transition-colors">{t('footer.schools')}</Link></li>
                 <li><a href="mailto:contact@buddyetude.com" className="text-gray-500 dark:text-gray-400 hover:text-brand-600 dark:hover:text-brand-300 transition-colors">contact@buddyetude.com</a></li>
               </ul>
               <p className="mt-4 text-xs text-gray-400 dark:text-gray-500">© {new Date().getFullYear()} BuddyEtude</p>
@@ -515,6 +519,8 @@ export default function Settings() {
               )}
             </motion.div>
           </AnimatePresence>
+
+          <SupportCard className="lg:hidden mt-10" />
 
           {/* Liens d'information (mobile) */}
           <nav className="lg:hidden mt-10 pt-5 border-t border-gray-200/70 dark:border-ink-700 flex flex-wrap gap-x-5 gap-y-2 text-sm text-gray-500 dark:text-gray-400">
