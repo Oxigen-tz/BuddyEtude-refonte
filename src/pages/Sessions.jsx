@@ -180,11 +180,11 @@ export default function Sessions() {
 
         {loading ? (
           <div className="grid md:grid-cols-2 gap-5">
-            <Skeleton className="h-48 rounded-2xl dark:bg-[#1e1f20]" />
-            <Skeleton className="h-48 rounded-2xl dark:bg-[#1e1f20]" />
+            <Skeleton className="h-48 rounded-2xl dark:bg-ink-900" />
+            <Skeleton className="h-48 rounded-2xl dark:bg-ink-900" />
           </div>
         ) : planned.length === 0 ? (
-          <p className="text-gray-400 dark:text-gray-500 text-sm py-10 text-center bg-white dark:bg-[#1e1f20] rounded-2xl border border-dashed border-gray-200 dark:border-[#333537]">
+          <p className="text-gray-400 dark:text-gray-500 text-sm py-10 text-center bg-white dark:bg-ink-900 rounded-2xl border border-dashed border-gray-200 dark:border-ink-700">
             {t('sessions.noUpcoming')}
           </p>
         ) : (
@@ -223,7 +223,7 @@ export default function Sessions() {
 
       {/* --- DIALOG DE CRÉATION --- */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent aria-describedby={undefined} className="rounded-2xl max-w-lg max-h-[90dvh] overflow-y-auto dark:bg-[#1e1f20] dark:border-[#333537] dark:text-gray-100 p-6">
+        <DialogContent aria-describedby={undefined} className="rounded-2xl max-w-lg max-h-[90dvh] overflow-y-auto dark:bg-ink-900 dark:border-ink-700 dark:text-gray-100 p-6">
           <DialogHeader>
             <DialogTitle className="text-xl">{t('sessions.createDialog.title')}</DialogTitle>
           </DialogHeader>
@@ -232,18 +232,18 @@ export default function Sessions() {
               <Label htmlFor="session-title" className="dark:text-gray-300">{t('sessions.createDialog.titleLabel')}</Label>
               <Input id="session-title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
                 placeholder={t('sessions.createDialog.titlePlaceholder')} maxLength={80}
-                className="bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-white rounded-xl" />
+                className="bg-gray-50 dark:bg-ink-950 border-gray-200 dark:border-ink-700 text-gray-900 dark:text-white rounded-xl" />
             </div>
 
             <div className="space-y-2">
               <Label className="dark:text-gray-300">{t('sessions.createDialog.buddyLabel')}</Label>
               <Select value={form.buddy_uid} onValueChange={(v) => setForm({ ...form, buddy_uid: v })}>
-                <SelectTrigger className="rounded-xl bg-white dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-white">
+                <SelectTrigger className="rounded-xl bg-white dark:bg-ink-950 border-gray-200 dark:border-ink-700 text-gray-900 dark:text-white">
                   <SelectValue placeholder={t('sessions.createDialog.buddyPlaceholder')} />
                 </SelectTrigger>
-                <SelectContent className="dark:bg-[#1e1f20] dark:border-[#333537] dark:text-gray-100">
+                <SelectContent className="dark:bg-ink-900 dark:border-ink-700 dark:text-gray-100">
                   {buddies.map(b => (
-                    <SelectItem key={b.uid} value={b.uid} className="focus:bg-gray-100 dark:focus:bg-[#282a2c] cursor-pointer">{b.name}</SelectItem>
+                    <SelectItem key={b.uid} value={b.uid} className="focus:bg-gray-100 dark:focus:bg-ink-800 cursor-pointer">{b.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -253,12 +253,12 @@ export default function Sessions() {
               <div className="space-y-2">
                 <Label htmlFor="session-date" className="dark:text-gray-300">{t('sessions.createDialog.dateLabel')}</Label>
                 <Input id="session-date" type="date" value={form.date} min={todayISO()} onChange={(e) => setForm({ ...form, date: e.target.value })}
-                  className="bg-white dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-white rounded-xl" />
+                  className="bg-white dark:bg-ink-950 border-gray-200 dark:border-ink-700 text-gray-900 dark:text-white rounded-xl" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="session-time" className="dark:text-gray-300">{t('sessions.createDialog.timeLabel')}</Label>
                 <Input id="session-time" type="time" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })}
-                  className="bg-white dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-white rounded-xl" />
+                  className="bg-white dark:bg-ink-950 border-gray-200 dark:border-ink-700 text-gray-900 dark:text-white rounded-xl" />
               </div>
             </div>
 
@@ -267,17 +267,17 @@ export default function Sessions() {
                 <Label htmlFor="session-duration" className="dark:text-gray-300">{t('sessions.createDialog.durationLabel')}</Label>
                 <Input id="session-duration" type="number" min={5} max={480} value={form.duration_minutes}
                   onChange={(e) => setForm({ ...form, duration_minutes: e.target.value })}
-                  className="bg-white dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-white rounded-xl" />
+                  className="bg-white dark:bg-ink-950 border-gray-200 dark:border-ink-700 text-gray-900 dark:text-white rounded-xl" />
               </div>
               <div className="space-y-2">
                 <Label className="dark:text-gray-300">{t('sessions.createDialog.modeLabel')}</Label>
                 <Select value={form.mode} onValueChange={(v) => setForm({ ...form, mode: v })}>
-                  <SelectTrigger className="rounded-xl bg-white dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-white">
+                  <SelectTrigger className="rounded-xl bg-white dark:bg-ink-950 border-gray-200 dark:border-ink-700 text-gray-900 dark:text-white">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="dark:bg-[#1e1f20] dark:border-[#333537] dark:text-gray-100">
-                    <SelectItem value="en_ligne" className="focus:bg-gray-100 dark:focus:bg-[#282a2c] cursor-pointer">{t('sessions.createDialog.modeOnline')}</SelectItem>
-                    <SelectItem value="presentiel" className="focus:bg-gray-100 dark:focus:bg-[#282a2c] cursor-pointer">{t('sessions.createDialog.modeInPerson')}</SelectItem>
+                  <SelectContent className="dark:bg-ink-900 dark:border-ink-700 dark:text-gray-100">
+                    <SelectItem value="en_ligne" className="focus:bg-gray-100 dark:focus:bg-ink-800 cursor-pointer">{t('sessions.createDialog.modeOnline')}</SelectItem>
+                    <SelectItem value="presentiel" className="focus:bg-gray-100 dark:focus:bg-ink-800 cursor-pointer">{t('sessions.createDialog.modeInPerson')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -288,7 +288,7 @@ export default function Sessions() {
                 <Label htmlFor="session-location" className="dark:text-gray-300">{t('sessions.createDialog.locationLabel')}</Label>
                 <Input id="session-location" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })}
                   placeholder={t('sessions.createDialog.locationPlaceholder')} maxLength={120}
-                  className="bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-white rounded-xl" />
+                  className="bg-gray-50 dark:bg-ink-950 border-gray-200 dark:border-ink-700 text-gray-900 dark:text-white rounded-xl" />
               </div>
             ) : (
               // Lien d'appel vidéo : réviser à distance se fait à la voix, pas seulement au tableau
@@ -297,9 +297,9 @@ export default function Sessions() {
                 <div className="flex gap-2">
                   <Input id="session-link" type="url" value={form.meeting_url} onChange={(e) => setForm({ ...form, meeting_url: e.target.value })}
                     placeholder="https://meet.jit.si/…" maxLength={300}
-                    className="bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-white rounded-xl" />
+                    className="bg-gray-50 dark:bg-ink-950 border-gray-200 dark:border-ink-700 text-gray-900 dark:text-white rounded-xl" />
                   <Button type="button" variant="outline" onClick={() => setForm({ ...form, meeting_url: generateJitsiUrl() })}
-                    className="shrink-0 rounded-xl border-gray-200 dark:border-[#333537]">
+                    className="shrink-0 rounded-xl border-gray-200 dark:border-ink-700">
                     <Wand2 className="w-4 h-4 mr-1.5" /> {t('sessions.createDialog.generateLink')}
                   </Button>
                 </div>
@@ -309,7 +309,7 @@ export default function Sessions() {
           </div>
           <DialogFooter className="mt-2 flex gap-2">
             <Button variant="outline" onClick={() => setShowCreate(false)}
-              className="rounded-xl border-gray-200 dark:border-[#333537] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#282a2c] flex-1 sm:flex-none">
+              className="rounded-xl border-gray-200 dark:border-ink-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-ink-800 flex-1 sm:flex-none">
               {t('sessions.createDialog.cancel')}
             </Button>
             <Button className="bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded-xl flex-1 sm:flex-none shadow-sm"
@@ -360,7 +360,7 @@ function FeedbackDialog({ session, myUid, onClose }) {
 
   return (
     <Dialog open={!!session} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="rounded-2xl max-w-md dark:bg-[#1e1f20] dark:border-[#333537] dark:text-gray-100 p-6">
+      <DialogContent className="rounded-2xl max-w-md dark:bg-ink-900 dark:border-ink-700 dark:text-gray-100 p-6">
         <DialogHeader>
           <DialogTitle className="text-xl">{t('sessions.feedback.title')}</DialogTitle>
           <DialogDescription className="text-sm text-gray-500 dark:text-gray-400">{t('sessions.feedback.desc')}</DialogDescription>
@@ -374,7 +374,7 @@ function FeedbackDialog({ session, myUid, onClose }) {
           ))}
         </div>
         <Textarea value={comment} onChange={(e) => setComment(e.target.value)} maxLength={500} placeholder={t('sessions.feedback.placeholder')}
-          className="h-24 resize-none rounded-xl bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537]" />
+          className="h-24 resize-none rounded-xl bg-gray-50 dark:bg-ink-950 border-gray-200 dark:border-ink-700" />
         <DialogFooter className="gap-2">
           <Button variant="ghost" onClick={onClose} className="rounded-xl">{t('sessions.feedback.skip')}</Button>
           <Button onClick={submit} disabled={!rating || saving} className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white">
@@ -414,7 +414,7 @@ function SessionCard({ session, myUid, onUpdateStatus, onJoinWhiteboard, onFeedb
   const meetingUrl = session.meeting_url && isSafeMeetingUrl(session.meeting_url) ? session.meeting_url : null;
 
   return (
-    <div className="bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] shadow-sm rounded-2xl hover:shadow-md transition-all duration-300 overflow-hidden">
+    <div className="bg-white dark:bg-ink-900 border border-gray-100 dark:border-ink-700 shadow-sm rounded-2xl hover:shadow-md transition-all duration-300 overflow-hidden">
       <div className="p-6">
         <div className="flex items-start justify-between gap-3 mb-4">
           <div className="min-w-0">

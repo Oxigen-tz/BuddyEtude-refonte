@@ -418,16 +418,16 @@ export default function Whiteboard() {
   // Portail vers <body> : rendu dans le <main> de Layout (qui crée son propre contexte
   // d'empilement), le tableau passait sous l'en-tête mobile malgré son z-index.
   return createPortal(
-    <div className="fixed inset-0 bg-slate-50 dark:bg-[#131314] z-[9999] flex flex-col transition-colors duration-300"
+    <div className="fixed inset-0 bg-slate-50 dark:bg-ink-950 z-[9999] flex flex-col transition-colors duration-300"
          style={{ backgroundImage: "radial-gradient(currentColor 1px, transparent 1px)", backgroundSize: "24px 24px" }}>
 
       {/* EN-TÊTE */}
-      <div className="bg-white/80 dark:bg-[#1e1f20]/90 backdrop-blur-md border-b border-gray-200 dark:border-[#333537] px-3 sm:px-6 py-3 flex items-center justify-between shadow-sm">
+      <div className="bg-white/80 dark:bg-ink-900/90 backdrop-blur-md border-b border-gray-200 dark:border-ink-700 px-3 sm:px-6 py-3 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => navigate(closeTo)} aria-label={t('whiteboard.closeBoard')} className="hover:bg-gray-100 dark:hover:bg-[#282a2c] text-gray-700 dark:text-gray-300 rounded-xl">
+          <Button variant="ghost" onClick={() => navigate(closeTo)} aria-label={t('whiteboard.closeBoard')} className="hover:bg-gray-100 dark:hover:bg-ink-800 text-gray-700 dark:text-gray-300 rounded-xl">
             <X className="w-5 h-5 sm:mr-2" /> <span className="hidden sm:inline">{t('whiteboard.closeBoard')}</span>
           </Button>
-          <div className="h-6 w-px bg-gray-300 dark:bg-[#333537] hidden md:block"></div>
+          <div className="h-6 w-px bg-gray-300 dark:bg-ink-700 hidden md:block"></div>
           <h2 className="font-bold text-gray-800 dark:text-gray-100 hidden md:block truncate max-w-[16rem]">{group?.name || t('whiteboard.title')}</h2>
         </div>
 
@@ -450,12 +450,12 @@ export default function Whiteboard() {
         <div className="flex items-center gap-2">
           <input ref={pdfInputRef} type="file" accept="application/pdf" className="hidden" onChange={(e) => importPdf(e.target.files?.[0])} />
           <Button onClick={() => pdfInputRef.current?.click()} disabled={Boolean(importing)} variant="outline" aria-label={t('whiteboard.pdf.import')} title={t('whiteboard.pdf.import')}
-            className="border-gray-200 dark:border-[#333537] text-gray-700 dark:text-gray-300 rounded-xl">
+            className="border-gray-200 dark:border-ink-700 text-gray-700 dark:text-gray-300 rounded-xl">
             {importing ? <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" /> : <FileUp className="w-4 h-4 sm:mr-2" />}
             <span className="hidden sm:inline">{importing ? t('whiteboard.pdf.progress', { done: importing.done, total: importing.total || "…" }) : t('whiteboard.pdf.import')}</span>
           </Button>
           <Button onClick={undoLastStroke} disabled={!canUndo} variant="outline" aria-label={t('whiteboard.undo')} title={t('whiteboard.undoTitle')}
-            className="border-gray-200 dark:border-[#333537] text-gray-700 dark:text-gray-300 rounded-xl disabled:opacity-40">
+            className="border-gray-200 dark:border-ink-700 text-gray-700 dark:text-gray-300 rounded-xl disabled:opacity-40">
             <Undo2 className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">{t('whiteboard.undo')}</span>
           </Button>
           <Button onClick={downloadBoard} variant="outline" aria-label={t('whiteboard.export')}
@@ -467,7 +467,7 @@ export default function Whiteboard() {
 
       {/* ZONE DE DESSIN */}
       <div className="flex-1 overflow-auto flex justify-center items-center p-4 md:p-8 relative">
-        <div className={`relative shadow-2xl rounded-xl ring-1 ring-gray-200 dark:ring-[#333537] overflow-hidden ${background ? "bg-white" : "bg-white dark:bg-[#1e1f20]"}`}>
+        <div className={`relative shadow-2xl rounded-xl ring-1 ring-gray-200 dark:ring-ink-700 overflow-hidden ${background ? "bg-white" : "bg-white dark:bg-ink-900"}`}>
           {/* Fond de la page (PDF importé), sous le dessin : la gomme ne l'efface pas */}
           {background && <img src={background} alt="" draggable={false} className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none" />}
           <canvas
@@ -517,7 +517,7 @@ export default function Whiteboard() {
         </div>
 
         {isCustomColorOpen && (
-          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-white/95 dark:bg-[#1e1f20]/95 backdrop-blur-xl p-4 rounded-3xl shadow-2xl border border-gray-100 dark:border-[#333537] z-50 flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-5 duration-300 min-w-[250px]">
+          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-white/95 dark:bg-ink-900/95 backdrop-blur-xl p-4 rounded-3xl shadow-2xl border border-gray-100 dark:border-ink-700 z-50 flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-5 duration-300 min-w-[250px]">
             <div className="flex items-center justify-between gap-2 px-1">
               <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">{t('whiteboard.customColor')}</span>
               <button onClick={() => setIsCustomColorOpen(false)} aria-label={t('whiteboard.closePicker')} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
@@ -528,8 +528,8 @@ export default function Whiteboard() {
               <HexColorPicker color={resolveColor(color)} onChange={(c) => { setColor(c); if (tool === "eraser") setTool("pen"); }} />
             </div>
             <div className="flex items-center gap-2 mt-1">
-              <div className="flex-1 flex items-center gap-2 bg-gray-50 dark:bg-[#131314] border border-gray-200 dark:border-[#333537] p-1.5 rounded-xl">
-                <div className="w-6 h-6 rounded-md shadow-inner border border-gray-200 dark:border-[#333537]" style={{ backgroundColor: resolveColor(color) }} />
+              <div className="flex-1 flex items-center gap-2 bg-gray-50 dark:bg-ink-950 border border-gray-200 dark:border-ink-700 p-1.5 rounded-xl">
+                <div className="w-6 h-6 rounded-md shadow-inner border border-gray-200 dark:border-ink-700" style={{ backgroundColor: resolveColor(color) }} />
                 <input type="text" value={resolveColor(color)} onChange={(e) => setColor(e.target.value)} aria-label={t('whiteboard.customColor')}
                   className="w-full bg-transparent text-sm font-mono uppercase text-gray-800 dark:text-gray-200 focus:outline-none" />
               </div>
@@ -542,7 +542,7 @@ export default function Whiteboard() {
               <div className="flex flex-wrap gap-1.5 px-1">
                 {savedColors.map((c) => (
                   <button key={c} type="button" onClick={() => { setColor(c); if (tool === "eraser") setTool("pen"); }} aria-label={c}
-                    className="w-6 h-6 rounded-full border border-gray-200 dark:border-[#333537] hover:scale-110 transition-transform" style={{ backgroundColor: c }} />
+                    className="w-6 h-6 rounded-full border border-gray-200 dark:border-ink-700 hover:scale-110 transition-transform" style={{ backgroundColor: c }} />
                 ))}
               </div>
             )}
@@ -551,17 +551,17 @@ export default function Whiteboard() {
       </div>
 
       {/* BARRE D'OUTILS FLOTTANTE */}
-      <div className="absolute bottom-6 md:bottom-8 left-1/2 -translate-x-1/2 bg-white/95 dark:bg-[#1e1f20]/95 backdrop-blur-xl shadow-2xl border border-gray-200 dark:border-[#333537] p-2 md:p-3 rounded-2xl flex items-center gap-2 sm:gap-3 md:gap-5 max-w-[calc(100vw-1.5rem)] overflow-x-auto">
-        <div className="flex items-center gap-1 bg-gray-100/50 dark:bg-[#131314]/50 p-1 rounded-xl shrink-0">
+      <div className="absolute bottom-6 md:bottom-8 left-1/2 -translate-x-1/2 bg-white/95 dark:bg-ink-900/95 backdrop-blur-xl shadow-2xl border border-gray-200 dark:border-ink-700 p-2 md:p-3 rounded-2xl flex items-center gap-2 sm:gap-3 md:gap-5 max-w-[calc(100vw-1.5rem)] overflow-x-auto">
+        <div className="flex items-center gap-1 bg-gray-100/50 dark:bg-ink-950/50 p-1 rounded-xl shrink-0">
           {[["pen", Pen], ["text", Type], ["eraser", Eraser]].map(([name, Icon]) => (
             <button key={name} onClick={() => { setTool(name); setIsCustomColorOpen(false); }} aria-label={t(`whiteboard.tools.${name}`)} title={t(`whiteboard.tools.${name}`)} aria-pressed={tool === name}
-              className={`p-2.5 md:p-3 rounded-lg transition-all ${tool === name ? "bg-indigo-600 dark:bg-indigo-500 text-white shadow-md" : "text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-[#282a2c]"}`}>
+              className={`p-2.5 md:p-3 rounded-lg transition-all ${tool === name ? "bg-indigo-600 dark:bg-indigo-500 text-white shadow-md" : "text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-ink-800"}`}>
               <Icon className="w-5 h-5" />
             </button>
           ))}
         </div>
 
-        <div className="w-px h-8 bg-gray-200 dark:bg-[#333537] shrink-0"></div>
+        <div className="w-px h-8 bg-gray-200 dark:bg-ink-700 shrink-0"></div>
 
         <div className={`flex items-center gap-1.5 shrink-0 transition-opacity ${tool === "eraser" ? "opacity-30 pointer-events-none" : "opacity-100"}`}>
           {PRESET_COLORS.map((c) => (
@@ -576,18 +576,18 @@ export default function Whiteboard() {
           </button>
         </div>
 
-        <div className="w-px h-8 bg-gray-200 dark:bg-[#333537] shrink-0 hidden md:block"></div>
+        <div className="w-px h-8 bg-gray-200 dark:bg-ink-700 shrink-0 hidden md:block"></div>
 
         <div className="flex items-center gap-1 shrink-0">
           {BRUSH_SIZES.map((size, index) => (
             <button key={size} aria-label={t('whiteboard.brushSize', { size })} title={t('whiteboard.brushSize', { size })} aria-pressed={lineWidth === size} onClick={() => setLineWidth(size)}
-              className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-xl transition-all ${lineWidth === size ? "bg-gray-100 dark:bg-[#282a2c] shadow-inner" : "hover:bg-gray-50 dark:hover:bg-[#131314]"}`}>
+              className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-xl transition-all ${lineWidth === size ? "bg-gray-100 dark:bg-ink-800 shadow-inner" : "hover:bg-gray-50 dark:hover:bg-ink-950"}`}>
               <Circle className="fill-gray-700 dark:fill-gray-300 text-gray-700 dark:text-gray-300" style={{ width: 4 + index * 4, height: 4 + index * 4 }} />
             </button>
           ))}
         </div>
 
-        <div className="w-px h-8 bg-gray-200 dark:bg-[#333537] shrink-0"></div>
+        <div className="w-px h-8 bg-gray-200 dark:bg-ink-700 shrink-0"></div>
 
         <button onClick={clearBoard} aria-label={t('whiteboard.tools.clearAll')} title={t('whiteboard.tools.clearAll')} className="p-2.5 md:p-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl shrink-0">
           <Trash2 className="w-5 h-5" />

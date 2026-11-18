@@ -119,8 +119,8 @@ export default function Profile() {
   if (loading || !user) {
     return (
       <div className="max-w-3xl mx-auto space-y-6">
-        <Skeleton className="h-10 w-48 dark:bg-[#1e1f20]" />
-        <Skeleton className="h-[600px] rounded-2xl dark:bg-[#1e1f20]" />
+        <Skeleton className="h-10 w-48 dark:bg-ink-900" />
+        <Skeleton className="h-[600px] rounded-2xl dark:bg-ink-900" />
       </div>
     );
   }
@@ -148,10 +148,10 @@ export default function Profile() {
       {!isEditing ? (
         <div className="space-y-6">
           {/* --- CARTE PRINCIPALE --- */}
-          <div className="border border-gray-100 dark:border-[#333537] shadow-sm rounded-2xl overflow-hidden bg-white dark:bg-[#1e1f20] transition-colors duration-300">
+          <div className="border border-gray-100 dark:border-ink-700 shadow-sm rounded-2xl overflow-hidden bg-white dark:bg-ink-900 transition-colors duration-300">
             
             {/* Bannière dégradée avec Avatar */}
-            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-gray-50 dark:border-[#333537]">
+            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-gray-50 dark:border-ink-700">
               <div className="flex items-center gap-5">
                 {/* Avatar utilisateur */}
                 <div className="relative">
@@ -163,10 +163,10 @@ export default function Profile() {
                       alt={profile.display_name} 
                       referrerPolicy="no-referrer"
                       onError={() => setPhotoFailed(true)}
-                      className="w-20 h-20 rounded-2xl object-cover border-2 border-white dark:border-[#333537] shadow-md"
+                      className="w-20 h-20 rounded-2xl object-cover border-2 border-white dark:border-ink-700 shadow-md"
                     />
                   ) : (
-                    <div className="w-20 h-20 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-2xl font-bold border-2 border-white dark:border-[#333537] shadow-md">
+                    <div className="w-20 h-20 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-2xl font-bold border-2 border-white dark:border-ink-700 shadow-md">
                       {profile.display_name ? profile.display_name.charAt(0).toUpperCase() : "E"}
                     </div>
                   )}
@@ -185,7 +185,7 @@ export default function Profile() {
                 </div>
               </div>
 
-              <Button onClick={() => setIsEditing(true)} className="bg-white dark:bg-[#282a2c] text-indigo-600 dark:text-indigo-400 hover:bg-gray-50 dark:hover:bg-[#333537] border border-indigo-100 dark:border-[#333537] rounded-xl shadow-sm">
+              <Button onClick={() => setIsEditing(true)} className="bg-white dark:bg-ink-800 text-indigo-600 dark:text-indigo-400 hover:bg-gray-50 dark:hover:bg-ink-700 border border-indigo-100 dark:border-ink-700 rounded-xl shadow-sm">
                 <Edit className="w-4 h-4 mr-2" /> {t('profile.edit')}
               </Button>
             </div>
@@ -201,7 +201,7 @@ export default function Profile() {
               {profile.bio && (
                 <div>
                   <h3 className="text-sm font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">{t('profile.about')}</h3>
-                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed bg-gray-50 dark:bg-[#131314] p-4 rounded-xl border border-transparent dark:border-[#333537]">
+                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed bg-gray-50 dark:bg-ink-950 p-4 rounded-xl border border-transparent dark:border-ink-700">
                     {profile.bio}
                   </p>
                 </div>
@@ -251,17 +251,17 @@ export default function Profile() {
               </div>
               
               {/* Disponibilités */}
-              <div className="pt-6 border-t border-gray-100 dark:border-[#333537]">
+              <div className="pt-6 border-t border-gray-100 dark:border-ink-700">
                 <h3 className="text-sm font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
                   <Clock className="w-4 h-4" /> {t('profile.preferencesAvailability')}
                 </h3>
                 <div className="flex flex-wrap items-center gap-4">
                   {profile.availability?.map(a => (
-                    <span key={a} className="text-sm font-medium bg-gray-100 dark:bg-[#282a2c] text-gray-700 dark:text-gray-300 border border-transparent dark:border-[#333537] px-3 py-1.5 rounded-lg">
+                    <span key={a} className="text-sm font-medium bg-gray-100 dark:bg-ink-800 text-gray-700 dark:text-gray-300 border border-transparent dark:border-ink-700 px-3 py-1.5 rounded-lg">
                       {t(`profileForm.availabilityLabels.${a}`, a)}
                     </span>
                   ))}
-                  <div className="h-6 w-px bg-gray-200 dark:bg-[#333537] mx-2 hidden md:block"></div>
+                  <div className="h-6 w-px bg-gray-200 dark:bg-ink-700 mx-2 hidden md:block"></div>
                   {profile.is_online && (
                     <span className="flex items-center gap-1.5 text-sm font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-500/10 px-3 py-1.5 rounded-lg border border-transparent dark:border-green-500/20">
                       <Monitor className="w-4 h-4" /> {t('profile.online')}
@@ -280,11 +280,11 @@ export default function Profile() {
         </div>
       ) : (
         /* --- MODE ÉDITION --- */
-        <div className="border border-gray-100 dark:border-[#333537] shadow-sm rounded-2xl overflow-hidden bg-white dark:bg-[#1e1f20] transition-colors duration-300">
-          <div className="p-6 md:p-8 border-b border-gray-50 dark:border-[#333537] flex items-center justify-between">
+        <div className="border border-gray-100 dark:border-ink-700 shadow-sm rounded-2xl overflow-hidden bg-white dark:bg-ink-900 transition-colors duration-300">
+          <div className="p-6 md:p-8 border-b border-gray-50 dark:border-ink-700 flex items-center justify-between">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t('profile.editTitle')}</h2>
             {profile?.profile_complete && (
-              <Button variant="ghost" onClick={() => setIsEditing(false)} className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#282a2c]">
+              <Button variant="ghost" onClick={() => setIsEditing(false)} className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-ink-800">
                 <ArrowLeft className="w-4 h-4 mr-2" /> {t('profile.cancel')}
               </Button>
             )}

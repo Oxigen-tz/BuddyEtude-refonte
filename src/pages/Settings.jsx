@@ -269,7 +269,7 @@ export default function Settings() {
                   className={`flex items-center justify-between px-5 py-4 rounded-2xl text-base font-medium transition-all ${
                     isActive 
                       ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 shadow-sm" 
-                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#282a2c] hover:text-gray-900 dark:hover:text-gray-200"
+                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-ink-800 hover:text-gray-900 dark:hover:text-gray-200"
                   }`}
                 >
                   <div className="flex items-center gap-4">
@@ -289,7 +289,7 @@ export default function Settings() {
           {/* 👤 ONGLET : MON COMPTE */}
           {activeTab === "account" && (
             <div className="animate-in slide-in-from-right-4 duration-300">
-              <div className="bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] rounded-3xl p-8 md:p-12 shadow-sm transition-colors duration-300">
+              <div className="bg-white dark:bg-ink-900 border border-gray-100 dark:border-ink-700 rounded-3xl p-8 md:p-12 shadow-sm transition-colors duration-300">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-8">{t('settings.account.title')}</h2>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -300,7 +300,7 @@ export default function Settings() {
                       <Input 
                         disabled 
                         value={user?.email || ""} 
-                        className="pl-12 py-7 bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-600 dark:text-gray-300 rounded-2xl cursor-not-allowed text-base border-dashed" 
+                        className="pl-12 py-7 bg-gray-50 dark:bg-ink-950 border-gray-200 dark:border-ink-700 text-gray-600 dark:text-gray-300 rounded-2xl cursor-not-allowed text-base border-dashed" 
                       />
                     </div>
                   </div>
@@ -312,7 +312,7 @@ export default function Settings() {
                       <Input 
                         disabled 
                         value={user?.displayName || user?.full_name || t('settings.account.defaultStudent')} 
-                        className="pl-12 py-7 bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-600 dark:text-gray-300 rounded-2xl cursor-not-allowed text-base border-dashed" 
+                        className="pl-12 py-7 bg-gray-50 dark:bg-ink-950 border-gray-200 dark:border-ink-700 text-gray-600 dark:text-gray-300 rounded-2xl cursor-not-allowed text-base border-dashed" 
                       />
                     </div>
                   </div>
@@ -327,7 +327,7 @@ export default function Settings() {
               </div>
 
               {/* Zone de danger : suppression du compte */}
-              <div className="mt-8 bg-white dark:bg-[#1e1f20] border border-red-100 dark:border-red-500/20 rounded-3xl p-8 md:p-12 shadow-sm">
+              <div className="mt-8 bg-white dark:bg-ink-900 border border-red-100 dark:border-red-500/20 rounded-3xl p-8 md:p-12 shadow-sm">
                 <h2 className="text-xl font-bold text-red-600 dark:text-red-400 mb-2 flex items-center gap-2">
                   <AlertTriangle className="w-5 h-5" /> {t('settings.danger.title')}
                 </h2>
@@ -345,7 +345,7 @@ export default function Settings() {
 
           {showDeleteModal && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in p-4">
-              <div role="dialog" aria-modal="true" className="bg-white dark:bg-[#1e1f20] rounded-3xl p-6 shadow-2xl w-full max-w-md border border-gray-100 dark:border-[#333537] animate-in zoom-in-95">
+              <div role="dialog" aria-modal="true" className="bg-white dark:bg-ink-900 rounded-3xl p-6 shadow-2xl w-full max-w-md border border-gray-100 dark:border-ink-700 animate-in zoom-in-95">
                 <div className="w-12 h-12 bg-red-50 dark:bg-red-500/10 rounded-full flex items-center justify-center mb-4">
                   <Trash2 className="w-6 h-6 text-red-500" />
                 </div>
@@ -359,18 +359,18 @@ export default function Settings() {
                   value={deleteConfirmText}
                   onChange={(e) => setDeleteConfirmText(e.target.value)}
                   autoComplete="off"
-                  className="mt-2 mb-6 rounded-xl bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537]"
+                  className="mt-2 mb-6 rounded-xl bg-gray-50 dark:bg-ink-950 border-gray-200 dark:border-ink-700"
                 />
                 {/* Compte e-mail : la confirmation se fait par mot de passe (pas de fenêtre Google) */}
                 {isPasswordAccount && (
                   <>
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="delete-password">{t('auth.password')}</label>
                     <Input id="delete-password" type="password" value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)}
-                      autoComplete="current-password" className="mt-2 mb-6 rounded-xl bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537]" />
+                      autoComplete="current-password" className="mt-2 mb-6 rounded-xl bg-gray-50 dark:bg-ink-950 border-gray-200 dark:border-ink-700" />
                   </>
                 )}
                 <div className="flex gap-3 justify-end">
-                  <Button variant="ghost" disabled={isDeleting} onClick={() => setShowDeleteModal(false)} className="rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#282a2c]">
+                  <Button variant="ghost" disabled={isDeleting} onClick={() => setShowDeleteModal(false)} className="rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-ink-800">
                     {t('settings.danger.cancel')}
                   </Button>
                   <Button
@@ -389,7 +389,7 @@ export default function Settings() {
           {/* 🎨 ONGLET : APPARENCE */}
           {activeTab === "appearance" && (
             <div className="animate-in slide-in-from-right-4 duration-300">
-              <div className="bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] rounded-3xl p-8 md:p-12 shadow-sm transition-colors duration-300">
+              <div className="bg-white dark:bg-ink-900 border border-gray-100 dark:border-ink-700 rounded-3xl p-8 md:p-12 shadow-sm transition-colors duration-300">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{t('settings.appearance.title')}</h2>
                 <p className="text-base text-gray-500 dark:text-gray-400 mb-10">{t('settings.appearance.subtitle')}</p>
                 
@@ -397,7 +397,7 @@ export default function Settings() {
                   {/* Mode Clair */}
                   <button 
                     onClick={() => setTheme("light")}
-                    className={`relative p-6 rounded-3xl border-2 text-left transition-all group ${!isDarkMode ? "border-indigo-600 bg-indigo-50/50" : "border-gray-100 dark:border-[#333537] hover:border-gray-300 dark:hover:border-gray-600"}`}
+                    className={`relative p-6 rounded-3xl border-2 text-left transition-all group ${!isDarkMode ? "border-indigo-600 bg-indigo-50/50" : "border-gray-100 dark:border-ink-700 hover:border-gray-300 dark:hover:border-gray-600"}`}
                   >
                     <div className="w-full h-40 bg-gray-50 rounded-2xl border border-gray-200 mb-6 flex items-center justify-center transition-transform group-hover:scale-[1.02]">
                        <Sun className="w-12 h-12 text-amber-500" />
@@ -410,9 +410,9 @@ export default function Settings() {
                   {/* Mode Sombre */}
                   <button 
                     onClick={() => setTheme("dark")}
-                    className={`relative p-6 rounded-3xl border-2 text-left transition-all group ${isDarkMode ? "border-indigo-500 bg-indigo-500/10" : "border-gray-100 dark:border-[#333537] hover:border-gray-300 dark:hover:border-gray-600"}`}
+                    className={`relative p-6 rounded-3xl border-2 text-left transition-all group ${isDarkMode ? "border-indigo-500 bg-indigo-500/10" : "border-gray-100 dark:border-ink-700 hover:border-gray-300 dark:hover:border-gray-600"}`}
                   >
-                    <div className="w-full h-40 bg-[#131314] rounded-2xl border border-[#333537] mb-6 flex items-center justify-center transition-transform group-hover:scale-[1.02]">
+                    <div className="w-full h-40 bg-ink-950 rounded-2xl border border-ink-700 mb-6 flex items-center justify-center transition-transform group-hover:scale-[1.02]">
                        <Moon className="w-12 h-12 text-indigo-400" />
                     </div>
                     <h3 className="font-bold text-xl text-gray-900 dark:text-gray-100">{t('settings.appearance.dark')}</h3>
@@ -427,7 +427,7 @@ export default function Settings() {
           {/* ⚙️ ONGLET : PRÉFÉRENCES (Notifications + Confidentialité) */}
           {activeTab === "preferences" && (
             <div className="animate-in slide-in-from-right-4 duration-300">
-              <div className="bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] rounded-3xl p-8 md:p-12 shadow-sm transition-colors duration-300">
+              <div className="bg-white dark:bg-ink-900 border border-gray-100 dark:border-ink-700 rounded-3xl p-8 md:p-12 shadow-sm transition-colors duration-300">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-10">{t('settings.preferences.title')}</h2>
                 
                 <div className="space-y-12">
@@ -496,7 +496,7 @@ export default function Settings() {
                     </div>
                   </div>
 
-                  <div className="h-px w-full bg-gray-100 dark:bg-[#333537]"></div>
+                  <div className="h-px w-full bg-gray-100 dark:bg-ink-700"></div>
 
                   {/* Section Confidentialité */}
                   <div>
@@ -526,7 +526,7 @@ export default function Settings() {
                         ) : (
                           <ul className="mt-3 space-y-2">
                             {blockedList.map((b) => (
-                              <li key={b.blocked} className="flex items-center justify-between gap-4 p-3 rounded-xl bg-gray-50 dark:bg-[#131314]">
+                              <li key={b.blocked} className="flex items-center justify-between gap-4 p-3 rounded-xl bg-gray-50 dark:bg-ink-950">
                                 <span className="text-sm text-gray-800 dark:text-gray-200 truncate">{b.blocked_name || t('settings.preferences.unknownUser')}</span>
                                 <Button variant="ghost" size="sm" className="rounded-xl text-indigo-600 dark:text-indigo-400"
                                   onClick={() => unblockUser(user.uid, b.blocked).then(() => toast.success(t('settings.toast.saved')))}>
@@ -549,7 +549,7 @@ export default function Settings() {
       </div>
 
       {/* Liens légaux : le footer n'est plus affiché sous les pages de l'application */}
-      <nav className="mt-12 pt-6 border-t border-gray-100 dark:border-[#333537] flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-500 dark:text-gray-400">
+      <nav className="mt-12 pt-6 border-t border-gray-100 dark:border-ink-700 flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-500 dark:text-gray-400">
         <Link to={createPageUrl("About")} className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">{t('footer.about')}</Link>
         <Link to={createPageUrl("Legal")} className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">{t('footer.legal')}</Link>
         <Link to={createPageUrl("Privacy")} className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">{t('footer.privacy')}</Link>

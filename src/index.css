@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,48 +6,48 @@
 
 @layer base {
   :root {
-    --background: 0 0% 99%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 240 33% 98%;        /* #F7F7FB */
+    --foreground: 240 29% 13%;        /* #17172A */
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 240 29% 13%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 243 75% 59%; /* Indigo professionnel */
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 243 75% 59%;
-    --radius: 0.35rem; /* Finis les boutons ovales, retour à des angles pros */
+    --popover-foreground: 240 29% 13%;
+    --primary: 253 91% 59%;           /* #6438F5 */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 25% 95%;
+    --secondary-foreground: 240 29% 13%;
+    --muted: 240 25% 95%;
+    --muted-foreground: 240 10% 49%;
+    --accent: 251 100% 97%;
+    --accent-foreground: 253 70% 45%;
+    --destructive: 0 78% 56%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 22% 91%;
+    --input: 240 22% 88%;
+    --ring: 253 91% 59%;
+    --radius: 0.85rem;
   }
 
   .dark {
-    --background: 222.2 47% 11%; /* Gris ardoise profond, pas de noir absolu */
-    --foreground: 210 40% 98%;
-    --card: 217 33% 17%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 47% 11%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 243 75% 65%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 243 75% 65%;
+    --background: 233 36% 6%;         /* #090A13 */
+    --foreground: 240 30% 96%;
+    --card: 235 25% 10%;              /* #12131F */
+    --card-foreground: 240 30% 96%;
+    --popover: 235 25% 10%;
+    --popover-foreground: 240 30% 96%;
+    --primary: 253 100% 70%;          /* #987DFF */
+    --primary-foreground: 252 70% 12%;
+    --secondary: 236 24% 15%;
+    --secondary-foreground: 240 30% 96%;
+    --muted: 236 24% 15%;
+    --muted-foreground: 240 13% 66%;
+    --accent: 253 40% 18%;
+    --accent-foreground: 253 100% 85%;
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 236 22% 21%;            /* #2A2B42 */
+    --input: 236 22% 24%;
+    --ring: 253 100% 70%;
   }
 }
 
@@ -55,12 +55,70 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+  }
   body {
-    @apply bg-background text-foreground;
-    font-family: 'Inter', sans-serif;
+    @apply bg-background text-foreground antialiased;
+    font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+    font-feature-settings: "ss01", "cv11";
+    text-rendering: optimizeLegibility;
   }
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Merriweather', serif;
-    letter-spacing: -0.02em;
+    font-family: "Bricolage Grotesque", "Plus Jakarta Sans", system-ui, sans-serif;
+    letter-spacing: -0.025em;
+  }
+  ::selection {
+    background: rgba(122, 85, 255, 0.22);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  }
+}
+
+@layer components {
+  /* Texte en dégradé de la marque */
+  .text-gradient {
+    @apply bg-gradient-to-r from-brand-600 via-purple-500 to-coral-500 bg-clip-text text-transparent;
+    background-size: 200% auto;
+  }
+  .dark .text-gradient {
+    @apply from-brand-300 via-purple-300 to-coral-300;
+  }
+  /* Quadrillage discret (fonds de sections) */
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, rgba(100, 56, 245, 0.07) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(100, 56, 245, 0.07) 1px, transparent 1px);
+    background-size: 44px 44px;
+  }
+  .dark .bg-grid {
+    background-image:
+      linear-gradient(to right, rgba(152, 125, 255, 0.07) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(152, 125, 255, 0.07) 1px, transparent 1px);
+  }
+  .mask-fade-b {
+    -webkit-mask-image: linear-gradient(to bottom, black 40%, transparent);
+    mask-image: linear-gradient(to bottom, black 40%, transparent);
+  }
+  .mask-radial {
+    -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+    mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+  }
+  /* Fond de l'espace connecté : halo violet très léger en haut */
+  .app-backdrop {
+    background:
+      radial-gradient(1200px 400px at 70% -120px, rgba(122, 85, 255, 0.10), transparent 70%),
+      hsl(var(--background));
+  }
+  .dark .app-backdrop {
+    background:
+      radial-gradient(1200px 400px at 70% -120px, rgba(122, 85, 255, 0.14), transparent 70%),
+      hsl(var(--background));
+  }
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 }

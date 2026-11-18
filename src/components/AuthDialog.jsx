@@ -84,7 +84,7 @@ export default function AuthDialog({ open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="rounded-3xl sm:rounded-3xl max-w-md dark:bg-[#1e1f20] dark:border-[#333537] dark:text-gray-100 p-6 sm:p-8">
+      <DialogContent className="rounded-3xl sm:rounded-3xl max-w-md dark:bg-ink-900 dark:border-ink-700 dark:text-gray-100 p-6 sm:p-8">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold">{t(titles[mode])}</DialogTitle>
           <DialogDescription className="text-sm text-gray-500 dark:text-gray-400">{t("auth.dialogDesc")}</DialogDescription>
@@ -101,17 +101,17 @@ export default function AuthDialog({ open, onOpenChange }) {
         {mode !== "reset" && (
           <div className="grid gap-3 mt-2">
             <Button type="button" variant="outline" disabled={!!busy} onClick={() => run("google", loginWithGoogle)}
-              className="h-12 rounded-xl justify-center gap-3 dark:bg-[#131314] dark:border-[#333537] dark:hover:bg-[#282a2c]">
+              className="h-12 rounded-xl justify-center gap-3 dark:bg-ink-950 dark:border-ink-700 dark:hover:bg-ink-800">
               {busy === "google" ? <Loader2 className="w-5 h-5 animate-spin" /> : <GoogleIcon />} {t("auth.withGoogle")}
             </Button>
             {MICROSOFT_ENABLED && (
               <Button type="button" variant="outline" disabled={!!busy} onClick={() => run("microsoft", loginWithMicrosoft)}
-                className="h-12 rounded-xl justify-center gap-3 dark:bg-[#131314] dark:border-[#333537] dark:hover:bg-[#282a2c]">
+                className="h-12 rounded-xl justify-center gap-3 dark:bg-ink-950 dark:border-ink-700 dark:hover:bg-ink-800">
                 {busy === "microsoft" ? <Loader2 className="w-5 h-5 animate-spin" /> : <MicrosoftIcon />} {t("auth.withMicrosoft")}
               </Button>
             )}
             <div className="flex items-center gap-3 my-1 text-xs text-gray-400">
-              <span className="h-px flex-1 bg-gray-200 dark:bg-[#333537]" /> {t("auth.or")} <span className="h-px flex-1 bg-gray-200 dark:bg-[#333537]" />
+              <span className="h-px flex-1 bg-gray-200 dark:bg-ink-700" /> {t("auth.or")} <span className="h-px flex-1 bg-gray-200 dark:bg-ink-700" />
             </div>
           </div>
         )}
@@ -121,13 +121,13 @@ export default function AuthDialog({ open, onOpenChange }) {
             <div className="grid gap-1.5">
               <Label htmlFor="auth-name">{t("auth.name")}</Label>
               <Input id="auth-name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" maxLength={40}
-                className="h-11 rounded-xl dark:bg-[#131314] dark:border-[#333537]" />
+                className="h-11 rounded-xl dark:bg-ink-950 dark:border-ink-700" />
             </div>
           )}
           <div className="grid gap-1.5">
             <Label htmlFor="auth-email">{t("auth.email")}</Label>
             <Input id="auth-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email"
-              className="h-11 rounded-xl dark:bg-[#131314] dark:border-[#333537]" />
+              className="h-11 rounded-xl dark:bg-ink-950 dark:border-ink-700" />
           </div>
           {mode !== "reset" && (
             <div className="grid gap-1.5">
@@ -141,7 +141,7 @@ export default function AuthDialog({ open, onOpenChange }) {
               </div>
               <Input id="auth-password" type="password" required minLength={mode === "signup" ? 8 : undefined} value={password}
                 onChange={(e) => setPassword(e.target.value)} autoComplete={mode === "signup" ? "new-password" : "current-password"}
-                className="h-11 rounded-xl dark:bg-[#131314] dark:border-[#333537]" />
+                className="h-11 rounded-xl dark:bg-ink-950 dark:border-ink-700" />
               {mode === "signup" && <p className="text-xs text-gray-500 dark:text-gray-400">{t("auth.passwordHint")}</p>}
             </div>
           )}

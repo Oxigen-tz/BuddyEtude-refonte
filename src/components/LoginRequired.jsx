@@ -12,23 +12,21 @@ export default function LoginRequired() {
   const { openLogin } = useAuth();
 
   return (
-    <div className="max-w-md mx-auto text-center py-16 px-6 bg-white dark:bg-[#1e1f20] rounded-3xl border border-gray-100 dark:border-[#333537] shadow-sm my-12 animate-in fade-in duration-500">
-      <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20">
-        <Lock className="w-8 h-8" />
+    <div className="relative max-w-md mx-auto my-12 sm:my-20 animate-in fade-in slide-in-from-bottom-2 duration-500">
+      <div className="absolute -inset-10 rounded-full bg-brand-400/20 blur-3xl" />
+      <div className="relative text-center py-12 px-6 sm:px-10 bg-white dark:bg-ink-900 rounded-[2rem] border border-gray-200/80 dark:border-ink-700 shadow-lift">
+        <div className="w-16 h-16 bg-gradient-to-br from-brand-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 text-white shadow-glow">
+          <Lock className="w-7 h-7" />
+        </div>
+        <h1 className="font-display text-2xl font-bold text-gray-900 dark:text-white mb-3">{t("auth.requiredTitle")}</h1>
+        <p className="text-gray-600 dark:text-gray-400 text-sm mb-8 leading-relaxed">{t("auth.requiredDesc")}</p>
+        <Button onClick={openLogin} className="w-full h-12 rounded-2xl bg-gradient-to-r from-brand-600 to-purple-600 text-white shadow-glow">
+          {t("auth.login")}
+        </Button>
+        <Link to="/" className="inline-block mt-5 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-brand-600 dark:hover:text-brand-300 transition-colors">
+          {t("auth.backHome")}
+        </Link>
       </div>
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">{t("auth.requiredTitle")}</h1>
-      <p className="text-gray-500 dark:text-gray-400 text-sm mb-8 leading-relaxed">
-        {t("auth.requiredDesc")}
-      </p>
-      <Button
-        onClick={openLogin}
-        className="w-full bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white py-6 rounded-xl font-medium shadow-sm"
-      >
-        {t("auth.login")}
-      </Button>
-      <Link to="/" className="inline-block mt-5 text-sm text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-        {t("auth.backHome")}
-      </Link>
     </div>
   );
 }

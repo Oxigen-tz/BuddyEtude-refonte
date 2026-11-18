@@ -36,7 +36,7 @@ export default function LegacyCleanup() {
   const total = preview ? KEYS.reduce((n, k) => n + (k === "files" ? 0 : preview[k]), 0) : 0;
 
   return (
-    <section className="mt-12 p-5 bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] rounded-2xl">
+    <section className="mt-12 p-5 bg-white dark:bg-ink-900 border border-gray-100 dark:border-ink-700 rounded-2xl">
       <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{t("admin.cleanup.title")}</h2>
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{t("admin.cleanup.desc")}</p>
 

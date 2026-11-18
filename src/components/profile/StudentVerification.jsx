@@ -86,7 +86,7 @@ export default function StudentVerification({ verifiedDomain, onChange }) {
             <form onSubmit={sendCode} className="mt-3 flex flex-col sm:flex-row gap-2">
               <label htmlFor="school-email" className="sr-only">{t("verification.emailLabel")}</label>
               <Input id="school-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
-                placeholder={t("verification.emailPlaceholder")} className="rounded-xl bg-white dark:bg-[#131314]" />
+                placeholder={t("verification.emailPlaceholder")} className="rounded-xl bg-white dark:bg-ink-950" />
               <Button type="submit" size="sm" disabled={busy || !email} className="rounded-xl bg-sky-600 hover:bg-sky-700 text-white h-10">
                 {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4 mr-1.5" />} {t("verification.sendCode")}
               </Button>
@@ -97,7 +97,7 @@ export default function StudentVerification({ verifiedDomain, onChange }) {
             <form onSubmit={confirm} className="mt-3 flex flex-col sm:flex-row gap-2">
               <label htmlFor="school-code" className="sr-only">{t("verification.codeLabel")}</label>
               <Input id="school-code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} required value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} placeholder="123456" className="rounded-xl bg-white dark:bg-[#131314] tracking-widest" />
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} placeholder="123456" className="rounded-xl bg-white dark:bg-ink-950 tracking-widest" />
               <Button type="submit" size="sm" disabled={busy || code.length !== 6} className="rounded-xl bg-sky-600 hover:bg-sky-700 text-white h-10">
                 {busy && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />} {t("verification.confirm")}
               </Button>

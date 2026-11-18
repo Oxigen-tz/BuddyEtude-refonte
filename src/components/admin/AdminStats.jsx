@@ -60,7 +60,7 @@ export default function AdminStats() {
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
             {tiles.map((tile) => (
-              <div key={tile.key} className="p-4 bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] rounded-2xl">
+              <div key={tile.key} className="p-4 bg-white dark:bg-ink-900 border border-gray-100 dark:border-ink-700 rounded-2xl">
                 <div className="text-xs text-gray-500 dark:text-gray-400">{t(`admin.stats.${tile.key}`)}</div>
                 <div className="text-2xl font-bold text-gray-900 dark:text-white mt-1 tabular-nums">
                   {typeof tile.value === "number" ? nf.format(tile.value) : tile.value}
@@ -86,7 +86,7 @@ function SignupsChart({ weeks }) {
   const shown = active ?? weeks.length - 1;
 
   return (
-    <figure className="p-5 bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] rounded-2xl">
+    <figure className="p-5 bg-white dark:bg-ink-900 border border-gray-100 dark:border-ink-700 rounded-2xl">
       <figcaption className="flex flex-wrap items-baseline justify-between gap-2 mb-4">
         <span className="text-sm font-semibold text-gray-900 dark:text-white">{t("admin.stats.signupsTitle")}</span>
         <span className="text-xs text-gray-500 dark:text-gray-400 tabular-nums" aria-live="polite">
@@ -94,7 +94,7 @@ function SignupsChart({ weeks }) {
         </span>
       </figcaption>
 
-      <div className="relative h-40 border-b border-gray-200 dark:border-[#333537]" aria-hidden="true">
+      <div className="relative h-40 border-b border-gray-200 dark:border-ink-700" aria-hidden="true">
         <div className="absolute inset-0 flex items-end gap-[2px]">
           {weeks.map((w, i) => (
             <div
@@ -133,7 +133,7 @@ function Funnel({ steps }) {
   const pct = new Intl.NumberFormat(i18n.language, { style: "percent", maximumFractionDigits: 0 });
   const base = Math.max(1, steps[0]?.count || 0);
   return (
-    <figure className="p-5 mb-6 bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] rounded-2xl">
+    <figure className="p-5 mb-6 bg-white dark:bg-ink-900 border border-gray-100 dark:border-ink-700 rounded-2xl">
       <figcaption className="text-sm font-semibold text-gray-900 dark:text-white">{t("admin.stats.funnelTitle")}</figcaption>
       <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{t("admin.stats.funnelDesc")}</p>
       <ol className="space-y-3">
@@ -149,7 +149,7 @@ function Funnel({ steps }) {
                   <span className="ml-2 text-xs font-normal text-gray-500 dark:text-gray-400">{pct.format(share)}</span>
                 </span>
               </div>
-              <div className="h-2.5 rounded-full bg-gray-100 dark:bg-[#282a2c] overflow-hidden">
+              <div className="h-2.5 rounded-full bg-gray-100 dark:bg-ink-800 overflow-hidden">
                 <div className="h-full rounded-full bg-indigo-500 dark:bg-indigo-400" style={{ width: `${Math.max(share * 100, step.count ? 1.5 : 0)}%` }} />
               </div>
               {prev !== null && prev > 0 && (

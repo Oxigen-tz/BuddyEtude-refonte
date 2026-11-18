@@ -79,7 +79,7 @@ export default function Groups() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto h-[calc(100dvh-105px)] md:h-[calc(100dvh-137px)] lg:h-[calc(100vh-64px)] flex flex-col animate-in fade-in duration-500">
+    <div className="max-w-6xl mx-auto h-[calc(100dvh-164px-env(safe-area-inset-bottom,0px))] md:h-[calc(100dvh-196px-env(safe-area-inset-bottom,0px))] lg:h-[calc(100vh-64px)] flex flex-col animate-in fade-in duration-500">
       <div className={`${active ? "hidden lg:flex" : "flex"} items-center justify-between gap-3 mb-4`}>
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{t("groups.title")}</h1>
@@ -92,7 +92,7 @@ export default function Groups() {
 
       <div className="flex-1 min-h-0 flex gap-4">
         {/* Liste des groupes */}
-        <div className={`${active ? "hidden lg:flex" : "flex"} w-full lg:w-[300px] shrink-0 flex-col rounded-2xl bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] overflow-hidden`}>
+        <div className={`${active ? "hidden lg:flex" : "flex"} w-full lg:w-[300px] shrink-0 flex-col rounded-2xl bg-white dark:bg-ink-900 border border-gray-100 dark:border-ink-700 overflow-hidden`}>
           {loading ? (
             <div className="p-6"><Loader2 className="w-5 h-5 animate-spin text-gray-400" /></div>
           ) : groups.length === 0 ? (
@@ -110,7 +110,7 @@ export default function Groups() {
                 <li key={g.id}>
                   <button
                     onClick={() => setActiveId(g.id)}
-                    className={`w-full text-left p-3 rounded-xl transition-colors ${g.id === activeId ? "bg-indigo-50 dark:bg-indigo-500/10" : "hover:bg-gray-50 dark:hover:bg-[#282a2c]"}`}
+                    className={`w-full text-left p-3 rounded-xl transition-colors ${g.id === activeId ? "bg-indigo-50 dark:bg-indigo-500/10" : "hover:bg-gray-50 dark:hover:bg-ink-800"}`}
                   >
                     <p className="font-semibold text-gray-900 dark:text-white truncate">{g.name}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
@@ -124,7 +124,7 @@ export default function Groups() {
         </div>
 
         {/* Groupe ouvert */}
-        <div className={`${active ? "flex" : "hidden lg:flex"} flex-1 min-w-0 flex-col rounded-2xl bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] overflow-hidden`}>
+        <div className={`${active ? "flex" : "hidden lg:flex"} flex-1 min-w-0 flex-col rounded-2xl bg-white dark:bg-ink-900 border border-gray-100 dark:border-ink-700 overflow-hidden`}>
           {active ? (
             <GroupView key={active.id} group={active} user={user} onBack={() => setActiveId(null)} t={t} lang={i18n.language} />
           ) : (
@@ -137,7 +137,7 @@ export default function Groups() {
       </div>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="rounded-3xl dark:bg-[#1e1f20] dark:border-[#333537]">
+        <DialogContent className="rounded-3xl dark:bg-ink-900 dark:border-ink-700">
           <DialogHeader>
             <DialogTitle>{t("groups.createTitle")}</DialogTitle>
             <DialogDescription>{t("groups.createDesc")}</DialogDescription>
@@ -245,7 +245,7 @@ function GroupView({ group, user, onBack, t, lang }) {
   return (
     <>
       {/* En-tête */}
-      <div className="p-4 border-b border-gray-100 dark:border-[#333537] space-y-3">
+      <div className="p-4 border-b border-gray-100 dark:border-ink-700 space-y-3">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" onClick={onBack} className="lg:hidden rounded-xl shrink-0" aria-label={t("groups.back")}>
             <ArrowLeft className="w-5 h-5" />
@@ -270,7 +270,7 @@ function GroupView({ group, user, onBack, t, lang }) {
 
         <div className="flex flex-wrap items-center gap-1.5">
           {group.members.map((uid) => (
-            <span key={uid} className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-gray-100 dark:bg-[#282a2c] text-gray-700 dark:text-gray-300">
+            <span key={uid} className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-gray-100 dark:bg-ink-800 text-gray-700 dark:text-gray-300">
               {uid === group.owner_uid && <Crown className="w-3 h-3 text-amber-500" aria-label={t("groups.owner")} />}
               {uid === user.uid ? t("groups.you") : (names[uid] || "…")}
               {isOwner && uid !== user.uid && (
@@ -311,7 +311,7 @@ function GroupView({ group, user, onBack, t, lang }) {
           return (
             <div key={m.id} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
               {!mine && <span className="text-[11px] text-gray-500 dark:text-gray-400 mb-0.5 px-1">{m.senderName || names[m.senderUid]}</span>}
-              <div className={`max-w-[80%] px-3.5 py-2 rounded-2xl text-sm whitespace-pre-wrap break-words ${mine ? "bg-indigo-600 text-white rounded-br-md" : "bg-gray-100 dark:bg-[#282a2c] text-gray-900 dark:text-gray-100 rounded-bl-md"}`}>
+              <div className={`max-w-[80%] px-3.5 py-2 rounded-2xl text-sm whitespace-pre-wrap break-words ${mine ? "bg-indigo-600 text-white rounded-br-md" : "bg-gray-100 dark:bg-ink-800 text-gray-900 dark:text-gray-100 rounded-bl-md"}`}>
                 {m.text}
               </div>
               <span className="text-[10px] text-gray-400 mt-0.5 px-1">{formatTime(m.createdAt)}</span>
@@ -321,7 +321,7 @@ function GroupView({ group, user, onBack, t, lang }) {
         <div ref={endRef} />
       </div>
 
-      <form onSubmit={send} className="p-3 border-t border-gray-100 dark:border-[#333537] flex gap-2">
+      <form onSubmit={send} className="p-3 border-t border-gray-100 dark:border-ink-700 flex gap-2">
         <Input value={text} onChange={(e) => setText(e.target.value)} maxLength={4000} placeholder={t("groups.inputPlaceholder")} aria-label={t("groups.inputPlaceholder")} className="rounded-xl" />
         <Button type="submit" disabled={!text.trim()} className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white" aria-label={t("groups.send")}>
           <Send className="w-4 h-4" />

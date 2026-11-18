@@ -116,7 +116,7 @@ export default function Search() {
   // Si l'utilisateur n'est pas connecté, on bloque l'accès avec un écran propre
   if (!user) {
     return (
-      <div className="max-w-md mx-auto text-center py-24 px-6 bg-white dark:bg-[#1e1f20] rounded-3xl border border-gray-100 dark:border-[#333537] shadow-sm my-12 animate-in fade-in duration-500">
+      <div className="max-w-md mx-auto text-center py-24 px-6 bg-white dark:bg-ink-900 rounded-3xl border border-gray-100 dark:border-ink-700 shadow-sm my-12 animate-in fade-in duration-500">
         <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20">
           <Lock className="w-8 h-8" />
         </div>
@@ -258,10 +258,10 @@ export default function Search() {
       </div>
 
       {/* --- MODE : binôme ou aide (mentorat) --- */}
-      <div role="tablist" aria-label={t('search.mode.label')} className="inline-flex p-1 mb-4 rounded-xl bg-gray-100 dark:bg-[#1e1f20] border border-gray-200 dark:border-[#333537]">
+      <div role="tablist" aria-label={t('search.mode.label')} className="inline-flex p-1 mb-4 rounded-xl bg-gray-100 dark:bg-ink-900 border border-gray-200 dark:border-ink-700">
         {[["buddy", Users], ["help", HandHelping]].map(([value, Icon]) => (
           <button key={value} role="tab" aria-selected={mode === value} onClick={() => setMode(value)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${mode === value ? "bg-white dark:bg-[#282a2c] text-indigo-700 dark:text-indigo-300 shadow-sm" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"}`}>
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${mode === value ? "bg-white dark:bg-ink-800 text-indigo-700 dark:text-indigo-300 shadow-sm" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"}`}>
             <Icon className="w-4 h-4" /> {t(`search.mode.${value}`)}
           </button>
         ))}
@@ -273,7 +273,7 @@ export default function Search() {
       )}
 
       {/* --- PANNEAU DE FILTRES MULTIPLES --- */}
-      <div className="bg-white dark:bg-[#1e1f20] p-5 rounded-2xl border border-gray-100 dark:border-[#333537] shadow-sm mb-8 space-y-4 transition-colors duration-300">
+      <div className="bg-white dark:bg-ink-900 p-5 rounded-2xl border border-gray-100 dark:border-ink-700 shadow-sm mb-8 space-y-4 transition-colors duration-300">
         
         {/* Ligne 1 : Recherche générale & Matière avec Autocomplétion dynamique */}
         <div className="flex flex-col md:flex-row gap-4">
@@ -283,7 +283,7 @@ export default function Search() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t('search.searchPlaceholder')}
-              className="pl-11 h-[50px] rounded-xl border-gray-200 dark:border-[#333537] bg-gray-50 dark:bg-[#131314] text-gray-900 dark:text-gray-100 focus-visible:ring-indigo-500/50"
+              className="pl-11 h-[50px] rounded-xl border-gray-200 dark:border-ink-700 bg-gray-50 dark:bg-ink-950 text-gray-900 dark:text-gray-100 focus-visible:ring-indigo-500/50"
             />
           </div>
           
@@ -314,11 +314,11 @@ export default function Search() {
           </div>
           
           <Select value={levelFilter} onValueChange={setLevelFilter}>
-            <SelectTrigger className="w-full md:w-[220px] h-[50px] rounded-xl border-gray-200 dark:border-[#333537] bg-white dark:bg-[#1e1f20] text-gray-700 dark:text-gray-300">
+            <SelectTrigger className="w-full md:w-[220px] h-[50px] rounded-xl border-gray-200 dark:border-ink-700 bg-white dark:bg-ink-900 text-gray-700 dark:text-gray-300">
               <Filter className="w-4 h-4 mr-2 text-indigo-500" />
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="dark:bg-[#1e1f20] dark:border-[#333537] dark:text-gray-100 rounded-xl">
+            <SelectContent className="dark:bg-ink-900 dark:border-ink-700 dark:text-gray-100 rounded-xl">
               {LEVEL_VALUES.map(value => (
                 <SelectItem key={value} value={value} className="focus:bg-indigo-50 dark:focus:bg-indigo-500/10 cursor-pointer rounded-lg">
                   {t(`search.levels.${value}`)}
@@ -328,11 +328,11 @@ export default function Search() {
           </Select>
 
           <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-full md:w-[240px] h-[50px] rounded-xl border-gray-200 dark:border-[#333537] bg-white dark:bg-[#1e1f20] text-gray-700 dark:text-gray-300">
+            <SelectTrigger className="w-full md:w-[240px] h-[50px] rounded-xl border-gray-200 dark:border-ink-700 bg-white dark:bg-ink-900 text-gray-700 dark:text-gray-300">
               {typeFilter === "online" ? <Monitor className="w-4 h-4 mr-2 text-emerald-500" /> : <MapPin className="w-4 h-4 mr-2 text-blue-500" />}
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="dark:bg-[#1e1f20] dark:border-[#333537] dark:text-gray-100 rounded-xl">
+            <SelectContent className="dark:bg-ink-900 dark:border-ink-700 dark:text-gray-100 rounded-xl">
               {TYPE_VALUES.map(value => (
                 <SelectItem key={value} value={value} className="focus:bg-indigo-50 dark:focus:bg-indigo-500/10 cursor-pointer rounded-lg">
                   {t(`search.types.${value}`)}
@@ -353,12 +353,12 @@ export default function Search() {
       {isLoading ? (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array(6).fill(0).map((_, i) => (
-            <Skeleton key={i} className="h-64 rounded-2xl dark:bg-[#1e1f20]" />
+            <Skeleton key={i} className="h-64 rounded-2xl dark:bg-ink-900" />
           ))}
         </div>
       ) : filteredProfiles.length === 0 ? (
-        <div className="text-center py-20 bg-white dark:bg-[#1e1f20] rounded-2xl border border-dashed border-gray-200 dark:border-[#333537] transition-colors duration-300">
-          <div className="w-16 h-16 bg-gray-50 dark:bg-[#131314] rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="text-center py-20 bg-white dark:bg-ink-900 rounded-2xl border border-dashed border-gray-200 dark:border-ink-700 transition-colors duration-300">
+          <div className="w-16 h-16 bg-gray-50 dark:bg-ink-950 rounded-full flex items-center justify-center mx-auto mb-4">
             <SearchIcon className="w-6 h-6 text-gray-400 dark:text-gray-500" />
           </div>
           <p className="text-gray-900 dark:text-white text-lg font-bold">{t('search.noResults.title')}</p>
@@ -368,7 +368,7 @@ export default function Search() {
           <Button 
             variant="outline" 
             onClick={resetFilters}
-            className="mt-6 rounded-xl border-gray-200 dark:border-[#333537] hover:bg-gray-50 dark:hover:bg-[#282a2c]"
+            className="mt-6 rounded-xl border-gray-200 dark:border-ink-700 hover:bg-gray-50 dark:hover:bg-ink-800"
           >
             {t('search.noResults.reset')}
           </Button>
@@ -398,7 +398,7 @@ export default function Search() {
 
       {/* --- POPUP DEMANDE DE BINÔME --- */}
       <Dialog open={!!requestDialog} onOpenChange={closeRequest}>
-        <DialogContent className="rounded-3xl sm:rounded-3xl dark:bg-[#1e1f20] dark:border-[#333537] dark:text-gray-100 p-8">
+        <DialogContent className="rounded-3xl sm:rounded-3xl dark:bg-ink-900 dark:border-ink-700 dark:text-gray-100 p-8">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold">{t(requestDialog?.kind === "help" ? 'search.helpDialog.title' : 'search.requestDialog.title')}</DialogTitle>
           </DialogHeader>
@@ -413,10 +413,10 @@ export default function Search() {
             <div className="mt-6 space-y-2">
               <label htmlFor="help-subject" className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('search.helpDialog.subject')}</label>
               <Select value={requestSubject} onValueChange={setRequestSubject}>
-                <SelectTrigger id="help-subject" className="rounded-xl bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537]">
+                <SelectTrigger id="help-subject" className="rounded-xl bg-gray-50 dark:bg-ink-950 border-gray-200 dark:border-ink-700">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="dark:bg-[#1e1f20] dark:border-[#333537] dark:text-gray-100 rounded-xl">
+                <SelectContent className="dark:bg-ink-900 dark:border-ink-700 dark:text-gray-100 rounded-xl">
                   {requestDialog.helpSubjects.map((name) => <SelectItem key={name} value={name}>{name}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -428,7 +428,7 @@ export default function Search() {
             maxLength={1000}
             aria-label={t('search.requestDialog.placeholder')}
             placeholder={t(requestDialog?.kind === "help" ? 'search.helpDialog.placeholder' : 'search.requestDialog.placeholder')}
-            className="h-32 mt-6 resize-none bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-gray-100 focus-visible:ring-indigo-500/50 rounded-2xl p-4"
+            className="h-32 mt-6 resize-none bg-gray-50 dark:bg-ink-950 border-gray-200 dark:border-ink-700 text-gray-900 dark:text-gray-100 focus-visible:ring-indigo-500/50 rounded-2xl p-4"
           />
           {contactWarning && (
             <div role="alert" className="mt-4 flex gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 text-sm text-amber-900 dark:text-amber-200">
@@ -440,7 +440,7 @@ export default function Search() {
             <Button 
               variant="outline" 
               onClick={closeRequest} 
-              className="rounded-xl border-gray-200 dark:border-[#333537] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#282a2c] flex-1 sm:flex-none py-6 font-medium"
+              className="rounded-xl border-gray-200 dark:border-ink-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-ink-800 flex-1 sm:flex-none py-6 font-medium"
             >
               {t('search.requestDialog.cancel')}
             </Button>

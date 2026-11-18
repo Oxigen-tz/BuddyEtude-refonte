@@ -71,7 +71,7 @@ export default function BuddyCard({ profile, match, help = [], mode = "buddy", o
   };
 
   return (
-    <div className="group bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#282a2c] rounded-2xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col">
+    <div className="group bg-white dark:bg-ink-900 border border-gray-100 dark:border-ink-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col">
 
       {/* --- LISERÉ D'ACCENT : rompt l'effet bloc rigide --- */}
       <div className="h-1 w-full bg-gradient-to-r from-indigo-500 via-indigo-400 to-purple-500" />
@@ -81,7 +81,7 @@ export default function BuddyCard({ profile, match, help = [], mode = "buddy", o
         {/* --- EN-TÊTE --- */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 min-w-0">
-            <Avatar className="h-12 w-12 rounded-xl shrink-0 border border-gray-100 dark:border-[#333537]">
+            <Avatar className="h-12 w-12 rounded-xl shrink-0 border border-gray-100 dark:border-ink-700">
               {/* Photo de profil (Google) : un visage inspire plus confiance que des initiales */}
               {profile.photo_url && !photoFailed && (
                 <AvatarImage src={profile.photo_url} alt="" referrerPolicy="no-referrer" onError={() => setPhotoFailed(true)} className="rounded-xl object-cover" />
@@ -132,7 +132,7 @@ export default function BuddyCard({ profile, match, help = [], mode = "buddy", o
         </div>
 
         {/* --- BIO : bloc distinct, avec repli si vide --- */}
-        <div className="mt-3.5 bg-gray-50 dark:bg-[#131314] rounded-xl p-3.5 border border-transparent dark:border-[#282a2c]">
+        <div className="mt-3.5 bg-gray-50 dark:bg-ink-950 rounded-xl p-3.5 border border-transparent dark:border-ink-800">
           {profile.bio ? (
             <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2 leading-relaxed font-sans">
               {profile.bio}
@@ -225,7 +225,7 @@ export default function BuddyCard({ profile, match, help = [], mode = "buddy", o
 
       {/* --- MODALE DE SIGNALEMENT --- */}
       <Dialog open={reportDialogOpen} onOpenChange={setReportDialogOpen}>
-        <DialogContent aria-describedby={undefined} className="rounded-2xl bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] text-gray-900 dark:text-gray-100 p-6">
+        <DialogContent aria-describedby={undefined} className="rounded-2xl bg-white dark:bg-ink-900 border border-gray-100 dark:border-ink-700 text-gray-900 dark:text-gray-100 p-6">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold flex items-center gap-2 font-serif">
               <AlertTriangle className="text-red-500 w-5 h-5" /> {t('buddyCard.reportDialog.title')}
@@ -235,10 +235,10 @@ export default function BuddyCard({ profile, match, help = [], mode = "buddy", o
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-gray-500 dark:text-gray-400">{t('buddyCard.reportDialog.reasonLabel')}</label>
               <Select value={reportReason} onValueChange={setReportReason}>
-                <SelectTrigger className="rounded-xl bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-xs">
+                <SelectTrigger className="rounded-xl bg-gray-50 dark:bg-ink-950 border-gray-200 dark:border-ink-700 text-xs">
                   <SelectValue placeholder={t('buddyCard.reportDialog.reasonPlaceholder')} />
                 </SelectTrigger>
-                <SelectContent className="dark:bg-[#1e1f20] dark:border-[#333537] dark:text-gray-100 rounded-xl">
+                <SelectContent className="dark:bg-ink-900 dark:border-ink-700 dark:text-gray-100 rounded-xl">
                   {REPORT_REASON_VALUES.map(value => (
                     <SelectItem key={value} value={value}>
                       {t(`buddyCard.reportDialog.reasons.${value}`)}
@@ -251,7 +251,7 @@ export default function BuddyCard({ profile, match, help = [], mode = "buddy", o
               <label className="text-xs font-medium text-gray-500 dark:text-gray-400">{t('buddyCard.reportDialog.detailsLabel')}</label>
               <Textarea
                 placeholder={t('buddyCard.reportDialog.detailsPlaceholder')}
-                className="rounded-xl h-20 bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-xs resize-none p-3"
+                className="rounded-xl h-20 bg-gray-50 dark:bg-ink-950 border-gray-200 dark:border-ink-700 text-xs resize-none p-3"
                 value={reportDetails}
                 onChange={(e) => setReportDetails(e.target.value)}
               />

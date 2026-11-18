@@ -308,11 +308,11 @@ export default function Messages() {
     <>
       {/* Mobile et tablette : la liste OU la conversation (avant, empilées, la conversation était écrasée).
           Hauteur = écran moins l'en-tête mobile et les marges ; à partir de 1024 px, côte à côte. */}
-      <div className="w-full h-[calc(100dvh-105px)] md:h-[calc(100dvh-137px)] lg:h-[calc(100vh-64px)] flex flex-col lg:flex-row gap-6 animate-in fade-in duration-500">
+      <div className="w-full h-[calc(100dvh-164px-env(safe-area-inset-bottom,0px))] md:h-[calc(100dvh-196px-env(safe-area-inset-bottom,0px))] lg:h-[calc(100vh-64px)] flex flex-col lg:flex-row gap-6 animate-in fade-in duration-500">
         
         {/* --- LISTE DES BINÔMES --- */}
-        <div className={`${activeChat ? "hidden lg:flex" : "flex"} flex-1 lg:flex-none w-full lg:w-[320px] shrink-0 min-h-0 rounded-2xl flex-col bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] shadow-sm overflow-hidden transition-colors duration-300`}>
-          <div className="p-5 border-b border-gray-50 dark:border-[#333537] bg-gray-50/50 dark:bg-[#131314]/30">
+        <div className={`${activeChat ? "hidden lg:flex" : "flex"} flex-1 lg:flex-none w-full lg:w-[320px] shrink-0 min-h-0 rounded-2xl flex-col bg-white dark:bg-ink-900 border border-gray-100 dark:border-ink-700 shadow-sm overflow-hidden transition-colors duration-300`}>
+          <div className="p-5 border-b border-gray-50 dark:border-ink-700 bg-gray-50/50 dark:bg-ink-950/30">
             <h2 className="font-bold text-lg text-gray-900 dark:text-gray-100 flex items-center gap-2">
               <MessageSquare className="w-5 h-5 text-indigo-600 dark:text-indigo-400" /> {t('messages.contacts')}
             </h2>
@@ -323,8 +323,8 @@ export default function Messages() {
                 const unreadCount = unread.byUid[buddy.uid] || 0;
                 const isActive = activeChat?.uid === buddy.uid;
                 return (
-                  <button key={buddy.uid} onClick={() => setActiveUid(buddy.uid)} className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all ${isActive ? "bg-indigo-50 dark:bg-indigo-500/10 shadow-sm" : "hover:bg-gray-50 dark:hover:bg-[#282a2c]"}`}>
-                    <Avatar className="h-12 w-12"><AvatarFallback className="bg-indigo-100 dark:bg-[#282a2c] text-indigo-700 dark:text-indigo-400 font-bold">{getInitial(buddy.name)}</AvatarFallback></Avatar>
+                  <button key={buddy.uid} onClick={() => setActiveUid(buddy.uid)} className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all ${isActive ? "bg-indigo-50 dark:bg-indigo-500/10 shadow-sm" : "hover:bg-gray-50 dark:hover:bg-ink-800"}`}>
+                    <Avatar className="h-12 w-12"><AvatarFallback className="bg-indigo-100 dark:bg-ink-800 text-indigo-700 dark:text-indigo-400 font-bold">{getInitial(buddy.name)}</AvatarFallback></Avatar>
                     <span className={`text-left truncate ${unreadCount > 0 ? "font-bold" : "font-semibold"} ${isActive ? "text-indigo-900 dark:text-indigo-300" : "text-gray-700 dark:text-gray-300"}`}>{buddy.name}</span>
 
                     {buddy.isPending ? (
@@ -347,12 +347,12 @@ export default function Messages() {
         </div>
 
         {/* --- ZONE DE CHAT OU D'ACCEPTATION --- */}
-        <div className={`${activeChat ? "flex" : "hidden lg:flex"} flex-1 min-w-0 min-h-0 rounded-2xl flex-col bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] shadow-sm overflow-hidden transition-colors duration-300`}>
+        <div className={`${activeChat ? "flex" : "hidden lg:flex"} flex-1 min-w-0 min-h-0 rounded-2xl flex-col bg-white dark:bg-ink-900 border border-gray-100 dark:border-ink-700 shadow-sm overflow-hidden transition-colors duration-300`}>
           {activeChat ? (
             activeChat.isPending ? (
               
               /* UI : DEMANDE EN ATTENTE */
-              <div className="relative flex-1 flex flex-col items-center justify-center bg-slate-50/50 dark:bg-[#131314] p-6 overflow-y-auto animate-in fade-in zoom-in-95">
+              <div className="relative flex-1 flex flex-col items-center justify-center bg-slate-50/50 dark:bg-ink-950 p-6 overflow-y-auto animate-in fade-in zoom-in-95">
                 <Button
                   variant="ghost"
                   onClick={() => setActiveUid(null)}
@@ -361,7 +361,7 @@ export default function Messages() {
                 >
                   <ArrowLeft className="w-5 h-5" />
                 </Button>
-                <div className="bg-white dark:bg-[#1e1f20] p-8 rounded-3xl border border-gray-100 dark:border-[#333537] shadow-sm max-w-md w-full text-center">
+                <div className="bg-white dark:bg-ink-900 p-8 rounded-3xl border border-gray-100 dark:border-ink-700 shadow-sm max-w-md w-full text-center">
                   <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
                     <UserPlus className="w-10 h-10 text-indigo-600 dark:text-indigo-400" />
                   </div>
@@ -376,7 +376,7 @@ export default function Messages() {
                     />
                   </p>
                   {activeChat.message && (
-                    <blockquote className="text-left text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-[#131314] border border-gray-100 dark:border-[#333537] rounded-2xl p-4 mb-4 whitespace-pre-wrap break-words">
+                    <blockquote className="text-left text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-ink-950 border border-gray-100 dark:border-ink-700 rounded-2xl p-4 mb-4 whitespace-pre-wrap break-words">
                       {activeChat.message}
                     </blockquote>
                   )}
@@ -401,7 +401,7 @@ export default function Messages() {
 
               /* UI : CHAT NORMAL */
               <>
-                <div className="p-3 sm:p-5 border-b border-gray-50 dark:border-[#333537] bg-gray-50/50 dark:bg-[#131314]/30 flex items-center gap-2 sm:gap-4">
+                <div className="p-3 sm:p-5 border-b border-gray-50 dark:border-ink-700 bg-gray-50/50 dark:bg-ink-950/30 flex items-center gap-2 sm:gap-4">
                    {/* Retour à la liste (mobile et tablette : liste et conversation ne s'affichent plus ensemble) */}
                    <Button
                     variant="ghost"
@@ -411,7 +411,7 @@ export default function Messages() {
                    >
                      <ArrowLeft className="w-5 h-5" />
                    </Button>
-                   <Avatar className="h-10 w-10 sm:h-12 sm:w-12 shrink-0"><AvatarFallback className="bg-indigo-100 dark:bg-[#282a2c] text-indigo-700 dark:text-indigo-400 font-bold text-lg">{getInitial(activeChat.name)}</AvatarFallback></Avatar>
+                   <Avatar className="h-10 w-10 sm:h-12 sm:w-12 shrink-0"><AvatarFallback className="bg-indigo-100 dark:bg-ink-800 text-indigo-700 dark:text-indigo-400 font-bold text-lg">{getInitial(activeChat.name)}</AvatarFallback></Avatar>
                    <div className="flex-1 min-w-0">
                      <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100 leading-tight truncate">{activeChat.name}</h3>
                      <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{t('messages.studyBuddy')}</p>
@@ -420,7 +420,7 @@ export default function Messages() {
                     variant="outline"
                     onClick={() => navigate(`${createPageUrl("Whiteboard")}?sessionId=${encodeURIComponent(pairId(user.uid, activeChat.uid))}`)}
                     aria-label={t('messages.openWhiteboard')}
-                    className="shrink-0 border-indigo-200 dark:border-[#333537] text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-[#282a2c] dark:bg-[#1e1f20] rounded-xl h-11 px-3 xl:px-5"
+                    className="shrink-0 border-indigo-200 dark:border-ink-700 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-ink-800 dark:bg-ink-900 rounded-xl h-11 px-3 xl:px-5"
                    >
                      <PenTool className="w-5 h-5 xl:mr-2" /> <span className="hidden xl:inline">{t('messages.openWhiteboard')}</span>
                    </Button>
@@ -435,7 +435,7 @@ export default function Messages() {
                    </Button>
                 </div>
                 
-                <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 bg-slate-50/50 dark:bg-[#131314]">
+                <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 bg-slate-50/50 dark:bg-ink-950">
                   {/* Pagination : seuls les derniers messages sont chargés au départ */}
                   {hasOlder && (
                     <div className="flex justify-center">
@@ -454,7 +454,7 @@ export default function Messages() {
                             (avant, le survol n'existant pas sur mobile, on ne pouvait ni modifier ni supprimer) */}
                         {isMe && editingMessageId !== msg.id && (
                           <div className="flex items-center gap-1 sm:gap-2 opacity-70 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                            <button onClick={() => startEditing(msg)} aria-label={t('messages.edit')} className="p-1.5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-full hover:bg-gray-100 dark:hover:bg-[#282a2c] transition-colors" title={t('messages.edit')}><Edit2 className="w-4 h-4" /></button>
+                            <button onClick={() => startEditing(msg)} aria-label={t('messages.edit')} className="p-1.5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-full hover:bg-gray-100 dark:hover:bg-ink-800 transition-colors" title={t('messages.edit')}><Edit2 className="w-4 h-4" /></button>
                             <button onClick={() => setMessageToDelete(msg.id)} aria-label={t('messages.delete')} className="p-1.5 text-gray-400 hover:text-red-500 rounded-full hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors" title={t('messages.delete')}>
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -462,12 +462,12 @@ export default function Messages() {
                         )}
 
                         <div className={`flex flex-col max-w-[80%] md:max-w-[65%] ${isMe ? "items-end" : "items-start"}`}>
-                        <div className={`max-w-full rounded-2xl px-4 sm:px-5 py-3 text-base flex flex-col gap-2 break-words ${isMe ? "bg-indigo-600 dark:bg-indigo-500 text-white rounded-tr-sm shadow-sm" : "bg-white dark:bg-[#282a2c] border border-gray-100 dark:border-[#333537] text-gray-800 dark:text-gray-100 rounded-tl-sm shadow-sm"}`}>
+                        <div className={`max-w-full rounded-2xl px-4 sm:px-5 py-3 text-base flex flex-col gap-2 break-words ${isMe ? "bg-indigo-600 dark:bg-indigo-500 text-white rounded-tr-sm shadow-sm" : "bg-white dark:bg-ink-800 border border-gray-100 dark:border-ink-700 text-gray-800 dark:text-gray-100 rounded-tl-sm shadow-sm"}`}>
                           {msg.fileUrl && (
                             msg.fileType?.includes("image") ? (
                               <img src={msg.fileUrl} alt="Fichier" className="rounded-xl max-h-60 object-cover cursor-pointer" onClick={() => window.open(msg.fileUrl)} />
                             ) : (
-                              <a href={msg.fileUrl} target="_blank" rel="noreferrer" className={`flex items-center gap-3 p-3 rounded-xl ${isMe ? "bg-indigo-700/50 text-white" : "bg-gray-100 dark:bg-[#1e1f20] text-gray-700 dark:text-gray-300"}`}>
+                              <a href={msg.fileUrl} target="_blank" rel="noreferrer" className={`flex items-center gap-3 p-3 rounded-xl ${isMe ? "bg-indigo-700/50 text-white" : "bg-gray-100 dark:bg-ink-900 text-gray-700 dark:text-gray-300"}`}>
                                 <FileText className="w-5 h-5" />
                                 <span className="truncate max-w-[200px] font-medium">{msg.fileName || t('messages.fileDefaultName')}</span>
                               </a>
@@ -505,22 +505,22 @@ export default function Messages() {
                 </div>
 
                 {selectedFile && (
-                  <div className="px-5 py-3 bg-indigo-50 dark:bg-[#282a2c] border-t border-indigo-100 dark:border-[#333537] flex items-center justify-between text-sm text-indigo-700 dark:text-indigo-400 font-medium">
+                  <div className="px-5 py-3 bg-indigo-50 dark:bg-ink-800 border-t border-indigo-100 dark:border-ink-700 flex items-center justify-between text-sm text-indigo-700 dark:text-indigo-400 font-medium">
                     <span className="flex items-center gap-2 truncate"><Paperclip className="w-4 h-4" /> {selectedFile.name}</span>
-                    <button onClick={() => setSelectedFile(null)} aria-label={t('messages.removeFile')} className="p-1 hover:bg-indigo-100 dark:hover:bg-[#1e1f20] rounded-md transition-colors"><X className="w-4 h-4" /></button>
+                    <button onClick={() => setSelectedFile(null)} aria-label={t('messages.removeFile')} className="p-1 hover:bg-indigo-100 dark:hover:bg-ink-900 rounded-md transition-colors"><X className="w-4 h-4" /></button>
                   </div>
                 )}
 
-                <form onSubmit={handleSend} className="p-3 sm:p-4 bg-white dark:bg-[#1e1f20] border-t border-gray-50 dark:border-[#333537] flex gap-2 sm:gap-3 items-center">
+                <form onSubmit={handleSend} className="p-3 sm:p-4 bg-white dark:bg-ink-900 border-t border-gray-50 dark:border-ink-700 flex gap-2 sm:gap-3 items-center">
                   <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" />
-                  <Button type="button" variant="ghost" onClick={() => fileInputRef.current.click()} aria-label={t('messages.attachFile')} title={t('messages.attachFile')} className="text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#282a2c] hover:text-indigo-600 dark:hover:text-indigo-400 rounded-full h-12 w-12 p-0 shrink-0 transition-colors">
+                  <Button type="button" variant="ghost" onClick={() => fileInputRef.current.click()} aria-label={t('messages.attachFile')} title={t('messages.attachFile')} className="text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-ink-800 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-full h-12 w-12 p-0 shrink-0 transition-colors">
                     <Paperclip className="w-5 h-5" />
                   </Button>
                   <Input 
                     value={newMessage} 
                     onChange={(e) => setNewMessage(e.target.value)} 
                     placeholder={t('messages.inputPlaceholder', { name: activeChat.name })} 
-                    className="h-12 rounded-xl bg-gray-50 dark:bg-[#282a2c] dark:text-gray-100 dark:placeholder-gray-500 border-transparent flex-1 text-base px-5 focus-visible:ring-indigo-500/50" 
+                    className="h-12 rounded-xl bg-gray-50 dark:bg-ink-800 dark:text-gray-100 dark:placeholder-gray-500 border-transparent flex-1 text-base px-5 focus-visible:ring-indigo-500/50" 
                   />
                   <Button type="submit" aria-label={t('messages.send')} disabled={(!newMessage.trim() && !selectedFile) || isSending} className="h-12 w-12 p-0 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded-xl shrink-0 transition-colors">
                     {isSending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
@@ -530,7 +530,7 @@ export default function Messages() {
             )
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-gray-400 dark:text-gray-500">
-              <div className="w-20 h-20 bg-gray-50 dark:bg-[#131314] rounded-full flex items-center justify-center mb-6">
+              <div className="w-20 h-20 bg-gray-50 dark:bg-ink-950 rounded-full flex items-center justify-center mb-6">
                 <MessageSquare className="w-10 h-10 opacity-50" />
               </div>
               <p className="text-lg font-medium text-gray-900 dark:text-gray-100">{t('messages.emptyState.title')}</p>
@@ -545,7 +545,7 @@ export default function Messages() {
       {/* ==================================================== */}
       {showRejectModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white dark:bg-[#1e1f20] rounded-3xl p-6 shadow-2xl w-full max-w-sm border border-gray-100 dark:border-[#333537] animate-in zoom-in-95">
+          <div className="bg-white dark:bg-ink-900 rounded-3xl p-6 shadow-2xl w-full max-w-sm border border-gray-100 dark:border-ink-700 animate-in zoom-in-95">
             <div className="w-12 h-12 bg-red-50 dark:bg-red-500/10 rounded-full flex items-center justify-center mb-4">
               <AlertTriangle className="w-6 h-6 text-red-500" />
             </div>
@@ -554,7 +554,7 @@ export default function Messages() {
               {t('messages.rejectModal.desc')}
             </p>
             <div className="flex gap-3 justify-end">
-              <Button variant="ghost" onClick={() => setShowRejectModal(false)} className="text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#282a2c] rounded-xl font-medium">
+              <Button variant="ghost" onClick={() => setShowRejectModal(false)} className="text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-ink-800 rounded-xl font-medium">
                 {t('messages.rejectModal.cancel')}
               </Button>
               <Button onClick={confirmRejectRequest} className="bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium">
@@ -570,7 +570,7 @@ export default function Messages() {
       {/* ==================================================== */}
       {showRemoveModal && activeChat && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in p-4">
-          <div role="dialog" aria-modal="true" className="bg-white dark:bg-[#1e1f20] rounded-3xl p-6 shadow-2xl w-full max-w-sm border border-gray-100 dark:border-[#333537] animate-in zoom-in-95">
+          <div role="dialog" aria-modal="true" className="bg-white dark:bg-ink-900 rounded-3xl p-6 shadow-2xl w-full max-w-sm border border-gray-100 dark:border-ink-700 animate-in zoom-in-95">
             <div className="w-12 h-12 bg-red-50 dark:bg-red-500/10 rounded-full flex items-center justify-center mb-4">
               <UserMinus className="w-6 h-6 text-red-500" />
             </div>
@@ -579,7 +579,7 @@ export default function Messages() {
               {t('messages.removeModal.desc')}
             </p>
             <div className="flex gap-3 justify-end">
-              <Button variant="ghost" onClick={() => setShowRemoveModal(false)} className="text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#282a2c] rounded-xl font-medium">
+              <Button variant="ghost" onClick={() => setShowRemoveModal(false)} className="text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-ink-800 rounded-xl font-medium">
                 {t('messages.removeModal.cancel')}
               </Button>
               <Button onClick={confirmRemoveBuddy} className="bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium">
@@ -595,7 +595,7 @@ export default function Messages() {
       {/* ==================================================== */}
       {messageToDelete && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white dark:bg-[#1e1f20] rounded-3xl p-6 shadow-2xl w-full max-w-sm border border-gray-100 dark:border-[#333537] animate-in zoom-in-95">
+          <div className="bg-white dark:bg-ink-900 rounded-3xl p-6 shadow-2xl w-full max-w-sm border border-gray-100 dark:border-ink-700 animate-in zoom-in-95">
             <div className="w-12 h-12 bg-red-50 dark:bg-red-500/10 rounded-full flex items-center justify-center mb-4">
               <Trash2 className="w-6 h-6 text-red-500" />
             </div>
@@ -604,7 +604,7 @@ export default function Messages() {
               {t('messages.deleteModal.desc')}
             </p>
             <div className="flex gap-3 justify-end">
-              <Button variant="ghost" onClick={() => setMessageToDelete(null)} className="text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#282a2c] rounded-xl font-medium">
+              <Button variant="ghost" onClick={() => setMessageToDelete(null)} className="text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-ink-800 rounded-xl font-medium">
                 {t('messages.deleteModal.cancel')}
               </Button>
               <Button onClick={confirmDeleteMessage} className="bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium">

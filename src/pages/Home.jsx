@@ -2,7 +2,10 @@ import React, { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import HomeNavbar from "../components/home/HomeNavbar";
 import HeroSection from "../components/home/HeroSection";
+import HowItWorks from "../components/home/HowItWorks";
 import FeaturesSection from "../components/home/FeaturesSection";
+import MentorSection from "../components/home/MentorSection";
+import SafetySection from "../components/home/SafetySection";
 import CTASection from "../components/home/CTASection";
 import { useAuth } from "@/lib/AuthContext";
 
@@ -18,11 +21,16 @@ export default function Home() {
   }, [user, loginCount, navigate]);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#131314] transition-colors duration-300">
+    <div className="min-h-screen bg-background overflow-x-hidden transition-colors duration-300">
       <HomeNavbar />
-      <HeroSection />
-      <FeaturesSection />
-      <CTASection />
+      <main>
+        <HeroSection />
+        <HowItWorks />
+        <FeaturesSection />
+        <MentorSection />
+        <SafetySection />
+        <CTASection />
+      </main>
     </div>
   );
 }

@@ -269,6 +269,7 @@ const resources = {
           Admin: "Modération",
           Groups: "Groupes"
         },
+        tabs: { Dashboard: "Accueil", Search: "Chercher", Messages: "Messages", Sessions: "Sessions", Profile: "Profil" },
         notifications: {
           title: "Notifications",
           markAllRead: "Tout marquer comme lu",
@@ -293,6 +294,7 @@ const resources = {
         greeting: "Bonjour, {{name}}",
         subtitle: "Prêt à booster vos révisions aujourd'hui ?",
         findBuddy: "Trouver un binôme",
+        progress: "{{done}} sur {{total}} étapes",
         tutorial: {
           close: "Masquer le tutoriel",
           title_ready: "Félicitations, vous êtes prêt !",
@@ -407,6 +409,70 @@ const resources = {
           signup: "Inscription",
           dashboard: "Tableau de bord",
           switchLanguage: "Changer de langue"
+        }
+      },
+      landing: {
+        heroBadge: "Nouveau : le mentorat entre étudiants",
+        secondaryCta: "Comment ça marche",
+        trust: {
+          free: "100 % gratuit",
+          verified: "Étudiants vérifiés",
+          europe: "Données hébergées en Europe"
+        },
+        mock: {
+          name: "Léa M.",
+          meta: "L2 Mathématiques · Lyon",
+          match: "compatible",
+          subjects: ["Analyse", "Probabilités", "Python"],
+          contact: "Contacter",
+          chat1: "On attaque les intégrales ce soir ?",
+          chat2: "Carrément ! 18 h sur le tableau blanc 🙌",
+          session: "Révision d'analyse",
+          sessionWhen: "Demain · 18:00",
+          video: "Appel vidéo prêt",
+          board: "Tableau blanc",
+          live: "En direct",
+          verified: "Étudiante vérifiée",
+          thanks: "Merci, parfait 🙏"
+        },
+        how: {
+          eyebrow: "Comment ça marche",
+          title: "Ton binôme en trois étapes",
+          subtitle: "Pas de formulaire interminable : en cinq minutes, tu sais avec qui réviser.",
+          steps: {
+            profile: { title: "Crée ton profil", desc: "Tes matières, ton niveau dans chacune, ton école et tes disponibilités." },
+            match: { title: "Trouve ton binôme", desc: "Les profils les plus compatibles apparaissent en premier. Envoie une demande avec un petit mot." },
+            study: { title: "Révisez ensemble", desc: "Discutez, planifiez une session avec appel vidéo et travaillez sur le même tableau blanc." }
+          }
+        },
+        featuresEyebrow: "Tout au même endroit",
+        mentor: {
+          eyebrow: "Mentorat",
+          title: "Tu bloques ? Des étudiants avancés peuvent t'aider",
+          desc: "Indique ton niveau dans chaque matière. Si tu débutes, l'onglet « Trouver de l'aide » te montre les étudiants « Avancé » qui acceptent d'épauler les autres.",
+          points: {
+            p1: "Demande ciblée sur une matière précise",
+            p2: "Les avancés choisissent d'aider ou non",
+            p3: "Ensuite, discussion et sessions comme avec un binôme"
+          },
+          card: {
+            title: "Demande d'aide en Physique",
+            from: "Tom, débutant",
+            msg: "Je bloque sur les ondes stationnaires, tu aurais 30 min cette semaine ?",
+            accept: "Accepter",
+            badge: "Avancé"
+          }
+        },
+        safety: {
+          eyebrow: "Confiance",
+          title: "Un espace pensé pour les étudiants",
+          subtitle: "Tu choisis avec qui tu échanges, et tu gardes la main sur tes données.",
+          items: {
+            verified: { title: "Badge étudiant vérifié", desc: "Un code envoyé sur l'adresse de l'établissement confirme le statut. Seul le nom de domaine est affiché." },
+            contact: { title: "Coordonnées protégées", desc: "Un avertissement apparaît avant d'envoyer un numéro ou un lien à quelqu'un que tu ne connais pas encore." },
+            report: { title: "Signalement et blocage", desc: "Un profil gênant ? Bloque-le en un clic ou signale-le à l'équipe de modération." },
+            privacy: { title: "Données protégées", desc: "Hébergement en Europe, aucune publicité, et suppression complète de ton compte quand tu veux." }
+          }
         }
       },
       hero: {
@@ -1202,6 +1268,7 @@ const resources = {
           Admin: "Moderation",
           Groups: "Groups"
         },
+        tabs: { Dashboard: "Home", Search: "Search", Messages: "Messages", Sessions: "Sessions", Profile: "Profile" },
         notifications: {
           title: "Notifications",
           markAllRead: "Mark all as read",
@@ -1226,6 +1293,7 @@ const resources = {
         greeting: "Hello, {{name}}",
         subtitle: "Ready to boost your studies today?",
         findBuddy: "Find a buddy",
+        progress: "{{done}} of {{total}} steps",
         tutorial: {
           close: "Hide tutorial",
           title_ready: "Congratulations, you're ready!",
@@ -1340,6 +1408,70 @@ const resources = {
           signup: "Sign Up",
           dashboard: "Dashboard",
           switchLanguage: "Switch language"
+        }
+      },
+      landing: {
+        heroBadge: "New: peer mentoring",
+        secondaryCta: "How it works",
+        trust: {
+          free: "100% free",
+          verified: "Verified students",
+          europe: "Data hosted in Europe"
+        },
+        mock: {
+          name: "Léa M.",
+          meta: "2nd-year Maths · Lyon",
+          match: "match",
+          subjects: ["Calculus", "Probability", "Python"],
+          contact: "Contact",
+          chat1: "Shall we tackle integrals tonight?",
+          chat2: "Absolutely! 6 pm on the whiteboard 🙌",
+          session: "Calculus revision",
+          sessionWhen: "Tomorrow · 6:00 pm",
+          video: "Video call ready",
+          board: "Whiteboard",
+          live: "Live",
+          verified: "Verified student",
+          thanks: "Thanks, perfect 🙏"
+        },
+        how: {
+          eyebrow: "How it works",
+          title: "Your study buddy in three steps",
+          subtitle: "No endless forms: in five minutes you know who to study with.",
+          steps: {
+            profile: { title: "Create your profile", desc: "Your subjects, your level in each, your school and your availability." },
+            match: { title: "Find your buddy", desc: "The most compatible profiles show up first. Send a request with a short note." },
+            study: { title: "Study together", desc: "Chat, schedule a session with a video call and work on the same whiteboard." }
+          }
+        },
+        featuresEyebrow: "All in one place",
+        mentor: {
+          eyebrow: "Mentoring",
+          title: "Stuck? Advanced students can help you",
+          desc: "Set your level in each subject. If you're a beginner, the “Find help” tab shows “Advanced” students who are happy to help others.",
+          points: {
+            p1: "Requests targeted at one specific subject",
+            p2: "Advanced students choose whether to help",
+            p3: "Then chat and sessions, just like with a study buddy"
+          },
+          card: {
+            title: "Help request in Physics",
+            from: "Tom, beginner",
+            msg: "I'm stuck on standing waves, would you have 30 min this week?",
+            accept: "Accept",
+            badge: "Advanced"
+          }
+        },
+        safety: {
+          eyebrow: "Trust",
+          title: "A space designed for students",
+          subtitle: "You choose who you talk to, and you stay in control of your data.",
+          items: {
+            verified: { title: "Verified student badge", desc: "A code sent to the school address confirms the status. Only the domain name is shown." },
+            contact: { title: "Protected contact details", desc: "A warning appears before you send a phone number or a link to someone you don't know yet." },
+            report: { title: "Report and block", desc: "An unpleasant profile? Block it in one click or report it to the moderation team." },
+            privacy: { title: "Protected data", desc: "Hosted in Europe, no ads, and full account deletion whenever you want." }
+          }
         }
       },
       hero: {

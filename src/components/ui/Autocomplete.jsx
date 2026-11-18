@@ -92,11 +92,11 @@ export default function Autocomplete({
         aria-expanded={isOpen && suggestions.length > 0}
         aria-controls={listId}
         autoComplete="off"
-        className={inputClassName || `h-[50px] rounded-xl bg-gray-50 dark:bg-[#131314] text-gray-900 dark:text-gray-100 dark:placeholder-gray-500 border-gray-200 dark:border-[#333537] text-base focus-visible:ring-indigo-500/50 ${Icon ? "pl-11" : "px-5"}`}
+        className={inputClassName || `h-[50px] rounded-xl bg-gray-50 dark:bg-ink-950 text-gray-900 dark:text-gray-100 dark:placeholder-gray-500 border-gray-200 dark:border-ink-700 text-base focus-visible:ring-indigo-500/50 ${Icon ? "pl-11" : "px-5"}`}
       />
 
       {isOpen && suggestions.length > 0 && (
-        <ul id={listId} role="listbox" className="absolute z-50 w-full mt-1 bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] rounded-xl shadow-lg max-h-60 overflow-y-auto">
+        <ul id={listId} role="listbox" className="absolute z-50 w-full mt-1 bg-white dark:bg-ink-900 border border-gray-100 dark:border-ink-700 rounded-xl shadow-lg max-h-60 overflow-y-auto">
           {suggestions.map((item, index) => (
             <li
               key={item}

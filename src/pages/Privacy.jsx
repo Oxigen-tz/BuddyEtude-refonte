@@ -20,7 +20,7 @@ export default function Privacy() {
       </div>
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">{t("privacy.updated")}</p>
 
-      <div className="bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] rounded-3xl p-6 sm:p-8 shadow-sm space-y-8 text-gray-700 dark:text-gray-300 leading-relaxed">
+      <div className="bg-white dark:bg-ink-900 border border-gray-100 dark:border-ink-700 rounded-3xl p-6 sm:p-8 shadow-sm space-y-8 text-gray-700 dark:text-gray-300 leading-relaxed">
         <p className="text-lg font-medium text-gray-900 dark:text-white">{t("privacy.intro")}</p>
 
         {Array.isArray(sections) && sections.map((section) => (

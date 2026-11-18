@@ -1,167 +1,139 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, PenTool, Users, Sparkles } from "lucide-react"; 
-import { useAuth } from "@/lib/AuthContext"; 
+import { ArrowRight, Check, Sparkles, Users } from "lucide-react";
+import { useAuth } from "@/lib/AuthContext";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { useTranslation, Trans } from "react-i18next";
 import { db } from "@/firebase/config";
 import { doc, getDoc } from "firebase/firestore";
+import HeroMockup from "./HeroMockup";
 
 const SOCIAL_PROOF_THRESHOLD = 20;
-
-// Capture d'écran réelle à placer dans /public (ex : une session avec un tracé et le chat).
-// Si le fichier n'existe pas, le cadre disparaît tout seul.
-const PREVIEW_IMAGE = "/whiteboard-preview.png";
 
 export default function HeroSection() {
   const { user, openLogin } = useAuth();
   const { t } = useTranslation();
-
-  // Ouvre la fenêtre de connexion commune (Google, Microsoft, e-mail). La redirection vers le
-  // tableau de bord après connexion est faite par la page d'accueil (Home.jsx).
-  const handleLogin = openLogin;
-
   const [studentCount, setStudentCount] = useState(null);
-  const [previewFailed, setPreviewFailed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-
-    // On lit un compteur public (stats/public.studentCount) plutôt que de compter la collection
-    // "users" : les règles Firestore interdisent (à juste titre) de lister les profils sans être
-    // connecté, donc le comptage échouait en 403 pour tous les visiteurs de l'accueil.
-    // Le compteur est incrémenté par Profile.jsx quand un profil est complété pour la première fois.
+    // Compteur public (stats/public.studentCount) : les règles interdisent de lister les profils
+    // sans être connecté. Incrémenté par Profile.jsx quand un profil est complété.
     getDoc(doc(db, "stats", "public"))
       .then((snap) => {
         if (!cancelled) setStudentCount(snap.exists() ? Number(snap.data().studentCount) || 0 : 0);
       })
       .catch((error) => {
-        // Lecture refusée ou réseau indisponible : on affiche le badge "lancement",
-        // qui n'avance aucun chiffre.
         console.warn("Compteur d'étudiants indisponible :", error);
         if (!cancelled) setStudentCount(0);
       });
-
     return () => { cancelled = true; };
   }, []);
 
   const showRealCount = studentCount !== null && studentCount >= SOCIAL_PROOF_THRESHOLD;
-  const showEarlyBadge = studentCount !== null && studentCount < SOCIAL_PROOF_THRESHOLD;
+  const fadeUp = (delay = 0) => ({
+    initial: { opacity: 0, y: 24 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.7, delay, ease: [0.22, 1, 0.36, 1] },
+  });
 
   return (
-    <section className="relative min-h-[90vh] flex items-center overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800" />
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute top-20 left-20 w-72 h-72 bg-white rounded-full blur-3xl" />
-        <div className="absolute bottom-20 right-20 w-96 h-96 bg-purple-300 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-300 rounded-full blur-3xl" />
-      </div>
+    <section className="relative overflow-hidden pt-28 sm:pt-36 lg:pt-40 pb-16 lg:pb-28">
+      {/* Décor : quadrillage estompé et halos colorés */}
+      <div className="absolute inset-0 bg-grid mask-radial opacity-80" />
+      <div className="absolute -top-32 -left-24 w-[480px] h-[480px] rounded-full bg-brand-400/25 dark:bg-brand-600/20 blur-3xl" />
+      <div className="absolute top-20 -right-32 w-[420px] h-[420px] rounded-full bg-coral-300/25 dark:bg-coral-500/10 blur-3xl" />
+      <div className="absolute bottom-0 left-1/3 w-[360px] h-[260px] rounded-full bg-lime-300/30 dark:bg-lime-400/5 blur-3xl" />
 
-      <div className="absolute inset-0 opacity-5" style={{
-        backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
-        backgroundSize: '40px 40px'
-      }} />
-
-      <div className="relative max-w-6xl mx-auto px-6 py-24 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-        >
-          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-5 py-2 mb-8">
-            <PenTool className="w-4 h-4 text-yellow-300" />
-            <span className="text-sm text-white/90 font-medium">{t('hero.badge')}</span>
-          </div>
-
-          <h1 className="text-5xl md:text-7xl font-extrabold text-white mb-6 leading-tight tracking-tight">
-            {t('hero.title1')}
-            <br />
-            <span className="bg-gradient-to-r from-yellow-200 via-amber-200 to-yellow-300 bg-clip-text text-transparent">
-              {t('hero.title_highlight')}
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 grid lg:grid-cols-[1.05fr_1fr] gap-12 lg:gap-8 items-center">
+        <div className="text-center lg:text-left">
+          <motion.div {...fadeUp(0)}>
+            <span className="inline-flex items-center gap-2 rounded-full border border-brand-200/80 dark:border-brand-500/30 bg-white/70 dark:bg-ink-900/70 backdrop-blur px-3.5 py-1.5 text-xs sm:text-sm font-semibold text-brand-700 dark:text-brand-200 shadow-soft">
+              <span className="relative flex w-2 h-2">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-lime-400 opacity-75 animate-ping" />
+                <span className="relative inline-flex w-2 h-2 rounded-full bg-lime-500" />
+              </span>
+              {t("landing.heroBadge")}
             </span>
-            <br />
-            {t('hero.title2')}
-          </h1>
+          </motion.div>
 
-          <p className="text-lg md:text-xl text-indigo-100 max-w-2xl mx-auto mb-10 leading-relaxed">
-            {t('hero.subtitle_part1')} 
-            <strong className="text-white font-semibold">{t('hero.subtitle_bold')}</strong>
-            {t('hero.subtitle_part2')}
-          </p>
+          <motion.h1 {...fadeUp(0.08)} className="mt-6 font-display text-[2.75rem] leading-[1.02] sm:text-6xl lg:text-[4.4rem] font-extrabold tracking-tight text-gray-900 dark:text-white">
+            {t("hero.title1")}{" "}
+            <span className="relative inline-block whitespace-nowrap">
+              <span className="text-gradient">{t("hero.title_highlight")}</span>
+              <svg viewBox="0 0 300 16" preserveAspectRatio="none" className="absolute left-0 -bottom-1.5 sm:-bottom-2 w-full h-3 sm:h-4" aria-hidden="true">
+                <motion.path
+                  d="M4 11 C 70 3, 150 3, 296 9"
+                  fill="none" stroke="#CBEA3B" strokeWidth="6" strokeLinecap="round"
+                  initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.9, delay: 0.7, ease: "easeOut" }}
+                />
+              </svg>
+            </span>{" "}
+            {t("hero.title2")}
+          </motion.h1>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <motion.p {...fadeUp(0.16)} className="mt-6 text-lg sm:text-xl text-gray-600 dark:text-gray-300 max-w-xl mx-auto lg:mx-0 leading-relaxed">
+            {t("hero.subtitle_part1")}
+            <strong className="text-gray-900 dark:text-white font-semibold">{t("hero.subtitle_bold")}</strong>
+            {t("hero.subtitle_part2")}
+          </motion.p>
+
+          <motion.div {...fadeUp(0.24)} className="mt-9 flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
             {user ? (
               <Link to="/Dashboard">
-                <Button
-                  size="lg"
-                  className="bg-white text-indigo-700 hover:bg-indigo-50 font-semibold text-base px-8 py-6 rounded-xl shadow-xl shadow-indigo-900/20 group"
-                >
-                  {t('hero.btn_dashboard')}
-                  <ArrowRight className="w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" />
+                <Button size="lg" className="w-full sm:w-auto h-14 px-7 rounded-2xl text-base bg-gradient-to-r from-brand-600 to-purple-600 hover:from-brand-700 hover:to-purple-700 text-white shadow-glow group">
+                  {t("hero.btn_dashboard")}
+                  <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
                 </Button>
               </Link>
             ) : (
-              <Button
-                size="lg"
-                onClick={handleLogin}
-                className="bg-white text-indigo-700 hover:bg-indigo-50 font-semibold text-base px-8 py-6 rounded-xl shadow-xl shadow-indigo-900/20 group"
-              >
-                {t('hero.btn_start')}
-                <ArrowRight className="w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" />
+              <Button size="lg" onClick={openLogin} className="h-14 px-7 rounded-2xl text-base bg-gradient-to-r from-brand-600 to-purple-600 hover:from-brand-700 hover:to-purple-700 text-white shadow-glow group">
+                {t("hero.btn_start")}
+                <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
               </Button>
             )}
-          </div>
-
-          {showRealCount && (
-            <div className="mt-8 inline-flex items-center gap-3 bg-white/10 backdrop-blur-md px-5 py-2.5 rounded-2xl border border-white/20 shadow-sm">
-              <div className="w-7 h-7 rounded-full bg-indigo-500/30 flex items-center justify-center text-white">
-                <Users className="w-4 h-4 text-indigo-200" />
-              </div>
-              <p className="text-sm font-medium text-indigo-100">
-                <Trans
-                  i18nKey="hero.social.active"
-                  values={{ count: studentCount }}
-                  components={{ bold: <strong className="text-white font-bold" /> }}
-                />
-              </p>
-            </div>
-          )}
-
-          {showEarlyBadge && (
-            <div className="mt-8 inline-flex items-center gap-3 bg-white/10 backdrop-blur-md px-5 py-2.5 rounded-2xl border border-white/20 shadow-sm">
-              <div className="w-7 h-7 rounded-full bg-indigo-500/30 flex items-center justify-center text-white">
-                <Sparkles className="w-4 h-4 text-indigo-200" />
-              </div>
-              <p className="text-sm font-medium text-indigo-100">
-                <Trans
-                  i18nKey="hero.social.early"
-                  components={{ bold: <strong className="text-white font-bold" /> }}
-                />
-              </p>
-            </div>
-          )}
-        </motion.div>
-
-        {/* Aperçu réel du produit : remplace les anciennes "stats" (100% / Live) qui n'en étaient pas */}
-        {!previewFailed && (
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-            className="mt-16 max-w-4xl mx-auto"
-          >
-            <div className="rounded-2xl border border-white/20 bg-white/10 p-2 shadow-2xl shadow-indigo-950/40 backdrop-blur-sm">
-              <img
-                src={PREVIEW_IMAGE}
-                alt={t('hero.previewAlt')}
-                loading="lazy"
-                onError={() => setPreviewFailed(true)}
-                className="w-full h-auto rounded-xl"
-              />
-            </div>
+            <a href="#how">
+              <Button size="lg" variant="outline" className="w-full sm:w-auto h-14 px-7 rounded-2xl text-base bg-white/70 dark:bg-ink-900/70 backdrop-blur">
+                {t("landing.secondaryCta")}
+              </Button>
+            </a>
           </motion.div>
-        )}
+
+          <motion.ul {...fadeUp(0.32)} className="mt-8 flex flex-wrap gap-x-5 gap-y-2 justify-center lg:justify-start text-sm font-medium text-gray-600 dark:text-gray-400">
+            {["free", "verified", "europe"].map((k) => (
+              <li key={k} className="inline-flex items-center gap-1.5">
+                <span className="w-5 h-5 rounded-full bg-lime-200 dark:bg-lime-400/20 flex items-center justify-center">
+                  <Check className="w-3 h-3 text-gray-900 dark:text-lime-300" strokeWidth={3} />
+                </span>
+                {t(`landing.trust.${k}`)}
+              </li>
+            ))}
+          </motion.ul>
+
+          {studentCount !== null && (
+            <motion.div {...fadeUp(0.4)} className="mt-8 inline-flex items-center gap-3 rounded-2xl bg-white/70 dark:bg-ink-900/70 backdrop-blur border border-gray-200/70 dark:border-ink-700 px-4 py-2.5 shadow-soft">
+              <div className="flex -space-x-2">
+                {["from-brand-400 to-brand-600", "from-coral-300 to-coral-500", "from-lime-300 to-lime-500"].map((g) => (
+                  <span key={g} className={`w-7 h-7 rounded-full bg-gradient-to-br ${g} ring-2 ring-white dark:ring-ink-900 flex items-center justify-center`}>
+                    {showRealCount ? <Users className="w-3.5 h-3.5 text-white" /> : <Sparkles className="w-3.5 h-3.5 text-white" />}
+                  </span>
+                ))}
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                <Trans
+                  i18nKey={showRealCount ? "hero.social.active" : "hero.social.early"}
+                  values={{ count: studentCount }}
+                  components={{ bold: <strong className="text-gray-900 dark:text-white font-bold" /> }}
+                />
+              </p>
+            </motion.div>
+          )}
+        </div>
+
+        <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.9, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}>
+          <HeroMockup />
+        </motion.div>
       </div>
     </section>
   );

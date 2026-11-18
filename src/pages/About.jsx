@@ -34,7 +34,7 @@ export default function About() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] rounded-3xl p-8 shadow-sm text-center">
+      <div className="bg-white dark:bg-ink-900 border border-gray-100 dark:border-ink-700 rounded-3xl p-8 shadow-sm text-center">
         <GraduationCap className="w-12 h-12 text-gray-400 mx-auto mb-4" />
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{t("about.join.title")}</h2>
         <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-xl mx-auto">

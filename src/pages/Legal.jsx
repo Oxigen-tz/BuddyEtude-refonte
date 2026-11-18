@@ -26,7 +26,7 @@ export default function Legal() {
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t("legal.title")}</h1>
       </div>
 
-      <div className="bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] rounded-3xl p-8 shadow-sm space-y-8 text-gray-700 dark:text-gray-300">
+      <div className="bg-white dark:bg-ink-900 border border-gray-100 dark:border-ink-700 rounded-3xl p-8 shadow-sm space-y-8 text-gray-700 dark:text-gray-300">
 
         <section>
           <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">{t("legal.publisher.title")}</h2>

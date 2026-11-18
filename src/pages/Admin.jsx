@@ -102,11 +102,11 @@ export default function Admin() {
         {loading ? (
           <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
         ) : reports.length === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400 py-8 text-center bg-white dark:bg-[#1e1f20] rounded-2xl border border-dashed border-gray-200 dark:border-[#333537]">{t('admin.noReports')}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 py-8 text-center bg-white dark:bg-ink-900 rounded-2xl border border-dashed border-gray-200 dark:border-ink-700">{t('admin.noReports')}</p>
         ) : (
           <ul className="space-y-3">
             {reports.map((r) => (
-              <li key={r.id} className="p-5 bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] rounded-2xl">
+              <li key={r.id} className="p-5 bg-white dark:bg-ink-900 border border-gray-100 dark:border-ink-700 rounded-2xl">
                 <div className="flex flex-wrap items-center gap-2 mb-2">
                   <span className="font-semibold text-gray-900 dark:text-white">{r.reported_user_name || r.reported_uid}</span>
                   <Badge className="border-0 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400">{t(`buddyCard.reportDialog.reasons.${r.reason}`, r.reason)}</Badge>
@@ -132,11 +132,11 @@ export default function Admin() {
         <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{t('admin.feedback')} ({feedback.length})</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{t('admin.feedbackDesc')}</p>
         {feedback.length === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400 py-8 text-center bg-white dark:bg-[#1e1f20] rounded-2xl border border-dashed border-gray-200 dark:border-[#333537]">{t('admin.noFeedback')}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 py-8 text-center bg-white dark:bg-ink-900 rounded-2xl border border-dashed border-gray-200 dark:border-ink-700">{t('admin.noFeedback')}</p>
         ) : (
           <ul className="space-y-3">
             {feedback.map((f) => (
-              <li key={f.id} className="p-4 bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] rounded-2xl text-sm">
+              <li key={f.id} className="p-4 bg-white dark:bg-ink-900 border border-gray-100 dark:border-ink-700 rounded-2xl text-sm">
                 <div className="flex items-center gap-1 mb-1" aria-label={t('sessions.feedback.stars', { count: f.rating })}>
                   {[1, 2, 3, 4, 5].map((n) => <Star key={n} className={`w-4 h-4 ${n <= f.rating ? "fill-amber-400 text-amber-400" : "text-gray-300 dark:text-gray-600"}`} />)}
                   <span className="text-xs text-gray-400 ml-auto">{formatDate(f.createdAt)}</span>

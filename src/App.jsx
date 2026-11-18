@@ -47,7 +47,7 @@ const LayoutWrapper = ({ children, currentPageName }) => {
 
   // Visiteur (ou accueil) : plein écran, sans barre latérale
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-[#131314] text-gray-900 dark:text-gray-100 transition-colors duration-300">
+    <div className="min-h-screen flex flex-col bg-background text-gray-900 dark:text-gray-100 transition-colors duration-300">
       {!isHome && <PublicHeader />}
       <div className={isHome ? "flex-1" : "flex-1 px-4"}>{isPublic ? children : <LoginRequired />}</div>
       <Footer />
@@ -56,15 +56,15 @@ const LayoutWrapper = ({ children, currentPageName }) => {
 };
 
 const FullScreenSpinner = () => (
-  <div className="fixed inset-0 flex items-center justify-center bg-slate-50 dark:bg-[#131314] transition-colors duration-300">
-    <div className="w-8 h-8 border-4 border-slate-200 dark:border-[#333537] border-t-indigo-600 dark:border-t-indigo-500 rounded-full animate-spin"></div>
+  <div className="fixed inset-0 flex items-center justify-center bg-background transition-colors duration-300">
+    <div className="w-8 h-8 border-4 border-slate-200 dark:border-ink-700 border-t-brand-600 dark:border-t-brand-400 rounded-full animate-spin"></div>
   </div>
 );
 
 // Affiché dans la zone de contenu (sidebar conservée) pendant le téléchargement d'une page
 const PageSpinner = () => (
   <div className="flex items-center justify-center py-24">
-    <div className="w-8 h-8 border-4 border-slate-200 dark:border-[#333537] border-t-indigo-600 dark:border-t-indigo-500 rounded-full animate-spin"></div>
+    <div className="w-8 h-8 border-4 border-slate-200 dark:border-ink-700 border-t-brand-600 dark:border-t-brand-400 rounded-full animate-spin"></div>
   </div>
 );
 

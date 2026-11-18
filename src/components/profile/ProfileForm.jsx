@@ -116,7 +116,7 @@ export default function ProfileForm({ profile, onSave, saving }) {
 
   const filteredSuggestions = suggestSubjects(newSubjectName, (form.subjects || []).map((x) => x.name));
   const hasAdvancedSubject = (form.subjects || []).some((x) => x.level === "avance");
-  const fieldClass = "h-10 bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-gray-100 rounded-xl";
+  const fieldClass = "h-10 bg-gray-50 dark:bg-ink-950 border-gray-200 dark:border-ink-700 text-gray-900 dark:text-gray-100 rounded-xl";
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8 animate-in fade-in duration-300">
@@ -132,7 +132,7 @@ export default function ProfileForm({ profile, onSave, saving }) {
               onChange={(e) => setForm({ ...form, display_name: e.target.value })} 
               placeholder={t('profileForm.displayNamePlaceholder')} 
               maxLength={40}
-              className="bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-gray-100 rounded-xl"
+              className="bg-gray-50 dark:bg-ink-950 border-gray-200 dark:border-ink-700 text-gray-900 dark:text-gray-100 rounded-xl"
             />
           </div>
           <div className="space-y-2">
@@ -156,7 +156,7 @@ export default function ProfileForm({ profile, onSave, saving }) {
             value={form.bio} 
             onChange={(e) => setForm({ ...form, bio: e.target.value })} 
             maxLength={400}
-            className="h-24 bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-gray-100 rounded-xl" 
+            className="h-24 bg-gray-50 dark:bg-ink-950 border-gray-200 dark:border-ink-700 text-gray-900 dark:text-gray-100 rounded-xl" 
             placeholder={t('profileForm.bioPlaceholder')} 
           />
         </div>
@@ -178,12 +178,12 @@ export default function ProfileForm({ profile, onSave, saving }) {
           <div className="space-y-2">
             <Label className="dark:text-gray-300">{t('profileForm.level')}</Label>
             <Select value={form.level} onValueChange={(v) => setForm({ ...form, level: v })}>
-              <SelectTrigger aria-label={t('profileForm.level')} className="bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-gray-100 rounded-xl">
+              <SelectTrigger aria-label={t('profileForm.level')} className="bg-gray-50 dark:bg-ink-950 border-gray-200 dark:border-ink-700 text-gray-900 dark:text-gray-100 rounded-xl">
                 <SelectValue placeholder={t('profileForm.levelPlaceholder')} />
               </SelectTrigger>
-              <SelectContent className="dark:bg-[#1e1f20] dark:border-[#333537] dark:text-gray-100">
+              <SelectContent className="dark:bg-ink-900 dark:border-ink-700 dark:text-gray-100">
                 {LEVEL_VALUES.map(value => (
-                  <SelectItem key={value} value={value} className="focus:bg-gray-100 dark:focus:bg-[#282a2c] cursor-pointer">
+                  <SelectItem key={value} value={value} className="focus:bg-gray-100 dark:focus:bg-ink-800 cursor-pointer">
                     {t(`buddyCard.levels.${value}`)}
                   </SelectItem>
                 ))}
@@ -194,12 +194,12 @@ export default function ProfileForm({ profile, onSave, saving }) {
       </div>
 
       {/* Matières & Niveaux */}
-      <div className="space-y-4 bg-indigo-50/50 dark:bg-[#131314] p-5 rounded-2xl border border-indigo-50 dark:border-[#333537] transition-colors duration-300">
+      <div className="space-y-4 bg-indigo-50/50 dark:bg-ink-950 p-5 rounded-2xl border border-indigo-50 dark:border-ink-700 transition-colors duration-300">
         <h3 className="text-lg font-semibold text-indigo-900 dark:text-indigo-400">{t('profileForm.sections.subjectsLevels')}</h3>
         
         <div className="flex flex-wrap gap-2 mb-4">
           {form.subjects.map(s => (
-            <Badge key={s.name} variant="secondary" className="bg-white dark:bg-[#1e1f20] border border-indigo-100 dark:border-indigo-500/20 text-indigo-800 dark:text-indigo-300 px-3 py-1.5 gap-1.5 shadow-sm">
+            <Badge key={s.name} variant="secondary" className="bg-white dark:bg-ink-900 border border-indigo-100 dark:border-indigo-500/20 text-indigo-800 dark:text-indigo-300 px-3 py-1.5 gap-1.5 shadow-sm">
               <span className="font-bold">{s.name}</span> 
               <span className="text-xs opacity-70 border-l border-indigo-200 dark:border-indigo-500/30 pl-1.5">{getLevelLabel(s.level)}</span>
               <button type="button" onClick={() => removeSubject(s.name)} aria-label={t('profileForm.removeItem', { name: s.name })} className="ml-1 hover:text-red-500 dark:hover:text-red-400 transition-colors"><X className="w-3 h-3" /></button>
@@ -210,7 +210,7 @@ export default function ProfileForm({ profile, onSave, saving }) {
         <div className="flex flex-col md:flex-row gap-2 relative">
           <div className="relative flex-1">
             <Input 
-              className="w-full bg-white dark:bg-[#1e1f20] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-gray-100 rounded-xl" 
+              className="w-full bg-white dark:bg-ink-900 border-gray-200 dark:border-ink-700 text-gray-900 dark:text-gray-100 rounded-xl" 
               value={newSubjectName} 
               maxLength={60}
               onChange={(e) => {
@@ -223,11 +223,11 @@ export default function ProfileForm({ profile, onSave, saving }) {
             />
             
             {showSuggestions && filteredSuggestions.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] rounded-xl shadow-lg max-h-48 overflow-y-auto">
+              <div className="absolute z-10 w-full mt-1 bg-white dark:bg-ink-900 border border-gray-100 dark:border-ink-700 rounded-xl shadow-lg max-h-48 overflow-y-auto">
                 {filteredSuggestions.map(suggestion => (
                   <div 
                     key={suggestion}
-                    className="px-4 py-2.5 cursor-pointer hover:bg-indigo-50 dark:hover:bg-[#282a2c] text-sm text-gray-700 dark:text-gray-300 font-medium transition-colors border-b border-gray-50 dark:border-[#333537] last:border-0"
+                    className="px-4 py-2.5 cursor-pointer hover:bg-indigo-50 dark:hover:bg-ink-800 text-sm text-gray-700 dark:text-gray-300 font-medium transition-colors border-b border-gray-50 dark:border-ink-700 last:border-0"
                     onClick={() => {
                       setNewSubjectName(suggestion);
                       setShowSuggestions(false);
@@ -241,12 +241,12 @@ export default function ProfileForm({ profile, onSave, saving }) {
           </div>
 
           <Select value={newSubjectLevel} onValueChange={setNewSubjectLevel}>
-            <SelectTrigger className="w-full md:w-[220px] bg-white dark:bg-[#1e1f20] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-gray-100 rounded-xl">
+            <SelectTrigger className="w-full md:w-[220px] bg-white dark:bg-ink-900 border-gray-200 dark:border-ink-700 text-gray-900 dark:text-gray-100 rounded-xl">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="dark:bg-[#1e1f20] dark:border-[#333537] dark:text-gray-100">
+            <SelectContent className="dark:bg-ink-900 dark:border-ink-700 dark:text-gray-100">
               {SUBJECT_LEVEL_VALUES.map(value => (
-                <SelectItem key={value} value={value} className="focus:bg-gray-100 dark:focus:bg-[#282a2c] cursor-pointer">
+                <SelectItem key={value} value={value} className="focus:bg-gray-100 dark:focus:bg-ink-800 cursor-pointer">
                   {t(`profileForm.subjectLevels.${value}`)}
                 </SelectItem>
               ))}
@@ -263,7 +263,7 @@ export default function ProfileForm({ profile, onSave, saving }) {
           <div className="flex flex-wrap gap-1.5">
             {POPULAR_SUBJECTS.map(s => (
               <button key={s} type="button" onClick={() => addSubject(s, "intermediaire")}
-                className="px-2.5 py-1 rounded-md text-xs font-medium bg-white dark:bg-[#1e1f20] border border-gray-200 dark:border-[#333537] text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-[#282a2c] hover:text-indigo-700 dark:hover:text-indigo-400 transition-colors">
+                className="px-2.5 py-1 rounded-md text-xs font-medium bg-white dark:bg-ink-900 border border-gray-200 dark:border-ink-700 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-ink-800 hover:text-indigo-700 dark:hover:text-indigo-400 transition-colors">
                 + {s}
               </button>
             ))}
@@ -271,7 +271,7 @@ export default function ProfileForm({ profile, onSave, saving }) {
         </div>
 
         {/* Mentorat : aider les débutants dans ses matières « Avancé » */}
-        <div className="flex items-start justify-between gap-6 pt-3 border-t border-indigo-100 dark:border-[#333537]">
+        <div className="flex items-start justify-between gap-6 pt-3 border-t border-indigo-100 dark:border-ink-700">
           <div>
             <p className="font-medium text-sm text-gray-900 dark:text-gray-100">{t('profileForm.mentor')}</p>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
@@ -299,9 +299,9 @@ export default function ProfileForm({ profile, onSave, saving }) {
             onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addGoal())} 
             placeholder={t('profileForm.goalPlaceholder')} 
             maxLength={60}
-            className="bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-gray-100 rounded-xl"
+            className="bg-gray-50 dark:bg-ink-950 border-gray-200 dark:border-ink-700 text-gray-900 dark:text-gray-100 rounded-xl"
           />
-          <Button type="button" variant="outline" onClick={addGoal} aria-label={t('profileForm.addGoal')} className="rounded-xl border-gray-200 dark:border-[#333537] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#282a2c]">
+          <Button type="button" variant="outline" onClick={addGoal} aria-label={t('profileForm.addGoal')} className="rounded-xl border-gray-200 dark:border-ink-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-ink-800">
             <Plus className="w-4 h-4" />
           </Button>
         </div>
@@ -313,12 +313,12 @@ export default function ProfileForm({ profile, onSave, saving }) {
         <div className="space-y-2">
           <Label className="dark:text-gray-300">{t('profileForm.studyStyle')}</Label>
           <Select value={form.study_style} onValueChange={(v) => setForm({ ...form, study_style: v })}>
-            <SelectTrigger className="bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-gray-100 rounded-xl">
+            <SelectTrigger className="bg-gray-50 dark:bg-ink-950 border-gray-200 dark:border-ink-700 text-gray-900 dark:text-gray-100 rounded-xl">
               <SelectValue placeholder={t('profileForm.levelPlaceholder')} />
             </SelectTrigger>
-            <SelectContent className="dark:bg-[#1e1f20] dark:border-[#333537] dark:text-gray-100">
+            <SelectContent className="dark:bg-ink-900 dark:border-ink-700 dark:text-gray-100">
               {STYLE_VALUES.map(value => (
-                <SelectItem key={value} value={value} className="focus:bg-gray-100 dark:focus:bg-[#282a2c] cursor-pointer">
+                <SelectItem key={value} value={value} className="focus:bg-gray-100 dark:focus:bg-ink-800 cursor-pointer">
                   {t(`profileForm.styles.${value}`)}
                 </SelectItem>
               ))}
@@ -338,7 +338,7 @@ export default function ProfileForm({ profile, onSave, saving }) {
                   className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                     isSelected 
                       ? "bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-200 dark:ring-indigo-500/50" 
-                      : "bg-gray-100 dark:bg-[#131314] text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-[#282a2c] border border-transparent dark:border-[#333537]"
+                      : "bg-gray-100 dark:bg-ink-950 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-ink-800 border border-transparent dark:border-ink-700"
                   }`}
                 >
                   {t(`profileForm.availabilityLabels.${slot}`, slot)}
@@ -349,23 +349,23 @@ export default function ProfileForm({ profile, onSave, saving }) {
         </div>
         
         {/* Switchers avec fonds sombres */}
-        <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-[#131314] border border-transparent dark:border-[#333537] rounded-xl transition-colors duration-300">
+        <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-ink-950 border border-transparent dark:border-ink-700 rounded-xl transition-colors duration-300">
           <div><p className="text-sm font-medium text-gray-900 dark:text-gray-100">{t('profileForm.sessionsOnline')}</p></div>
           <Switch aria-label={t('profileForm.sessionsOnline')} checked={form.is_online} onCheckedChange={(v) => setForm({ ...form, is_online: v })} />
         </div>
-        <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-[#131314] border border-transparent dark:border-[#333537] rounded-xl transition-colors duration-300">
+        <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-ink-950 border border-transparent dark:border-ink-700 rounded-xl transition-colors duration-300">
           <div><p className="text-sm font-medium text-gray-900 dark:text-gray-100">{t('profileForm.sessionsInPerson')}</p></div>
           <Switch aria-label={t('profileForm.sessionsInPerson')} checked={form.is_in_person} onCheckedChange={(v) => setForm({ ...form, is_in_person: v })} />
         </div>
       </div>
 
       {/* Âge (privé : jamais affiché aux autres étudiants) */}
-      <fieldset className="space-y-3 p-5 rounded-2xl border border-gray-100 dark:border-[#333537]">
+      <fieldset className="space-y-3 p-5 rounded-2xl border border-gray-100 dark:border-ink-700">
         <legend className="px-1 text-lg font-semibold text-gray-900 dark:text-gray-100">{t('profileForm.age.title')}</legend>
         <p className="text-xs text-gray-500 dark:text-gray-400">{t('profileForm.age.privateNote')}</p>
         <div className="flex flex-col sm:flex-row gap-2" role="radiogroup">
           {["15plus", "under15"].map((value) => (
-            <label key={value} className={`flex-1 flex items-center gap-2 px-4 py-3 rounded-xl border cursor-pointer text-sm ${form.age_bracket === value ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-800 dark:text-indigo-300" : "border-gray-200 dark:border-[#333537] text-gray-700 dark:text-gray-300"}`}>
+            <label key={value} className={`flex-1 flex items-center gap-2 px-4 py-3 rounded-xl border cursor-pointer text-sm ${form.age_bracket === value ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-800 dark:text-indigo-300" : "border-gray-200 dark:border-ink-700 text-gray-700 dark:text-gray-300"}`}>
               <input type="radio" name="age_bracket" value={value} checked={form.age_bracket === value}
                 onChange={() => setForm({ ...form, age_bracket: value })} className="accent-indigo-600" />
               {t(`profileForm.age.${value}`)}
