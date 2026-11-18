@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
 import { db } from "./firebase/config"; 
 import { collection, query, where, onSnapshot } from "firebase/firestore";
@@ -172,12 +173,35 @@ export default function Layout({ children, currentPageName }) {
     setShowNotifications(false);
   };
 
-  // 🛠️ CORRIGÉ : ce n'est plus un composant défini dans le composant (il était recréé à chaque rendu,
-  // donc démonté/remonté en permanence) mais une fonction qui renvoie du JSX. Le positionnement est
-  // passé en paramètre : sur mobile, les classes "absolute bottom-16" de la version desktop
-  // plaçaient le panneau hors de l'écran.
-  const renderNotificationsPanel = (positionClass) => (
-    <div className={`${positionClass} bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] shadow-xl rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4`}>
+  // Fermeture du panneau : touche Échap ou clic en dehors (hors boutons qui l'ouvrent)
+  const panelRef = useRef(null);
+  useEffect(() => {
+    if (!showNotifications) return;
+    const onKey = (e) => { if (e.key === "Escape") setShowNotifications(false); };
+    const onDown = (e) => {
+      if (panelRef.current?.contains(e.target)) return;
+      if (e.target.closest?.("[data-notif-toggle]")) return;
+      setShowNotifications(false);
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onDown);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onDown);
+    };
+  }, [showNotifications]);
+
+  // Un seul panneau, rendu dans <body> via un portail : placé dans la barre latérale (sticky,
+  // donc son propre contexte d'empilement), il passait SOUS le contenu de la page et le footer
+  // malgré son z-index. Sur ordinateur il s'ouvre à droite de la barre latérale, sur mobile
+  // sous l'en-tête.
+  const renderNotificationsPanel = () => createPortal(
+    <div
+      ref={panelRef}
+      role="dialog"
+      aria-label={t('layout.notifications.title')}
+      className="fixed z-[200] inset-x-4 top-20 sm:inset-x-auto sm:right-4 sm:w-96 lg:right-auto lg:top-auto lg:left-[17rem] lg:bottom-6 bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] shadow-2xl rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4"
+    >
       <div className="p-4 border-b border-gray-100 dark:border-[#333537] flex justify-between items-center bg-gray-50 dark:bg-[#131314]">
         <h3 className="font-bold text-gray-900 dark:text-white">{t('layout.notifications.title')}</h3>
         {notifications.length > 0 && (
@@ -209,22 +233,23 @@ export default function Layout({ children, currentPageName }) {
                 <div>
                   <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{notif.title}</p>
                   <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{notif.message}</p>
-                  <p className="text-[10px] text-gray-400 mt-1">{notif.time}</p>
+                  {notif.time && <p className="text-[10px] text-gray-400 mt-1">{notif.time}</p>}
                 </div>
               </div>
             </div>
           ))
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[#131314] flex flex-col md:flex-row transition-colors duration-300">
+    <div className="min-h-screen bg-gray-50 dark:bg-[#131314] flex flex-col lg:flex-row transition-colors duration-300">
       {/* Le <Toaster> sonner est déjà monté dans App.jsx : un second ici affichait chaque toast en double */}
 
-      {/* --- SIDEBAR DESKTOP --- */}
-      <aside className="hidden md:flex w-64 flex-col bg-white dark:bg-[#1e1f20] border-r border-gray-100 dark:border-[#333537] h-screen sticky top-0 transition-colors duration-300">
+      {/* --- SIDEBAR DESKTOP (à partir de 1024 px : en dessous, les tablettes avaient trop peu de place pour les pages) --- */}
+      <aside className="hidden lg:flex w-64 flex-col bg-white dark:bg-[#1e1f20] border-r border-gray-100 dark:border-[#333537] h-screen sticky top-0 transition-colors duration-300">
         
         <Link to="/" className="p-6 flex items-center gap-3 hover:opacity-80 transition-opacity">
           <div className="w-8 h-8 bg-indigo-600 dark:bg-indigo-500 rounded-lg flex items-center justify-center shadow-sm">
@@ -269,6 +294,7 @@ export default function Layout({ children, currentPageName }) {
           {/* 🔔 BOUTON NOTIFICATIONS DESKTOP */}
           <button 
             onClick={() => setShowNotifications(!showNotifications)}
+            data-notif-toggle
             aria-expanded={showNotifications}
             className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all w-full ${
               showNotifications
@@ -288,7 +314,7 @@ export default function Layout({ children, currentPageName }) {
             {t('layout.notifications.title')}
           </button>
 
-          {showNotifications && renderNotificationsPanel("absolute bottom-24 left-64 w-80 z-50")}
+          {showNotifications && renderNotificationsPanel()}
 
           <Link
             to={createPageUrl("Settings")}
@@ -323,7 +349,7 @@ export default function Layout({ children, currentPageName }) {
 
       {/* --- MENU MOBILE --- */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="md:hidden bg-white dark:bg-[#1e1f20] border-b border-gray-100 dark:border-[#333537] p-4 flex items-center justify-between sticky top-0 z-40 transition-colors duration-300">
+        <header className="lg:hidden bg-white dark:bg-[#1e1f20] border-b border-gray-100 dark:border-[#333537] p-4 flex items-center justify-between sticky top-0 z-40 transition-colors duration-300">
            
            <Link to="/" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
              <GraduationCap className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
@@ -334,6 +360,7 @@ export default function Layout({ children, currentPageName }) {
              {/* 🔔 BOUTON NOTIFICATIONS MOBILE */}
              <button
                onClick={() => setShowNotifications(!showNotifications)}
+            data-notif-toggle
                aria-label={t('layout.notifications.title')}
                aria-expanded={showNotifications}
                className="relative text-gray-600 dark:text-gray-300"
@@ -362,11 +389,9 @@ export default function Layout({ children, currentPageName }) {
            </div>
         </header>
 
-        {/* PANNEAU NOTIFICATIONS MOBILE (s'affiche sous le header) */}
-        {showNotifications && renderNotificationsPanel("md:hidden fixed inset-x-4 top-20 z-50")}
 
         {mobileMenuOpen && (
-          <nav className="md:hidden fixed inset-0 top-[73px] bg-white dark:bg-[#1e1f20] z-30 p-4 flex flex-col gap-2 transition-colors duration-300">
+          <nav className="lg:hidden fixed inset-0 top-[73px] bg-white dark:bg-[#1e1f20] z-30 p-4 flex flex-col gap-2 transition-colors duration-300">
             {navItems.map((item) => (
               <Link key={item.page} to={createPageUrl(item.page)} onClick={() => setMobileMenuOpen(false)} className={`flex items-center gap-3 px-4 py-4 rounded-xl font-medium ${currentPageName === item.page ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400" : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#282a2c]"}`}>
                 <item.icon className="w-5 h-5" />

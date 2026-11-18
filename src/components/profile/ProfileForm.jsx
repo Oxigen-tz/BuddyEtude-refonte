@@ -199,7 +199,7 @@ export default function ProfileForm({ profile, onSave, saving }) {
             <Badge key={s.name} variant="secondary" className="bg-white dark:bg-[#1e1f20] border border-indigo-100 dark:border-indigo-500/20 text-indigo-800 dark:text-indigo-300 px-3 py-1.5 gap-1.5 shadow-sm">
               <span className="font-bold">{s.name}</span> 
               <span className="text-xs opacity-70 border-l border-indigo-200 dark:border-indigo-500/30 pl-1.5">{getLevelLabel(s.level)}</span>
-              <button type="button" onClick={() => removeSubject(s.name)} className="ml-1 hover:text-red-500 dark:hover:text-red-400 transition-colors"><X className="w-3 h-3" /></button>
+              <button type="button" onClick={() => removeSubject(s.name)} aria-label={t('profileForm.removeItem', { name: s.name })} className="ml-1 hover:text-red-500 dark:hover:text-red-400 transition-colors"><X className="w-3 h-3" /></button>
             </Badge>
           ))}
         </div>
@@ -274,7 +274,7 @@ export default function ProfileForm({ profile, onSave, saving }) {
         <div className="flex flex-wrap gap-2">
           {(Array.isArray(form.goals) ? form.goals : []).map(g => (
             <Badge key={g} variant="secondary" className="bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-transparent dark:border-purple-500/20 px-3 py-1.5 gap-1.5">
-              {g} <button type="button" onClick={() => removeGoal(g)} className="hover:text-red-500 transition-colors"><X className="w-3 h-3" /></button>
+              {g} <button type="button" onClick={() => removeGoal(g)} aria-label={t('profileForm.removeItem', { name: g })} className="hover:text-red-500 transition-colors"><X className="w-3 h-3" /></button>
             </Badge>
           ))}
         </div>
@@ -287,7 +287,7 @@ export default function ProfileForm({ profile, onSave, saving }) {
             maxLength={60}
             className="bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537] text-gray-900 dark:text-gray-100 rounded-xl"
           />
-          <Button type="button" variant="outline" onClick={addGoal} className="rounded-xl border-gray-200 dark:border-[#333537] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#282a2c]">
+          <Button type="button" variant="outline" onClick={addGoal} aria-label={t('profileForm.addGoal')} className="rounded-xl border-gray-200 dark:border-[#333537] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#282a2c]">
             <Plus className="w-4 h-4" />
           </Button>
         </div>
@@ -337,11 +337,11 @@ export default function ProfileForm({ profile, onSave, saving }) {
         {/* Switchers avec fonds sombres */}
         <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-[#131314] border border-transparent dark:border-[#333537] rounded-xl transition-colors duration-300">
           <div><p className="text-sm font-medium text-gray-900 dark:text-gray-100">{t('profileForm.sessionsOnline')}</p></div>
-          <Switch checked={form.is_online} onCheckedChange={(v) => setForm({ ...form, is_online: v })} />
+          <Switch aria-label={t('profileForm.sessionsOnline')} checked={form.is_online} onCheckedChange={(v) => setForm({ ...form, is_online: v })} />
         </div>
         <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-[#131314] border border-transparent dark:border-[#333537] rounded-xl transition-colors duration-300">
           <div><p className="text-sm font-medium text-gray-900 dark:text-gray-100">{t('profileForm.sessionsInPerson')}</p></div>
-          <Switch checked={form.is_in_person} onCheckedChange={(v) => setForm({ ...form, is_in_person: v })} />
+          <Switch aria-label={t('profileForm.sessionsInPerson')} checked={form.is_in_person} onCheckedChange={(v) => setForm({ ...form, is_in_person: v })} />
         </div>
       </div>
 

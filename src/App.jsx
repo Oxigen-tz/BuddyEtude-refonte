@@ -1,5 +1,4 @@
 import { useEffect, Suspense } from "react";
-import { Toaster as ShadcnToaster } from "@/components/ui/toaster"
 import { Toaster as SonnerToaster } from "sonner" // Indispensable pour mes notifications toast.success
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -22,24 +21,26 @@ const MainPage = (mainPageKey && Pages[mainPageKey]) || (() => null);
 // et /Profile restait bloquée sur son squelette de chargement.
 const PUBLIC_PAGES = [mainPageKey, 'About', 'Legal', 'Privacy'];
 
-// On cache le footer sur le tableau blanc pour avoir 100% de l'écran pour dessiner
-const HIDE_FOOTER_PAGES = ['Whiteboard'];
-
 const LayoutWrapper = ({ children, currentPageName }) => {
   const { user } = useAuth();
   const isHome = currentPageName === mainPageKey;
   const isPublic = PUBLIC_PAGES.includes(currentPageName);
-  const showFooter = !HIDE_FOOTER_PAGES.includes(currentPageName);
 
-  // Connecté : barre latérale sur toutes les pages sauf l'accueil (qui a sa propre navbar)
+  // Connecté : barre latérale sur toutes les pages sauf l'accueil (qui a sa propre navbar).
+  // Le footer (pensé pour le site vitrine) n'apparaît plus sous les pages de l'application
+  // (tableau de bord, messages…) : seulement sur les pages publiques À propos / Mentions /
+  // Confidentialité. Ces pages restent accessibles depuis Paramètres.
   if (user && Layout && !isHome) {
     return (
       <Layout currentPageName={currentPageName}>
-        {/* On utilise flex pour repousser le footer tout en bas si la page est courte */}
-        <div className="flex flex-col min-h-full">
-          <div className="flex-1 pb-10">{children}</div>
-          {showFooter && <Footer />}
-        </div>
+        {isPublic ? (
+          <div className="flex flex-col min-h-full">
+            <div className="flex-1 pb-10">{children}</div>
+            <Footer />
+          </div>
+        ) : (
+          children
+        )}
       </Layout>
     );
   }
@@ -138,8 +139,8 @@ function App() {
         <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <AuthenticatedApp />
         </Router>
-        {/* On garde les deux Toasters pour la compatibilité */}
-        <ShadcnToaster />
+        {/* Un seul système de toasts (sonner). Le Toaster shadcn, inutilisé, posait sur mobile une
+            zone invisible en haut de l'écran qui bloquait les boutons de l'en-tête (cloche, menu). */}
         <SonnerToaster position="bottom-right" richColors theme="system" />
       </QueryClientProvider>
     </AuthProvider>

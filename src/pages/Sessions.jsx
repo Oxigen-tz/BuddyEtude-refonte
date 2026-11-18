@@ -442,7 +442,7 @@ function SessionCard({ session, userEmail, onUpdateStatus, onJoinWhiteboard }) {
             <Clock className="w-4 h-4 text-gray-400 dark:text-gray-500" />
             <span>{timeLabel ? `${timeLabel} · ` : ""}{session.duration_minutes} min</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="col-span-2 flex items-center gap-2">
             {session.mode === "en_ligne" ? (
               <><Monitor className="w-4 h-4 text-indigo-500 dark:text-indigo-400" /> <span className="text-indigo-600 dark:text-indigo-400 font-medium">{t('sessions.mode.online')}</span></>
             ) : (

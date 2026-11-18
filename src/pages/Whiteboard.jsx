@@ -541,7 +541,7 @@ export default function Whiteboard() {
           <div className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-white/95 dark:bg-[#1e1f20]/95 backdrop-blur-xl p-4 rounded-3xl shadow-2xl border border-gray-100 dark:border-[#333537] z-50 flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-5 duration-300 min-w-[250px]">
             <div className="flex items-center justify-between gap-2 px-1">
               <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">{t('whiteboard.customColor')}</span>
-              <button onClick={() => setIsCustomColorOpen(false)} className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+              <button onClick={() => setIsCustomColorOpen(false)} aria-label={t('whiteboard.closePicker')} className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -560,7 +560,7 @@ export default function Whiteboard() {
                   className="w-full bg-transparent text-sm font-mono uppercase text-gray-800 dark:text-gray-200 focus:outline-none"
                 />
               </div>
-              <Button onClick={handleSaveColor} variant="outline" className="rounded-xl px-3 border-indigo-200 dark:border-indigo-500/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors">
+              <Button onClick={handleSaveColor} variant="outline" aria-label={t('whiteboard.saveColor')} title={t('whiteboard.saveColor')} className="rounded-xl px-3 border-indigo-200 dark:border-indigo-500/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors">
                 <Plus className="w-4 h-4" />
               </Button>
             </div>
@@ -603,11 +603,13 @@ export default function Whiteboard() {
 
         <div className={`flex items-center gap-1.5 shrink-0 transition-opacity ${tool === "eraser" ? "opacity-30 pointer-events-none" : "opacity-100"}`}>
           {PRESET_COLORS.map((c) => (
-            <button key={c} onClick={() => { setColor(c); if(tool === "eraser") setTool("pen"); setIsCustomColorOpen(false); }} className={`w-7 h-7 md:w-8 md:h-8 rounded-full border-2 transition-all ${color === c && !isCustomColorOpen ? "border-gray-900 dark:border-white scale-110 shadow-lg" : "border-transparent hover:scale-110 shadow-sm"}`} style={{ backgroundColor: c }} />
+            <button key={c} aria-label={t('whiteboard.colorLabel', { color: c })} title={c} onClick={() => { setColor(c); if(tool === "eraser") setTool("pen"); setIsCustomColorOpen(false); }} className={`w-7 h-7 md:w-8 md:h-8 rounded-full border-2 transition-all ${color === c && !isCustomColorOpen ? "border-gray-900 dark:border-white scale-110 shadow-lg" : "border-transparent hover:scale-110 shadow-sm"}`} style={{ backgroundColor: c }} />
           ))}
           
           <button 
-            onClick={() => setIsCustomColorOpen(!isCustomColorOpen)} 
+            onClick={() => setIsCustomColorOpen(!isCustomColorOpen)}
+            aria-label={t('whiteboard.customColor')}
+            title={t('whiteboard.customColor')} 
             className={`w-7 h-7 md:w-8 md:h-8 rounded-full border-2 transition-all flex items-center justify-center bg-gradient-to-tr from-pink-400 via-purple-400 to-indigo-400 ${isCustomColorOpen ? "border-gray-900 dark:border-white scale-110 shadow-lg" : "border-transparent hover:scale-110 shadow-sm"}`}
           >
             <Palette className={`w-4 h-4 ${isCustomColorOpen ? "text-white" : "text-white/80"}`} />
@@ -618,7 +620,7 @@ export default function Whiteboard() {
 
         <div className="flex items-center gap-1 shrink-0">
           {BRUSH_SIZES.map((size, index) => (
-            <button key={size} onClick={() => setLineWidth(size)} className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-xl transition-all ${lineWidth === size ? "bg-gray-100 dark:bg-[#282a2c] shadow-inner" : "hover:bg-gray-50 dark:hover:bg-[#131314]"}`}>
+            <button key={size} aria-label={t('whiteboard.brushSize', { size })} title={t('whiteboard.brushSize', { size })} onClick={() => setLineWidth(size)} className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-xl transition-all ${lineWidth === size ? "bg-gray-100 dark:bg-[#282a2c] shadow-inner" : "hover:bg-gray-50 dark:hover:bg-[#131314]"}`}>
               <Circle className="fill-gray-700 dark:fill-gray-300 text-gray-700 dark:text-gray-300" style={{ width: 4 + index * 4, height: 4 + index * 4 }} />
             </button>
           ))}

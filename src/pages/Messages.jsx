@@ -10,7 +10,7 @@ import { createPageUrl } from "@/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Send, MessageSquare, Loader2, Paperclip, FileText, PenTool, X, Edit2, Trash2, Check, UserPlus, UserMinus, AlertTriangle } from "lucide-react";
+import { Send, MessageSquare, Loader2, Paperclip, FileText, PenTool, X, Edit2, Trash2, Check, UserPlus, UserMinus, AlertTriangle, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation, Trans } from "react-i18next";
 
@@ -29,13 +29,23 @@ const toStorageName = (name) =>
     .join("")
     .slice(-120) || "fichier";
 
+// Heure d'envoi : "14:32" aujourd'hui, "12 nov., 14:32" sinon
+const formatMessageTime = (createdAt, lang) => {
+  const date = typeof createdAt?.toDate === "function" ? createdAt.toDate() : null;
+  if (!date) return "";
+  const sameDay = date.toDateString() === new Date().toDateString();
+  return sameDay
+    ? date.toLocaleTimeString(lang, { hour: "2-digit", minute: "2-digit" })
+    : date.toLocaleString(lang, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+};
+
 // Initiale sûre : ne plante pas si le nom est vide ou absent
 const getInitial = (name) => (name?.trim()?.[0] || "?").toUpperCase();
 
 export default function Messages() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Contacts = binômes (demande acceptée) + demandes reçues en attente, dans les deux sens.
@@ -271,10 +281,12 @@ export default function Messages() {
 
   return (
     <>
-      <div className="w-full h-[calc(100vh-100px)] flex flex-col md:flex-row gap-6 animate-in fade-in duration-500">
+      {/* Mobile et tablette : la liste OU la conversation (avant, empilées, la conversation était écrasée).
+          Hauteur = écran moins l'en-tête mobile et les marges ; à partir de 1024 px, côte à côte. */}
+      <div className="w-full h-[calc(100dvh-105px)] md:h-[calc(100dvh-137px)] lg:h-[calc(100vh-64px)] flex flex-col lg:flex-row gap-6 animate-in fade-in duration-500">
         
         {/* --- LISTE DES BINÔMES --- */}
-        <div className="w-full md:w-[320px] shrink-0 rounded-2xl flex flex-col bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] shadow-sm overflow-hidden transition-colors duration-300">
+        <div className={`${activeChat ? "hidden lg:flex" : "flex"} flex-1 lg:flex-none w-full lg:w-[320px] shrink-0 min-h-0 rounded-2xl flex-col bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] shadow-sm overflow-hidden transition-colors duration-300`}>
           <div className="p-5 border-b border-gray-50 dark:border-[#333537] bg-gray-50/50 dark:bg-[#131314]/30">
             <h2 className="font-bold text-lg text-gray-900 dark:text-gray-100 flex items-center gap-2">
               <MessageSquare className="w-5 h-5 text-indigo-600 dark:text-indigo-400" /> {t('messages.contacts')}
@@ -310,12 +322,20 @@ export default function Messages() {
         </div>
 
         {/* --- ZONE DE CHAT OU D'ACCEPTATION --- */}
-        <div className="flex-1 rounded-2xl flex flex-col bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] shadow-sm overflow-hidden transition-colors duration-300">
+        <div className={`${activeChat ? "flex" : "hidden lg:flex"} flex-1 min-w-0 min-h-0 rounded-2xl flex-col bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] shadow-sm overflow-hidden transition-colors duration-300`}>
           {activeChat ? (
             activeChat.isPending ? (
               
               /* UI : DEMANDE EN ATTENTE */
-              <div className="flex-1 flex flex-col items-center justify-center bg-slate-50/50 dark:bg-[#131314] p-6 animate-in fade-in zoom-in-95">
+              <div className="relative flex-1 flex flex-col items-center justify-center bg-slate-50/50 dark:bg-[#131314] p-6 overflow-y-auto animate-in fade-in zoom-in-95">
+                <Button
+                  variant="ghost"
+                  onClick={() => setActiveEmail(null)}
+                  aria-label={t('messages.backToContacts')}
+                  className="lg:hidden absolute top-3 left-3 h-10 w-10 p-0 rounded-xl text-gray-600 dark:text-gray-300"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </Button>
                 <div className="bg-white dark:bg-[#1e1f20] p-8 rounded-3xl border border-gray-100 dark:border-[#333537] shadow-sm max-w-md w-full text-center">
                   <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
                     <UserPlus className="w-10 h-10 text-indigo-600 dark:text-indigo-400" />
@@ -343,18 +363,28 @@ export default function Messages() {
 
               /* UI : CHAT NORMAL */
               <>
-                <div className="p-5 border-b border-gray-50 dark:border-[#333537] bg-gray-50/50 dark:bg-[#131314]/30 flex items-center gap-4">
-                   <Avatar className="h-12 w-12"><AvatarFallback className="bg-indigo-100 dark:bg-[#282a2c] text-indigo-700 dark:text-indigo-400 font-bold text-lg">{getInitial(activeChat.name)}</AvatarFallback></Avatar>
-                   <div className="flex-1">
-                     <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100 leading-tight">{activeChat.name}</h3>
-                     <p className="text-sm text-gray-500 dark:text-gray-400">{t('messages.studyBuddy')}</p>
-                   </div>
-                   <Button 
-                    variant="outline" 
-                    onClick={() => navigate(`${createPageUrl("Whiteboard")}?sessionId=${encodeURIComponent([user.email, activeChat.email].sort().join("_"))}`)}
-                    className="border-indigo-200 dark:border-[#333537] text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-[#282a2c] dark:bg-[#1e1f20] rounded-xl py-5 px-5"
+                <div className="p-3 sm:p-5 border-b border-gray-50 dark:border-[#333537] bg-gray-50/50 dark:bg-[#131314]/30 flex items-center gap-2 sm:gap-4">
+                   {/* Retour à la liste (mobile et tablette : liste et conversation ne s'affichent plus ensemble) */}
+                   <Button
+                    variant="ghost"
+                    onClick={() => setActiveEmail(null)}
+                    aria-label={t('messages.backToContacts')}
+                    className="lg:hidden h-10 w-10 p-0 shrink-0 rounded-xl text-gray-600 dark:text-gray-300"
                    >
-                     <PenTool className="w-5 h-5 mr-2" /> <span className="hidden sm:inline">{t('messages.openWhiteboard')}</span>
+                     <ArrowLeft className="w-5 h-5" />
+                   </Button>
+                   <Avatar className="h-10 w-10 sm:h-12 sm:w-12 shrink-0"><AvatarFallback className="bg-indigo-100 dark:bg-[#282a2c] text-indigo-700 dark:text-indigo-400 font-bold text-lg">{getInitial(activeChat.name)}</AvatarFallback></Avatar>
+                   <div className="flex-1 min-w-0">
+                     <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100 leading-tight truncate">{activeChat.name}</h3>
+                     <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{t('messages.studyBuddy')}</p>
+                   </div>
+                   <Button
+                    variant="outline"
+                    onClick={() => navigate(`${createPageUrl("Whiteboard")}?sessionId=${encodeURIComponent([user.email, activeChat.email].sort().join("_"))}`)}
+                    aria-label={t('messages.openWhiteboard')}
+                    className="shrink-0 border-indigo-200 dark:border-[#333537] text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-[#282a2c] dark:bg-[#1e1f20] rounded-xl h-11 px-3 xl:px-5"
+                   >
+                     <PenTool className="w-5 h-5 xl:mr-2" /> <span className="hidden xl:inline">{t('messages.openWhiteboard')}</span>
                    </Button>
                    <Button
                     variant="ghost"
@@ -367,22 +397,26 @@ export default function Messages() {
                    </Button>
                 </div>
                 
-                <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/50 dark:bg-[#131314]">
+                <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 bg-slate-50/50 dark:bg-[#131314]">
                   {messages.map((msg) => {
                     const isMe = msg.senderEmail === user.email;
+                    const sentAt = formatMessageTime(msg.createdAt, i18n.language);
                     return (
-                      <div key={msg.id} className={`flex items-center gap-3 group ${isMe ? "justify-end" : "justify-start"}`}>
-                        
+                      <div key={msg.id} className={`flex items-center gap-2 sm:gap-3 group ${isMe ? "justify-end" : "justify-start"}`}>
+
+                        {/* Actions : visibles au survol sur ordinateur, toujours visibles sur écran tactile
+                            (avant, le survol n'existant pas sur mobile, on ne pouvait ni modifier ni supprimer) */}
                         {isMe && editingMessageId !== msg.id && (
-                          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
-                            <button onClick={() => startEditing(msg)} className="p-1.5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-full hover:bg-gray-100 dark:hover:bg-[#282a2c] transition-colors" title={t('messages.edit')}><Edit2 className="w-4 h-4" /></button>
-                            <button onClick={() => setMessageToDelete(msg.id)} className="p-1.5 text-gray-400 hover:text-red-500 rounded-full hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors" title={t('messages.delete')}>
+                          <div className="flex items-center gap-1 sm:gap-2 opacity-70 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                            <button onClick={() => startEditing(msg)} aria-label={t('messages.edit')} className="p-1.5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-full hover:bg-gray-100 dark:hover:bg-[#282a2c] transition-colors" title={t('messages.edit')}><Edit2 className="w-4 h-4" /></button>
+                            <button onClick={() => setMessageToDelete(msg.id)} aria-label={t('messages.delete')} className="p-1.5 text-gray-400 hover:text-red-500 rounded-full hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors" title={t('messages.delete')}>
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
                         )}
 
-                        <div className={`max-w-[75%] md:max-w-[60%] rounded-2xl px-5 py-3 text-base flex flex-col gap-2 ${isMe ? "bg-indigo-600 dark:bg-indigo-500 text-white rounded-tr-sm shadow-sm" : "bg-white dark:bg-[#282a2c] border border-gray-100 dark:border-[#333537] text-gray-800 dark:text-gray-100 rounded-tl-sm shadow-sm"}`}>
+                        <div className={`flex flex-col max-w-[80%] md:max-w-[65%] ${isMe ? "items-end" : "items-start"}`}>
+                        <div className={`max-w-full rounded-2xl px-4 sm:px-5 py-3 text-base flex flex-col gap-2 break-words ${isMe ? "bg-indigo-600 dark:bg-indigo-500 text-white rounded-tr-sm shadow-sm" : "bg-white dark:bg-[#282a2c] border border-gray-100 dark:border-[#333537] text-gray-800 dark:text-gray-100 rounded-tl-sm shadow-sm"}`}>
                           {msg.fileUrl && (
                             msg.fileType?.includes("image") ? (
                               <img src={msg.fileUrl} alt="Fichier" className="rounded-xl max-h-60 object-cover cursor-pointer" onClick={() => window.open(msg.fileUrl)} />
@@ -403,8 +437,8 @@ export default function Messages() {
                                 autoFocus
                                 className="bg-white/20 text-white outline-none rounded-lg px-3 py-1 w-full text-sm placeholder-white/50"
                               />
-                              <button onClick={() => handleSaveEdit(msg.id)} className="p-1.5 hover:bg-white/20 rounded-full transition-colors"><Check className="w-4 h-4" /></button>
-                              <button onClick={() => setEditingMessageId(null)} className="p-1.5 hover:bg-white/20 rounded-full transition-colors"><X className="w-4 h-4" /></button>
+                              <button onClick={() => handleSaveEdit(msg.id)} aria-label={t('messages.saveEdit')} className="p-1.5 hover:bg-white/20 rounded-full transition-colors"><Check className="w-4 h-4" /></button>
+                              <button onClick={() => setEditingMessageId(null)} aria-label={t('messages.cancelEdit')} className="p-1.5 hover:bg-white/20 rounded-full transition-colors"><X className="w-4 h-4" /></button>
                             </div>
                           ) : (
                             msg.text && (
@@ -415,6 +449,9 @@ export default function Messages() {
                             )
                           )}
                         </div>
+                        {/* Heure d'envoi (aucune n'était affichée) */}
+                        {sentAt && <span className="text-[11px] text-gray-400 dark:text-gray-500 mt-1 px-1">{sentAt}</span>}
+                        </div>
                       </div>
                     );
                   })}
@@ -424,13 +461,13 @@ export default function Messages() {
                 {selectedFile && (
                   <div className="px-5 py-3 bg-indigo-50 dark:bg-[#282a2c] border-t border-indigo-100 dark:border-[#333537] flex items-center justify-between text-sm text-indigo-700 dark:text-indigo-400 font-medium">
                     <span className="flex items-center gap-2 truncate"><Paperclip className="w-4 h-4" /> {selectedFile.name}</span>
-                    <button onClick={() => setSelectedFile(null)} className="p-1 hover:bg-indigo-100 dark:hover:bg-[#1e1f20] rounded-md transition-colors"><X className="w-4 h-4" /></button>
+                    <button onClick={() => setSelectedFile(null)} aria-label={t('messages.removeFile')} className="p-1 hover:bg-indigo-100 dark:hover:bg-[#1e1f20] rounded-md transition-colors"><X className="w-4 h-4" /></button>
                   </div>
                 )}
 
-                <form onSubmit={handleSend} className="p-4 bg-white dark:bg-[#1e1f20] border-t border-gray-50 dark:border-[#333537] flex gap-3 items-center">
+                <form onSubmit={handleSend} className="p-3 sm:p-4 bg-white dark:bg-[#1e1f20] border-t border-gray-50 dark:border-[#333537] flex gap-2 sm:gap-3 items-center">
                   <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" />
-                  <Button type="button" variant="ghost" onClick={() => fileInputRef.current.click()} className="text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#282a2c] hover:text-indigo-600 dark:hover:text-indigo-400 rounded-full h-12 w-12 p-0 shrink-0 transition-colors">
+                  <Button type="button" variant="ghost" onClick={() => fileInputRef.current.click()} aria-label={t('messages.attachFile')} title={t('messages.attachFile')} className="text-gray-400 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#282a2c] hover:text-indigo-600 dark:hover:text-indigo-400 rounded-full h-12 w-12 p-0 shrink-0 transition-colors">
                     <Paperclip className="w-5 h-5" />
                   </Button>
                   <Input 
@@ -439,7 +476,7 @@ export default function Messages() {
                     placeholder={t('messages.inputPlaceholder', { name: activeChat.name })} 
                     className="h-12 rounded-xl bg-gray-50 dark:bg-[#282a2c] dark:text-gray-100 dark:placeholder-gray-500 border-transparent flex-1 text-base px-5 focus-visible:ring-indigo-500/50" 
                   />
-                  <Button type="submit" disabled={(!newMessage.trim() && !selectedFile) || isSending} className="h-12 w-12 p-0 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded-xl shrink-0 transition-colors">
+                  <Button type="submit" aria-label={t('messages.send')} disabled={(!newMessage.trim() && !selectedFile) || isSending} className="h-12 w-12 p-0 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded-xl shrink-0 transition-colors">
                     {isSending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                   </Button>
                 </form>

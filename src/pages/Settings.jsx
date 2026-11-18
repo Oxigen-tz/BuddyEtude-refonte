@@ -23,6 +23,8 @@ const deleteInBatches = async (refs) => {
   }
 };
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 
 export default function Settings() {
   const { user } = useAuth();
@@ -345,6 +347,7 @@ export default function Settings() {
                           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('settings.preferences.requestAlertsDesc')}</p>
                         </div>
                         <Switch
+                          aria-label={t('settings.preferences.requestAlerts')}
                           checked={requestAlerts}
                           onCheckedChange={handleRequestAlertsChange}
                           className="data-[state=checked]:bg-indigo-600"
@@ -367,6 +370,7 @@ export default function Settings() {
                           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('settings.preferences.profileVisibilityDesc')}</p>
                         </div>
                         <Switch
+                          aria-label={t('settings.preferences.profileVisibility')}
                           checked={profileVisible}
                           onCheckedChange={handleVisibilityChange}
                           disabled={!visibilityLoaded}
@@ -383,6 +387,15 @@ export default function Settings() {
 
         </main>
       </div>
+
+      {/* Liens légaux : le footer n'est plus affiché sous les pages de l'application */}
+      <nav className="mt-12 pt-6 border-t border-gray-100 dark:border-[#333537] flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-500 dark:text-gray-400">
+        <Link to={createPageUrl("About")} className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">{t('footer.about')}</Link>
+        <Link to={createPageUrl("Legal")} className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">{t('footer.legal')}</Link>
+        <Link to={createPageUrl("Privacy")} className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">{t('footer.privacy')}</Link>
+        <span>contact@buddyetude.fr</span>
+        <span className="sm:ml-auto">© {new Date().getFullYear()} BuddyEtude</span>
+      </nav>
     </div>
   );
 }

@@ -220,19 +220,21 @@ export default function Profile() {
                   </div>
                 </div>
                 
-                {/* Objectifs */}
+                {/* Objectifs (masqué s'il n'y en a aucun : le titre seul s'affichait au-dessus du vide) */}
+                {profile.goals?.length > 0 && (
                 <div>
                   <h3 className="text-sm font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
                     <Target className="w-4 h-4" /> {t('profile.goals')}
                   </h3>
                   <div className="flex flex-wrap gap-2">
-                    {profile.goals?.map(g => (
+                    {profile.goals.map(g => (
                       <Badge key={g} variant="outline" className="text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-500/30 dark:bg-purple-500/5">
                         {g}
                       </Badge>
                     ))}
                   </div>
                 </div>
+                )}
               </div>
               
               {/* Disponibilités */}
