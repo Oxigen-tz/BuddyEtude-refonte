@@ -2,163 +2,237 @@ rules_version = '2';
 
 // Règles Firestore de BuddyEtude.
 // Déploiement : firebase deploy --only firestore:rules
-// (ou copier-coller dans la console Firebase → Firestore → Règles)
+// Tests       : npm run test:rules (émulateur local)
+//
+// Modèle : tout est identifié par uid (jamais par email, qui n'est plus exposé).
+// Une paire d'étudiants a un identifiant fixe : "<uid1>_<uid2>" (uids triés).
+// Les uids Firebase ne contiennent pas "_", le découpage est donc sûr.
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function signedIn() {
-      return request.auth != null;
+    // ------------------------------------------------------------ Fonctions
+    function signedIn() { return request.auth != null; }
+    function me() { return request.auth.uid; }
+
+    function isAdmin() {
+      return signedIn() && exists(/databases/$(database)/documents/admins/$(me()));
     }
 
-    function myEmail() {
-      return request.auth.token.email;
+    // Compte banni par la modération : plus aucune création possible
+    function notBanned() {
+      let profile = /databases/$(database)/documents/users/$(me());
+      return !exists(profile) || get(profile).data.get('banned', false) != true;
     }
 
-    // Seuls les champs listés sont modifiés par cette écriture
+    function canWrite() { return signedIn() && notBanned(); }
+
     function onlyChanges(fields) {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields);
     }
 
-    // Liste de deux emails triés dont la concaténation "a_b" donne l'id attendu
-    // (même format que le chatId de Messages.jsx et l'id des tableaux blancs)
-    function isPair(list, pairId) {
-      return list is list
-        && list.size() == 2
-        && list[0] < list[1]
+    function pairOf(a, b) { return a < b ? a + '_' + b : b + '_' + a; }
+
+    // Liste [uidA, uidB] triée, dont l'id de paire est pairId
+    function isPairList(list, pairId) {
+      return list is list && list.size() == 2 && list[0] < list[1]
         && pairId == list[0] + '_' + list[1];
+    }
+
+    // Les deux étudiants sont binômes : la demande (id = paire) est acceptée
+    function areBuddies(pairId) {
+      let req = /databases/$(database)/documents/requests/$(pairId);
+      return exists(req) && get(req).data.status == 'accepted';
+    }
+
+    // other a bloqué me (document blocks/<bloqueur>_<bloqué>)
+    function blockedBy(other) {
+      return exists(/databases/$(database)/documents/blocks/$(other + '_' + me()));
     }
 
     // ---------------------------------------------------------------- Profils
     match /users/{userId} {
-      // Son propre profil, ou un profil visible (réglage "Visibilité du profil" de Settings.jsx).
-      // La recherche filtre donc sur profile_visible == true, sinon Firestore refuse la requête.
+      // Son propre profil, un profil visible, ou la modération
       allow read: if signedIn()
-        && (request.auth.uid == userId || resource.data.profile_visible == true);
-      // On n'écrit que son propre profil, et on ne peut pas y mettre l'email de quelqu'un d'autre
-      // (les demandes de binôme sont envoyées à l'email affiché sur le profil)
-      allow create, update: if signedIn()
-        && request.auth.uid == userId
-        && (!('email' in request.resource.data) || request.resource.data.email == myEmail());
-      allow delete: if signedIn() && request.auth.uid == userId;
+        && (me() == userId || resource.data.profile_visible == true || isAdmin());
+
+      // On n'écrit que son propre profil ; l'email n'y est plus stocké (vie privée)
+      // et on ne peut pas modifier soi-même le bannissement
+      allow create: if signedIn() && me() == userId
+        && !('email' in request.resource.data)
+        && !('banned' in request.resource.data);
+      allow update: if signedIn() && me() == userId
+        && !('email' in request.resource.data)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['banned']);
+      allow delete: if signedIn() && me() == userId;
+
+      // Modération : bannir / masquer un profil
+      allow update: if isAdmin() && onlyChanges(['banned', 'profile_visible']);
+
+      // Données privées (préférences de notification, âge…) : propriétaire seulement
+      match /private/{docId} {
+        allow read, write: if signedIn() && me() == userId;
+      }
     }
 
-    // ----------------------------------------------------- Demandes de binôme
-    match /requests/{requestId} {
+    // ------------------------------------------------- Demandes de binôme
+    // id = paire de uids : une seule demande par paire (plus de demandes croisées)
+    match /requests/{pairId} {
       allow read: if signedIn()
-        && (myEmail() == resource.data.from_email || myEmail() == resource.data.to_email);
+        && (me() == resource.data.from_uid || me() == resource.data.to_uid);
 
-      // Envoyée en son propre nom, jamais à soi-même, toujours "pending" au départ
-      allow create: if signedIn()
-        && request.resource.data.from_email == myEmail()
-        && request.resource.data.to_email != myEmail()
-        && request.resource.data.status == 'pending';
+      allow create: if canWrite()
+        && request.resource.data.from_uid == me()
+        && request.resource.data.to_uid != me()
+        && pairId == pairOf(me(), request.resource.data.to_uid)
+        && isPairList(request.resource.data.participants, pairId)
+        && request.resource.data.status == 'pending'
+        && !blockedBy(request.resource.data.to_uid);
 
-      // Seul le destinataire accepte, et il ne peut toucher qu'au statut
+      // Seul le destinataire accepte, et seulement le statut
       allow update: if signedIn()
-        && resource.data.to_email == myEmail()
+        && resource.data.to_uid == me()
         && onlyChanges(['status'])
         && request.resource.data.status == 'accepted';
 
-      // Refus (destinataire, Messages.jsx) ou annulation (émetteur)
+      // Refus, annulation, retrait du binôme ou blocage : l'un ou l'autre
       allow delete: if signedIn()
-        && (myEmail() == resource.data.to_email || myEmail() == resource.data.from_email);
+        && (me() == resource.data.from_uid || me() == resource.data.to_uid);
+    }
+
+    // ---------------------------------------------------------------- Blocages
+    // id = "<bloqueur>_<bloqué>"
+    match /blocks/{blockId} {
+      allow read: if signedIn() && resource.data.blocker == me();
+      allow create: if signedIn()
+        && request.resource.data.blocker == me()
+        && blockId == me() + '_' + request.resource.data.blocked
+        && request.resource.data.blocked != me();
+      allow delete: if signedIn() && resource.data.blocker == me();
     }
 
     // ---------------------------------------------------------------- Messages
     match /messages/{messageId} {
-      // unreadBy ⊂ participants (vérifié à la création) : la seconde condition permet la requête
-      // "mes messages non lus" (where unreadBy array-contains moi) sans ouvrir d'accès supplémentaire
       allow read: if signedIn()
-        && (myEmail() in resource.data.participants
-            || myEmail() in resource.data.get('unreadBy', []));
+        && (me() in resource.data.participants
+            || me() in resource.data.get('unreadBy', []));
 
-      allow create: if signedIn()
-        && request.resource.data.senderEmail == myEmail()
-        && myEmail() in request.resource.data.participants
-        && isPair(request.resource.data.participants, request.resource.data.chatId)
-        // Non lu uniquement par l'autre participant
+      // Uniquement entre binômes (demande acceptée)
+      allow create: if canWrite()
+        && request.resource.data.senderUid == me()
+        && me() in request.resource.data.participants
+        && isPairList(request.resource.data.participants, request.resource.data.chatId)
+        && areBuddies(request.resource.data.chatId)
         && request.resource.data.get('unreadBy', []).toSet()
-             .difference(request.resource.data.participants.toSet().difference([myEmail()].toSet()))
-             .size() == 0;
+             .difference(request.resource.data.participants.toSet().difference([me()].toSet()))
+             .size() == 0
+        && request.resource.data.get('text', '').size() <= 4000;
 
       // L'auteur modifie son texte
       allow update: if signedIn()
-        && resource.data.senderEmail == myEmail()
-        && onlyChanges(['text', 'isEdited']);
+        && resource.data.senderUid == me()
+        && onlyChanges(['text', 'isEdited'])
+        && request.resource.data.text.size() <= 4000;
 
-      // Le destinataire marque le message comme lu : il ne peut que se retirer de unreadBy
+      // Le destinataire marque comme lu : il ne peut que se retirer de unreadBy
       allow update: if signedIn()
-        && myEmail() in resource.data.participants
+        && me() in resource.data.participants
         && onlyChanges(['unreadBy'])
-        && request.resource.data.unreadBy == resource.data.unreadBy.removeAll([myEmail()]);
+        && request.resource.data.unreadBy == resource.data.unreadBy.removeAll([me()]);
 
-      allow delete: if signedIn() && resource.data.senderEmail == myEmail();
+      allow delete: if signedIn() && resource.data.senderUid == me();
     }
 
     // -------------------------------------------------------- Sessions d'étude
     match /sessions/{sessionId} {
-      allow read: if signedIn() && myEmail() in resource.data.participants;
+      allow read: if signedIn() && me() in resource.data.participants;
 
-      allow create: if signedIn()
-        && request.resource.data.organizer_email == myEmail()
+      allow create: if canWrite()
+        && request.resource.data.organizer_uid == me()
         && request.resource.data.participants is list
         && request.resource.data.participants.size() == 2
-        && myEmail() in request.resource.data.participants
+        && me() in request.resource.data.participants
+        && areBuddies(pairOf(request.resource.data.participants[0], request.resource.data.participants[1]))
         && request.resource.data.status == 'planned';
 
       // Terminer ou annuler : l'un ou l'autre participant, statut uniquement
       allow update: if signedIn()
-        && myEmail() in resource.data.participants
+        && me() in resource.data.participants
         && onlyChanges(['status'])
         && request.resource.data.status in ['completed', 'cancelled'];
 
       allow delete: if false;
     }
 
+    // ---------------------------------------------------- Avis après session
+    // id = "<sessionId>_<uid de l'auteur>" : un avis par personne et par session
+    match /feedback/{feedbackId} {
+      allow create: if canWrite()
+        && request.resource.data.from_uid == me()
+        && feedbackId == request.resource.data.sessionId + '_' + me()
+        && me() in get(/databases/$(database)/documents/sessions/$(request.resource.data.sessionId)).data.participants
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1 && request.resource.data.rating <= 5;
+      allow read: if isAdmin();
+      allow update, delete: if false;
+    }
+
     // ---------------------------------------------------------- Tableaux blancs
-    // id = "<email1>_<email2>" (emails triés)
+    // id = paire de uids. Les traits sont des documents de la sous-collection strokes.
     match /whiteboards/{boardId} {
+      function isBoardMember() {
+        return signedIn() && me() in boardId.split('_');
+      }
+
       // resource == null : tableau pas encore créé (le premier onSnapshot doit pouvoir écouter)
-      // Sans champ participants : tableau créé avant cette version des règles
-      allow read: if signedIn()
-        && (resource == null
-            || !('participants' in resource.data)
-            || myEmail() in resource.data.participants);
+      allow read: if isBoardMember();
 
-      allow create: if signedIn()
-        && isPair(request.resource.data.participants, boardId)
-        && myEmail() in request.resource.data.participants;
-
-      allow update: if signedIn()
-        && isPair(request.resource.data.participants, boardId)
-        && myEmail() in request.resource.data.participants
-        && (!('participants' in resource.data)
-            || request.resource.data.participants == resource.data.participants);
-
+      allow create: if isBoardMember() && notBanned()
+        && isPairList(request.resource.data.participants, boardId)
+        && areBuddies(boardId);
+      allow update: if isBoardMember() && notBanned()
+        && request.resource.data.participants == resource.data.participants;
       allow delete: if false;
+
+      match /strokes/{strokeId} {
+        allow read: if isBoardMember();
+        allow create: if isBoardMember() && notBanned()
+          && request.resource.data.uid == me()
+          && areBuddies(boardId)
+          && request.resource.data.get('points', []).size() <= 6000;
+        // Défaire (ses propres traits) et "Tout effacer" (les deux membres)
+        allow delete: if isBoardMember();
+        allow update: if false;
+      }
     }
 
     // ------------------------------------------------------------ Signalements
-    // Écriture seule : les signalements se consultent depuis la console Firebase
     match /reports/{reportId} {
-      allow create: if signedIn()
-        && request.resource.data.reporter_email == myEmail()
+      allow create: if canWrite()
+        && request.resource.data.reporter_uid == me()
+        && request.resource.data.reported_uid != me()
         && request.resource.data.status == 'pending';
-      allow read, update, delete: if false;
+      // Modération
+      allow read: if isAdmin();
+      allow update: if isAdmin() && onlyChanges(['status', 'handledAt', 'handledBy']);
+      allow delete: if false;
+    }
+
+    // ------------------------------------------------------------- Modération
+    // Les comptes administrateurs se créent à la main dans la console (admins/<uid>)
+    match /admins/{uid} {
+      allow read: if signedIn() && me() == uid;
+      allow write: if false;
     }
 
     // -------------------------------------------- Compteur public de l'accueil
+    // Maintenu par la Cloud Function onProfileWrite (functions/) : lecture seule ici
     match /stats/public {
       allow read: if true;
-      allow create: if signedIn()
-        && request.resource.data.keys().hasOnly(['studentCount'])
-        && request.resource.data.studentCount == 1;
-      allow update: if signedIn()
-        && onlyChanges(['studentCount'])
-        && request.resource.data.studentCount == resource.data.studentCount + 1;
+      allow write: if false;
     }
 
     // ------------------------------------------- Tout le reste : fermé par défaut
+    // (dont "mail" : file d'envoi d'e-mails, écrite uniquement par les Cloud Functions)
     match /{document=**} {
       allow read, write: if false;
     }

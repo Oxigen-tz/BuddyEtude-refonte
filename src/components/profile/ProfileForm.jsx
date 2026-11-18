@@ -40,6 +40,7 @@ export default function ProfileForm({ profile, onSave, saving }) {
     display_name: "", bio: "", school: "", level: "",
     subjects: [], goals: [], availability: [], study_style: "",
     city: "", is_online: true, is_in_person: false,
+    age_bracket: "", parental_consent: false,
   });
 
   const [newSubjectName, setNewSubjectName] = useState("");
@@ -108,6 +109,16 @@ export default function ProfileForm({ profile, onSave, saving }) {
     const hasContext = Boolean(form.level || form.school?.trim());
     if (!hasName || !hasSubjects || !hasContext) {
       toast.error(t('profileForm.validation.incomplete'));
+      return;
+    }
+    // Âge : en France, avant 15 ans, l'utilisation d'un service en ligne demande l'accord
+    // d'un parent (RGPD / loi Informatique et Libertés). À valider juridiquement.
+    if (!form.age_bracket) {
+      toast.error(t('profileForm.age.required'));
+      return;
+    }
+    if (form.age_bracket === "under15" && !form.parental_consent) {
+      toast.error(t('profileForm.age.consentRequired'));
       return;
     }
 
@@ -344,6 +355,28 @@ export default function ProfileForm({ profile, onSave, saving }) {
           <Switch aria-label={t('profileForm.sessionsInPerson')} checked={form.is_in_person} onCheckedChange={(v) => setForm({ ...form, is_in_person: v })} />
         </div>
       </div>
+
+      {/* Âge (privé : jamais affiché aux autres étudiants) */}
+      <fieldset className="space-y-3 p-5 rounded-2xl border border-gray-100 dark:border-[#333537]">
+        <legend className="px-1 text-lg font-semibold text-gray-900 dark:text-gray-100">{t('profileForm.age.title')}</legend>
+        <p className="text-xs text-gray-500 dark:text-gray-400">{t('profileForm.age.privateNote')}</p>
+        <div className="flex flex-col sm:flex-row gap-2" role="radiogroup">
+          {["15plus", "under15"].map((value) => (
+            <label key={value} className={`flex-1 flex items-center gap-2 px-4 py-3 rounded-xl border cursor-pointer text-sm ${form.age_bracket === value ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-800 dark:text-indigo-300" : "border-gray-200 dark:border-[#333537] text-gray-700 dark:text-gray-300"}`}>
+              <input type="radio" name="age_bracket" value={value} checked={form.age_bracket === value}
+                onChange={() => setForm({ ...form, age_bracket: value })} className="accent-indigo-600" />
+              {t(`profileForm.age.${value}`)}
+            </label>
+          ))}
+        </div>
+        {form.age_bracket === "under15" && (
+          <label className="flex items-start gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 text-sm text-amber-900 dark:text-amber-200 cursor-pointer">
+            <input type="checkbox" checked={!!form.parental_consent} onChange={(e) => setForm({ ...form, parental_consent: e.target.checked })}
+              className="mt-0.5 accent-indigo-600" />
+            {t('profileForm.age.consent')}
+          </label>
+        )}
+      </fieldset>
 
       <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 py-6 rounded-xl text-base font-semibold text-white shadow-sm" disabled={saving}>
         {saving ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Save className="w-5 h-5 mr-2" />}

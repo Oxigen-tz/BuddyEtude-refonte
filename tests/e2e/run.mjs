@@ -1,0 +1,337 @@
+// Scénario de bout en bout sur les émulateurs Firebase (aucune donnée réelle).
+// Lancement : npm run test:e2e   (démarre les émulateurs, le site, puis ce scénario)
+//
+// Trois étudiants (Alice, Bob, Eve) utilisent l'application dans Chrome sans interface.
+// Navigateur : Google Chrome installé (ou CHROME_PATH=/chemin/vers/chrome).
+import { chromium } from "playwright-core";
+import { spawn, spawnSync } from "node:child_process";
+import { mkdirSync } from "node:fs";
+
+const PORT = 5174;
+const BASE = `http://localhost:${PORT}`;
+const PROJECT = "demo-buddyetude";
+const FIRESTORE = `http://127.0.0.1:8080/v1/projects/${PROJECT}/databases/(default)/documents`;
+
+// ------------------------------------------------------------------ Serveur du site
+const vite = spawn(process.platform === "win32" ? "npx.cmd" : "npx", ["vite", "--port", String(PORT), "--strictPort"], {
+  env: { ...process.env, VITE_USE_EMULATORS: "true", VITE_FIREBASE_PROJECT_ID: PROJECT },
+  stdio: "ignore",
+  shell: process.platform === "win32",
+});
+// Sous Windows, le serveur est lancé via un shell : on arrête tout l'arbre de processus, et de
+// façon synchrone (sinon le script se termine avant l'arrêt et le port reste occupé)
+const stopVite = () => { try { process.platform === "win32" ? spawnSync("taskkill", ["/pid", String(vite.pid), "/T", "/F"], { stdio: "ignore" }) : vite.kill(); } catch { /* déjà arrêté */ } };
+
+async function waitForServer() {
+  for (let i = 0; i < 60; i++) {
+    try { if ((await fetch(BASE)).ok) return; } catch { /* pas encore prêt */ }
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+  throw new Error("Le site ne démarre pas");
+}
+
+// ------------------------------------------------------------------ Outils
+const results = [];
+const openPages = [];
+const OUTPUT = "tests/e2e/output";
+mkdirSync(OUTPUT, { recursive: true });
+const step = async (name, fn) => {
+  try { await fn(); results.push({ ok: true, name }); console.log(`  ok    ${name}`); }
+  catch (e) {
+    results.push({ ok: false, name, error: e.message.split("\n")[0] });
+    console.log(`  ÉCHEC ${name} — ${e.message.split("\n")[0]}`);
+    // Capture de chaque navigateur ouvert, pour comprendre l'échec (dossier exclu de Git)
+    const slug = name.replace(/[^\w]+/g, "_").slice(0, 40);
+    await Promise.all(openPages.map((p, i) => p.screenshot({ path: `${OUTPUT}/${slug}-${i}.png` }).catch(() => {})));
+  }
+};
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Lecture directe de l'émulateur (droits administrateur "owner") pour préparer / vérifier
+async function firestoreQuery(collectionId, field, value) {
+  const res = await fetch(`${FIRESTORE}:runQuery`, {
+    method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer owner" },
+    body: JSON.stringify({ structuredQuery: { from: [{ collectionId }], where: { fieldFilter: { field: { fieldPath: field }, op: "EQUAL", value: { stringValue: value } } } } }),
+  });
+  return (await res.json()).filter((r) => r.document).map((r) => r.document);
+}
+const uidOf = async (displayName) => (await firestoreQuery("users", "display_name", displayName))[0]?.name.split("/").pop();
+
+async function newUser(browser, opts = {}) {
+  const ctx = await browser.newContext({
+    viewport: opts.viewport || { width: 1440, height: 900 },
+    locale: "fr-FR", isMobile: !!opts.mobile, hasTouch: !!opts.mobile,
+  });
+  const page = await ctx.newPage();
+  page.errors = [];
+  page.on("console", (m) => { if (m.type() === "error") page.errors.push(m.text().slice(0, 200)); });
+  page.on("pageerror", (e) => page.errors.push("pageerror: " + e.message));
+  openPages.push(page);
+  return page;
+}
+
+// Connexion Google via l'émulateur (fenêtre "Add new account" / compte existant)
+async function googleLogin(page, { email, name, create }) {
+  await page.goto(BASE + "/Dashboard");
+  await page.getByRole("button", { name: "Se connecter", exact: true }).click();
+  const [popup] = await Promise.all([
+    page.waitForEvent("popup"),
+    page.getByRole("button", { name: /Continuer avec Google/ }).click(),
+  ]);
+  await popup.waitForLoadState();
+  if (create) {
+    await popup.getByText(/Add new account/i).click();
+    await popup.locator("#email-input").fill(email);
+    await popup.locator("#display-name-input").fill(name);
+    await popup.getByRole("button", { name: /Sign in with Google/i }).click();
+  } else {
+    await popup.getByText(email).click();
+  }
+  await page.getByText(/Bonjour,/).first().waitFor({ timeout: 20000 });
+}
+
+async function completeProfile(page, { level, subject }) {
+  await page.goto(BASE + "/Profile");
+  await page.getByRole("button", { name: /Enregistrer/ }).waitFor({ timeout: 15000 });
+  await page.getByRole("combobox").first().click();
+  await page.getByRole("option", { name: level }).click();
+  await page.getByRole("button", { name: subject }).click();
+  await page.getByText("J'ai 15 ans ou plus").click();
+  await page.getByRole("button", { name: /Enregistrer/ }).click();
+  await page.waitForURL(/Dashboard/, { timeout: 10000 });
+}
+
+const card = (page, name) => page.locator("div.group", { hasText: name });
+
+// ------------------------------------------------------------------ Scénario
+async function scenario(browser) {
+  const RUN = Date.now().toString(36).slice(-4);
+  const U = {
+    alice: { name: `Alice ${RUN}`, email: `alice_${RUN}@test.com` },
+    bob: { name: `Bob ${RUN}`, email: `bob_${RUN}@test.com` },
+    eve: { name: `Eve ${RUN}`, email: `eve_${RUN}@test.com` },
+  };
+  const A = await newUser(browser), B = await newUser(browser), E = await newUser(browser);
+
+  await step("Alice se connecte (Google)", () => googleLogin(A, { ...U.alice, create: true }));
+  await step("Bob se connecte (Google)", () => googleLogin(B, { ...U.bob, create: true }));
+  await step("Eve se connecte (Google)", () => googleLogin(E, { ...U.eve, create: true }));
+  await step("Profils complétés (avec tranche d'âge)", async () => {
+    await completeProfile(A, { level: "Licence", subject: "+ Mathématiques" });
+    await completeProfile(B, { level: "Licence", subject: "+ Mathématiques" });
+    await completeProfile(E, { level: "Master", subject: "+ Chimie" });
+  });
+  await step("L'email n'est plus stocké dans les profils", async () => {
+    const docs = await firestoreQuery("users", "display_name", U.alice.name);
+    if (docs[0]?.fields?.email) throw new Error("email présent dans le profil");
+  });
+
+  await step("Recherche : Bob en premier, « 1 matière en commun »", async () => {
+    await A.goto(BASE + "/Search");
+    await card(A, U.bob.name).getByText("1 matière en commun").waitFor({ timeout: 15000 });
+    const first = await A.locator("div.group h3").first().innerText();
+    if (first !== U.bob.name) throw new Error(`premier profil : ${first}`);
+  });
+  await step("Alice envoie une demande à Bob", async () => {
+    await card(A, U.bob.name).getByRole("button", { name: /Contacter/ }).click();
+    await A.getByRole("dialog").locator("textarea").fill("Salut, on révise les maths ?");
+    await A.getByRole("dialog").getByRole("button", { name: /Envoyer/ }).click();
+    await card(A, U.bob.name).getByRole("button", { name: /Demande envoyée/ }).waitFor({ timeout: 10000 });
+  });
+  await step("Bob : pastille « 1 » (demande en attente) et réponse depuis la recherche", async () => {
+    await B.goto(BASE + "/Dashboard");
+    await B.locator("aside nav a", { hasText: "Messages" }).locator("span", { hasText: "1" }).waitFor({ timeout: 10000 });
+    await B.goto(BASE + "/Search");
+    await card(B, U.alice.name).getByRole("button", { name: /Répondre à sa demande/ }).click();
+    await B.getByRole("button", { name: /Accepter/ }).click({ timeout: 10000 });
+    await B.locator("form input:not([type=file])").waitFor({ timeout: 10000 });
+  });
+
+  await B.goto(BASE + "/Dashboard");
+  await step("Alice écrit à Bob depuis « Ouvrir la conversation »", async () => {
+    await A.goto(BASE + "/Search");
+    await card(A, U.bob.name).getByRole("button", { name: /Ouvrir la conversation/ }).click();
+    const input = A.locator("form input:not([type=file])");
+    await input.waitFor({ timeout: 10000 });
+    for (const text of ["Bonjour Bob !", "Dispo demain ?"]) {
+      await input.fill(text);
+      await input.press("Enter");
+      await A.getByText(text).waitFor({ timeout: 10000 });
+    }
+  });
+  await step("Bob voit 2 non-lus, puis la pastille disparaît à la lecture", async () => {
+    await B.locator("aside nav a", { hasText: "Messages" }).locator("span", { hasText: "2" }).waitFor({ timeout: 10000 });
+    await B.goto(BASE + "/Messages");
+    await B.getByRole("button", { name: new RegExp(U.alice.name) }).click();
+    await B.getByText("Dispo demain ?").waitFor({ timeout: 10000 });
+    await sleep(1500);
+    if (await B.locator("aside nav a", { hasText: "Messages" }).locator("span.bg-red-500").count()) throw new Error("pastille encore visible");
+  });
+
+  await step("Bob planifie une session avec lien Jitsi", async () => {
+    await B.goto(BASE + "/Sessions");
+    await B.getByRole("button", { name: /Nouvelle session/ }).click();
+    const dlg = B.getByRole("dialog");
+    await dlg.locator("#session-title").fill("Chapitre 4");
+    await dlg.getByRole("combobox").first().click();
+    await B.getByRole("option", { name: new RegExp(U.alice.name) }).click();
+    const d = new Date(Date.now() + 2 * 86400000);
+    await dlg.locator("#session-date").fill(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
+    await dlg.locator("#session-time").fill("18:00");
+    await dlg.getByRole("button", { name: /Créer un lien/ }).click();
+    if (!(await dlg.locator("#session-link").inputValue()).startsWith("https://meet.jit.si/")) throw new Error("lien Jitsi non généré");
+    await dlg.getByRole("button", { name: /Créer|Planifier/ }).last().click();
+    await B.getByText("Chapitre 4").first().waitFor({ timeout: 10000 });
+  });
+  await step("Alice : notification, session au tableau de bord, bouton d'appel vidéo", async () => {
+    await A.getByText(/Nouvelle session/).first().waitFor({ timeout: 10000 });
+    await A.goto(BASE + "/Dashboard");
+    await A.getByText("Chapitre 4").waitFor({ timeout: 10000 });
+    await A.goto(BASE + "/Sessions");
+    await A.getByRole("link", { name: /Rejoindre l'appel vidéo/ }).waitFor({ timeout: 10000 });
+  });
+
+  await step("Tableau blanc : Alice dessine, Bob voit le trait", async () => {
+    await A.goto(BASE + "/Messages");
+    await A.getByRole("button", { name: new RegExp(U.bob.name) }).click();
+    await A.getByRole("button", { name: /Ouvrir le Tableau Blanc/ }).click();
+    await A.waitForURL(/Whiteboard/);
+    await sleep(1000);
+    const box = await A.locator("canvas").boundingBox();
+    await A.mouse.move(box.x + 100, box.y + 100);
+    await A.mouse.down();
+    for (let i = 0; i < 25; i++) await A.mouse.move(box.x + 100 + i * 15, box.y + 100 + i * 6);
+    await A.mouse.up();
+    await sleep(1500);
+    await B.goto(BASE + "/Sessions");
+    await B.getByRole("button", { name: /tableau blanc/i }).first().click();
+    await B.waitForURL(/Whiteboard/);
+    await sleep(2500);
+    const painted = await B.evaluate(() => {
+      const c = document.querySelector("canvas");
+      const d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data;
+      let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 0) n++;
+      return n;
+    });
+    if (painted < 100) throw new Error(`canvas de Bob vide (${painted} pixels)`);
+  });
+  await step("Tableau blanc : « Défaire » n'annule que ses propres traits", async () => {
+    await B.getByRole("button", { name: "Défaire" }).waitFor();
+    if (await B.getByRole("button", { name: "Défaire" }).isEnabled()) throw new Error("Bob peut défaire le trait d'Alice");
+  });
+
+  await step("Session terminée → avis demandé et enregistré", async () => {
+    await B.goto(BASE + "/Sessions");
+    await B.getByRole("button", { name: /Terminée/ }).first().click();
+    await B.getByRole("radio", { name: "2 étoiles" }).click();
+    await B.getByRole("dialog").getByRole("button", { name: "Envoyer" }).click();
+    await B.getByText("Merci pour ton avis").waitFor({ timeout: 10000 });
+  });
+
+  await step("Mobile : liste OU conversation, avec retour", async () => {
+    const M = await newUser(browser, { viewport: { width: 390, height: 844 }, mobile: true });
+    await googleLogin(M, { ...U.bob, create: false });
+    await M.goto(BASE + "/Messages");
+    await M.getByRole("button", { name: new RegExp(U.alice.name) }).click();
+    await M.getByText("Dispo demain ?").waitFor({ timeout: 10000 });
+    await M.getByRole("button", { name: "Retour aux contacts" }).click();
+    await M.getByRole("button", { name: new RegExp(U.alice.name) }).waitFor();
+    await M.context().close();
+  });
+
+  await step("Bob signale Eve, puis la bloque : elle disparaît de sa recherche", async () => {
+    await B.goto(BASE + "/Search");
+    await card(B, U.eve.name).getByRole("button", { name: "Signaler" }).click();
+    const dlg = B.getByRole("dialog");
+    await dlg.getByRole("combobox").click();
+    await B.getByRole("option").first().click();
+    await dlg.getByRole("button", { name: /Envoyer|Confirmer|Signaler/ }).last().click();
+    await sleep(1000);
+    await card(B, U.eve.name).getByRole("button", { name: "Signaler" }).click();
+    await B.getByRole("dialog").getByRole("button", { name: "Bloquer" }).click();
+    await sleep(1500);
+    if (await card(B, U.eve.name).count()) throw new Error("Eve toujours visible");
+  });
+  await step("Eve ne peut plus envoyer de demande à Bob (règles)", async () => {
+    await E.goto(BASE + "/Search");
+    await card(E, U.bob.name).getByRole("button", { name: /Contacter/ }).click();
+    await E.getByRole("dialog").locator("textarea").fill("coucou");
+    await E.getByRole("dialog").getByRole("button", { name: /Envoyer/ }).click();
+    await E.getByText(/Erreur|impossible|échoué/i).first().waitFor({ timeout: 10000 });
+  });
+
+  await step("Modération : Alice (admin) bannit Eve depuis le signalement", async () => {
+    const aliceUid = await uidOf(U.alice.name);
+    await fetch(`${FIRESTORE}/admins?documentId=${aliceUid}`, {
+      method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer owner" },
+      body: JSON.stringify({ fields: { since: { stringValue: "e2e" } } }),
+    });
+    await A.goto(BASE + "/Dashboard");
+    await A.reload();
+    await A.locator("aside").getByRole("link", { name: "Modération" }).click({ timeout: 15000 });
+    await A.getByText(U.eve.name).waitFor({ timeout: 10000 });
+    await A.getByRole("button", { name: "Bannir" }).first().click();
+    await A.getByText(/est banni/).waitFor({ timeout: 10000 });
+    await A.getByText("2", { exact: false }).first().waitFor(); // avis négatif (2 étoiles) listé
+  });
+  await step("Eve bannie n'apparaît plus dans la recherche", async () => {
+    await A.goto(BASE + "/Search");
+    await sleep(2000);
+    if (await card(A, U.eve.name).count()) throw new Error("Eve encore visible");
+  });
+
+  await step("Retrait du binôme : la conversation disparaît des deux côtés", async () => {
+    await A.goto(BASE + "/Messages");
+    await A.getByRole("button", { name: new RegExp(U.bob.name) }).click();
+    await A.getByRole("button", { name: "Retirer ce binôme" }).click();
+    await A.getByRole("dialog").getByRole("button", { name: "Retirer" }).click();
+    await sleep(1500);
+    await B.goto(BASE + "/Messages");
+    await sleep(2000);
+    if (await B.getByRole("button", { name: new RegExp(U.alice.name) }).count()) throw new Error("Alice encore dans les contacts de Bob");
+  });
+
+  await step("Inscription par e-mail, bandeau de vérification, suppression du compte", async () => {
+    const Z = await newUser(browser);
+    await Z.goto(BASE + "/Dashboard");
+    await Z.getByRole("button", { name: "Se connecter", exact: true }).click();
+    await Z.getByRole("button", { name: "Créer un compte" }).click();
+    await Z.locator("#auth-name").fill(`Zoé ${RUN}`);
+    await Z.locator("#auth-email").fill(`zoe_${RUN}@test.com`);
+    await Z.locator("#auth-password").fill("motdepasse-solide");
+    await Z.getByRole("button", { name: "Créer mon compte" }).click();
+    await Z.getByText(/Vérifie ton adresse e-mail/).waitFor({ timeout: 15000 });
+    await Z.goto(BASE + "/Settings");
+    await Z.getByRole("button", { name: "Supprimer mon compte" }).last().click();
+    await Z.locator("#delete-confirm").fill("SUPPRIMER");
+    await Z.locator("#delete-password").fill("motdepasse-solide");
+    await Z.getByRole("button", { name: "Supprimer définitivement" }).click();
+    await Z.waitForURL(BASE + "/", { timeout: 20000 });
+    if ((await firestoreQuery("users", "display_name", `Zoé ${RUN}`)).length) throw new Error("profil non supprimé");
+    await Z.context().close();
+  });
+
+  const consoleErrors = [...new Set([...A.errors, ...B.errors, ...E.errors])]
+    // Refus attendus des règles (Eve bloquée) et ressources externes indisponibles hors ligne
+    .filter((e) => !/permission|insufficient|Missing or insufficient|ERR_INTERNET|Failed to load resource/i.test(e));
+  await step("Aucune erreur inattendue dans la console", async () => {
+    if (consoleErrors.length) throw new Error(consoleErrors.join(" | "));
+  });
+}
+
+// ------------------------------------------------------------------ Lancement
+let browser;
+try {
+  await waitForServer();
+  browser = await chromium.launch(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : { channel: "chrome" });
+  await scenario(browser);
+} catch (e) {
+  results.push({ ok: false, name: "lancement", error: e.message });
+  console.error(e);
+} finally {
+  await browser?.close();
+  stopVite();
+}
+const failed = results.filter((r) => !r.ok);
+console.log(`\nScénario : ${results.length - failed.length} étape(s) réussie(s), ${failed.length} échec(s)`);
+process.exit(failed.length ? 1 : 0);

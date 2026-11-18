@@ -3,24 +3,18 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext"; 
 import { motion } from "framer-motion";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 export default function CTASection() {
-  const { user, loginWithGoogle } = useAuth();
+  const { user, openLogin } = useAuth();
   const { t } = useTranslation();
-  const navigate = useNavigate();
 
   // Même comportement que le bouton du hero : try/catch (fermer la popup Google
   // ne doit pas produire d'erreur non gérée) puis redirection vers le tableau de bord.
-  const handleLogin = async () => {
-    try {
-      await loginWithGoogle();
-      navigate("/Dashboard");
-    } catch (error) {
-      console.error("Erreur lors de la connexion", error);
-    }
-  };
+  // Ouvre la fenêtre de connexion commune (Google, Microsoft, e-mail). La redirection vers le
+  // tableau de bord après connexion est faite par la page d'accueil (Home.jsx).
+  const handleLogin = openLogin;
 
   return (
     <section className="py-24 px-6 bg-gray-50 dark:bg-[#1a1b1c] transition-colors duration-300">
