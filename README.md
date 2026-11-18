@@ -20,6 +20,19 @@ npm run dev
 
 L'application est servie sur http://localhost:5173.
 
+### Tester sans toucher aux vraies données (émulateurs Firebase)
+
+Les émulateurs locaux remplacent la connexion Google, Firestore et Storage, avec les règles du
+dépôt. La connexion propose de faux comptes (« Add new account »).
+
+```bash
+firebase emulators:start --only auth,firestore,storage   # terminal 1
+VITE_USE_EMULATORS=true npm run dev                       # terminal 2 (Git Bash)
+```
+
+Sous PowerShell : `$env:VITE_USE_EMULATORS="true"; npm run dev`. L'interface des émulateurs
+(données, comptes) est sur http://127.0.0.1:4000.
+
 ## Scripts
 
 | Commande          | Rôle                                     |

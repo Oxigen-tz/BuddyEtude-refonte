@@ -1,8 +1,8 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-import { getAnalytics } from "firebase/analytics";
-import { getStorage } from "firebase/storage"; // <-- 1. Nouvel import ajouté ici
+import { getAuth, connectAuthEmulator } from "firebase/auth";
+import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
+import { getAnalytics, isSupported as isAnalyticsSupported } from "firebase/analytics";
+import { getStorage, connectStorageEmulator } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: "AIzaSyApvyiWr08dLFF-VvSIB9XSCttJxUI7E0Q",
@@ -14,13 +14,33 @@ const firebaseConfig = {
   measurementId: "G-NV45DCH23X"
 };
 
+// Mode développement sur émulateurs locaux (aucune donnée réelle touchée) :
+//   firebase emulators:start --only auth,firestore,storage
+//   VITE_USE_EMULATORS=true npm run dev
+// Jamais actif en production : la variable n'est définie que pour ce lancement.
+const useEmulators = import.meta.env.VITE_USE_EMULATORS === "true";
+
 // Initialisation de Firebase
 const app = initializeApp(firebaseConfig);
 
 // Export des services pour les utiliser dans le reste de l'app
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const analytics = getAnalytics(app);
-export const storage = getStorage(app); // <-- 2. Nouvel export ajouté ici
+export const storage = getStorage(app);
+
+if (useEmulators) {
+  connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
+  connectFirestoreEmulator(db, "127.0.0.1", 8080);
+  connectStorageEmulator(storage, "127.0.0.1", 9199);
+}
+
+// Analytics : pas en mode émulateur, et seulement si le navigateur le permet
+// (getAnalytics plantait l'app dans les environnements sans cookies / IndexedDB)
+export let analytics = null;
+if (!useEmulators) {
+  isAnalyticsSupported()
+    .then((ok) => { if (ok) analytics = getAnalytics(app); })
+    .catch(() => {});
+}
 
 export default app;

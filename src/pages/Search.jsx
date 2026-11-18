@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import BuddyCard from "@/components/search/BuddyCard";
 import Autocomplete from "@/components/ui/Autocomplete";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -356,13 +356,13 @@ export default function Search() {
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold">{t('search.requestDialog.title')}</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+          <DialogDescription className="text-sm text-gray-500 dark:text-gray-400 mt-2">
             <Trans
               i18nKey="search.requestDialog.desc"
               values={{ name: requestDialog?.display_name || requestDialog?.full_name }}
               components={{ bold: <strong className="text-indigo-600 dark:text-indigo-400 font-semibold" /> }}
             />
-          </p>
+          </DialogDescription>
           <Textarea
             value={requestMessage}
             onChange={(e) => setRequestMessage(e.target.value)}

@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
 import { db } from "../firebase/config";
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
@@ -453,15 +454,18 @@ export default function Whiteboard() {
 
   if (!isValidBoard) return null;
 
-  return (
-    <div className="fixed inset-0 bg-slate-50 dark:bg-[#131314] z-[9999] flex flex-col transition-colors duration-300" 
+  // Portail vers <body> : rendu dans le <main> de Layout (qui crée son propre contexte
+  // d'empilement), le tableau passait SOUS l'en-tête mobile malgré son z-index, ce qui cachait
+  // les boutons Fermer / Défaire / Exporter sur téléphone.
+  return createPortal(
+    <div className="fixed inset-0 bg-slate-50 dark:bg-[#131314] z-[9999] flex flex-col transition-colors duration-300"
          style={{ backgroundImage: "radial-gradient(currentColor 1px, transparent 1px)", backgroundSize: "24px 24px" }}>
       
       {/* EN TÊTE */}
-      <div className="bg-white/80 dark:bg-[#1e1f20]/90 backdrop-blur-md border-b border-gray-200 dark:border-[#333537] px-6 py-3 flex items-center justify-between shadow-sm transition-colors duration-300">
+      <div className="bg-white/80 dark:bg-[#1e1f20]/90 backdrop-blur-md border-b border-gray-200 dark:border-[#333537] px-3 sm:px-6 py-3 flex items-center justify-between shadow-sm transition-colors duration-300">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={handleBack} className="hover:bg-gray-100 dark:hover:bg-[#282a2c] text-gray-700 dark:text-gray-300 rounded-xl">
-            <X className="w-5 h-5 mr-2" /> {t('whiteboard.closeBoard')}
+          <Button variant="ghost" onClick={handleBack} aria-label={t('whiteboard.closeBoard')} className="hover:bg-gray-100 dark:hover:bg-[#282a2c] text-gray-700 dark:text-gray-300 rounded-xl">
+            <X className="w-5 h-5 sm:mr-2" /> <span className="hidden sm:inline">{t('whiteboard.closeBoard')}</span>
           </Button>
           <div className="h-6 w-px bg-gray-300 dark:bg-[#333537] hidden md:block"></div>
           {/* Un seul nom, que le thème soit clair ou sombre */}
@@ -477,10 +481,10 @@ export default function Whiteboard() {
             className="border-gray-200 dark:border-[#333537] text-gray-700 dark:text-gray-300 rounded-xl disabled:opacity-40"
             title={t('whiteboard.undoTitle')}
           >
-            <Undo2 className="w-4 h-4 mr-2" /> {t('whiteboard.undo')}
+            <Undo2 className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">{t('whiteboard.undo')}</span>
           </Button>
-          <Button onClick={downloadBoard} variant="outline" className="border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 rounded-xl transition-colors">
-            <Download className="w-4 h-4 mr-2" /> {t('whiteboard.export')}
+          <Button onClick={downloadBoard} variant="outline" aria-label={t('whiteboard.export')} className="border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 rounded-xl transition-colors">
+            <Download className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">{t('whiteboard.export')}</span>
           </Button>
         </div>
       </div>
@@ -581,7 +585,7 @@ export default function Whiteboard() {
       </div>
 
       {/* BARRE D'OUTILS FLOTTANTE */}
-      <div className="absolute bottom-6 md:bottom-8 left-1/2 -translate-x-1/2 bg-white/95 dark:bg-[#1e1f20]/95 backdrop-blur-xl shadow-2xl border border-gray-200 dark:border-[#333537] p-2 md:p-3 rounded-2xl flex items-center gap-3 md:gap-5 max-w-[95vw] transition-colors duration-300">
+      <div className="absolute bottom-6 md:bottom-8 left-1/2 -translate-x-1/2 bg-white/95 dark:bg-[#1e1f20]/95 backdrop-blur-xl shadow-2xl border border-gray-200 dark:border-[#333537] p-2 md:p-3 rounded-2xl flex items-center gap-2 sm:gap-3 md:gap-5 max-w-[calc(100vw-1.5rem)] overflow-x-auto transition-colors duration-300">
         
         <div className="flex items-center gap-1 bg-gray-100/50 dark:bg-[#131314]/50 p-1 rounded-xl shrink-0 transition-colors duration-300">
           <button onClick={() => { setTool("pen"); setIsCustomColorOpen(false); }} className={`p-2.5 md:p-3 rounded-lg transition-all ${tool === "pen" && !isCustomColorOpen ? "bg-indigo-600 dark:bg-indigo-500 text-white shadow-md" : "text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-[#282a2c]"}`} title={t('whiteboard.tools.pen')}>
@@ -633,6 +637,7 @@ export default function Whiteboard() {
         .custom-picker .react-colorful__hue { height: 16px; border-radius: 0 0 12px 12px; margin-top: -1px; }
         .custom-picker .react-colorful__handle { width: 20px; height: 20px; border: 3px solid #ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
       `}</style>
-    </div>
+    </div>,
+    document.body
   );
 }

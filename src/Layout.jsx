@@ -35,15 +35,18 @@ export default function Layout({ children, currentPageName }) {
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  // Pastille "messages non lus" sur l'entrée Messages du menu
+  // Pastille sur l'entrée Messages du menu : messages non lus + demandes de binôme en attente
+  // (avant, une demande reçue pendant qu'on était déconnecté n'était signalée nulle part)
   const unread = useUnreadMessages(user?.email);
+  const [pendingCount, setPendingCount] = useState(0);
+  const messagesBadgeCount = unread.total + pendingCount;
   const renderUnreadBadge = (page) =>
-    page === "Messages" && unread.total > 0 ? (
+    page === "Messages" && messagesBadgeCount > 0 ? (
       <span
         className="ml-auto min-w-[1.25rem] h-5 px-1.5 text-[11px] font-bold bg-red-500 text-white rounded-full flex items-center justify-center"
-        aria-label={t('layout.unreadMessages', { count: unread.total })}
+        aria-label={t('layout.unreadMessages', { count: messagesBadgeCount })}
       >
-        {unread.total > 99 ? "99+" : unread.total}
+        {messagesBadgeCount > 99 ? "99+" : messagesBadgeCount}
       </span>
     ) : null;
 
@@ -102,7 +105,25 @@ export default function Layout({ children, currentPageName }) {
     const unsubInvites = onSnapshot(
       query(collection(db, "requests"), where("to_email", "==", user.email), where("status", "==", "pending")),
       (snapshot) => {
-        if (!inviteReady) { inviteReady = true; return; }
+        const pendingDocs = snapshot.docs.filter((d) => d.data().from_email !== user.email);
+        setPendingCount(pendingDocs.length);
+
+        if (!inviteReady) {
+          inviteReady = true;
+          // Demandes déjà en attente à l'ouverture : listées dans le panneau, sans toast
+          // (sinon, reçues pendant qu'on était déconnecté, elles passaient inaperçues)
+          if (getRequestAlertsEnabled() && pendingDocs.length > 0) {
+            setNotifications(pendingDocs.map((d) => ({
+              id: `invite-${d.id}`,
+              type: "invite",
+              title: t('layout.notifications.inviteTitle'),
+              message: t('layout.notifications.inviteBody', { name: d.data().from_name }),
+              target: "Messages",
+              time: "",
+            })));
+          }
+          return;
+        }
         snapshot.docChanges().forEach((change) => {
           if (change.type !== "added") return;
           const data = change.doc.data();
@@ -334,7 +355,7 @@ export default function Layout({ children, currentPageName }) {
              >
                {mobileMenuOpen ? <X /> : <Menu />}
                {/* Sur mobile, le menu est replié : on signale les messages non lus sur son bouton */}
-               {!mobileMenuOpen && unread.total > 0 && (
+               {!mobileMenuOpen && messagesBadgeCount > 0 && (
                  <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-red-500 border-2 border-white dark:border-[#1e1f20]" />
                )}
              </button>

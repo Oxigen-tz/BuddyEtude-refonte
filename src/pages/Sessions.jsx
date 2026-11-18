@@ -269,7 +269,7 @@ export default function Sessions() {
 
       {/* --- DIALOG DE CRÉATION --- */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent className="rounded-2xl max-w-lg dark:bg-[#1e1f20] dark:border-[#333537] dark:text-gray-100 p-6">
+        <DialogContent aria-describedby={undefined} className="rounded-2xl max-w-lg dark:bg-[#1e1f20] dark:border-[#333537] dark:text-gray-100 p-6">
           <DialogHeader>
             <DialogTitle className="text-xl">{t('sessions.createDialog.title')}</DialogTitle>
           </DialogHeader>

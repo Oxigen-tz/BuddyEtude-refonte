@@ -170,7 +170,7 @@ export default function BuddyCard({ profile, onRequest, onOpenConversation, rela
 
       {/* --- MODALE DE SIGNALEMENT --- */}
       <Dialog open={reportDialogOpen} onOpenChange={setReportDialogOpen}>
-        <DialogContent className="rounded-2xl bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] text-gray-900 dark:text-gray-100 p-6">
+        <DialogContent aria-describedby={undefined} className="rounded-2xl bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#333537] text-gray-900 dark:text-gray-100 p-6">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold flex items-center gap-2 font-serif">
               <AlertTriangle className="text-red-500 w-5 h-5" /> {t('buddyCard.reportDialog.title')}

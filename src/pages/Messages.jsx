@@ -451,7 +451,7 @@ export default function Messages() {
                 <MessageSquare className="w-10 h-10 opacity-50" />
               </div>
               <p className="text-lg font-medium text-gray-900 dark:text-gray-100">{t('messages.emptyState.title')}</p>
-              <p className="text-sm mt-1">{t('messages.emptyState.desc')}</p>
+              <p className="text-sm mt-1 px-6 text-center">{t('messages.emptyState.desc')}</p>
             </div>
           )}
         </div>

@@ -112,7 +112,7 @@ const resources = {
         },
         language: "English",
         logout: "Déconnexion",
-        unreadMessages: "{{count}} message(s) non lu(s)",
+        unreadMessages: "{{count}} nouveauté(s) dans Messages",
         menu: "Menu"
       },
       dashboard: {
@@ -334,7 +334,7 @@ const resources = {
         },
         emptyState: {
           title: "Vos messages",
-          desc: "Sélectionnez un contact à gauche pour afficher la discussion."
+          desc: "Sélectionnez un contact pour afficher la discussion."
         },
         toast: {
           accepted: "Demande acceptée ! Vous pouvez maintenant discuter.",
@@ -677,7 +677,7 @@ const resources = {
         },
         language: "Français",
         logout: "Logout",
-        unreadMessages: "{{count}} unread message(s)",
+        unreadMessages: "{{count}} new item(s) in Messages",
         menu: "Menu"
       },
       dashboard: {
@@ -899,7 +899,7 @@ const resources = {
         },
         emptyState: {
           title: "Your messages",
-          desc: "Select a contact on the left to view the conversation."
+          desc: "Select a contact to view the conversation."
         },
         toast: {
           accepted: "Request accepted! You can now chat.",
