@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { db, storage } from "../firebase/config";
-import { collection, query, where, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, arrayRemove } from "firebase/firestore";
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, arrayRemove, orderBy, limit } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { useAuth } from "@/lib/AuthContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useRequests, buildRelations } from "@/hooks/useRequests";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
+import { pairId } from "@/lib/pairs";
 import { createPageUrl } from "@/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,9 @@ const formatMessageTime = (createdAt, lang) => {
     : date.toLocaleString(lang, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 };
 
+// Messages chargés par conversation ; "Messages précédents" en charge autant de plus
+const PAGE_SIZE = 50;
+
 // Initiale sûre : ne plante pas si le nom est vide ou absent
 const getInitial = (name) => (name?.trim()?.[0] || "?").toUpperCase();
 
@@ -48,35 +52,32 @@ export default function Messages() {
   const { t, i18n } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Contacts = binômes (demande acceptée) + demandes reçues en attente, dans les deux sens.
-  // useRequests regroupe les demandes croisées : une même personne n'apparaît qu'une fois.
-  const requests = useRequests(user?.email);
+  // Contacts = binômes (demande acceptée) + demandes reçues en attente.
+  // Une seule demande par paire (id = paire de uids) : plus de doublons possibles.
+  const requests = useRequests(user?.uid);
   const buddies = useMemo(() => {
-    const relations = buildRelations(requests, user?.email);
+    const relations = buildRelations(requests);
     return [...relations.entries()]
       .filter(([, r]) => r.status === "buddy" || r.status === "received")
-      .map(([email, r]) => ({
-        email,
-        name: r.name,
-        requestIds: r.requestIds,
-        isPending: r.status === "received",
-        pendingRequestId: requests.incoming.find((x) => x.from_email === email && x.status === "pending")?.id,
-      }))
+      .map(([uid, r]) => ({ uid, name: r.name, requestId: r.requestId, isPending: r.status === "received" }))
       // Demandes en attente en haut, puis ordre alphabétique
       .sort((a, b) => Number(b.isPending) - Number(a.isPending) || a.name.localeCompare(b.name));
-  }, [requests, user?.email]);
+  }, [requests]);
 
-  const unread = useUnreadMessages(user?.email);
+  const unread = useUnreadMessages(user?.uid);
 
-  // On mémorise l'email du contact ouvert (et non l'objet) : la fiche se met à jour d'elle-même
+  // On mémorise le uid du contact ouvert (et non l'objet) : la fiche se met à jour d'elle-même
   // quand la demande est acceptée, et se ferme si le binôme est retiré
-  const [activeEmail, setActiveEmail] = useState(null);
-  const activeChat = buddies.find((b) => b.email === activeEmail) || null;
+  const [activeUid, setActiveUid] = useState(null);
+  const activeChat = buddies.find((b) => b.uid === activeUid) || null;
   const [messages, setMessages] = useState([]);
+  const [pageSize, setPageSize] = useState(PAGE_SIZE);
+  const [hasOlder, setHasOlder] = useState(false);
+  const loadingOlderRef = useRef(false);
   const [newMessage, setNewMessage] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
   const [isSending, setIsSending] = useState(false);
-  
+
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editMessageText, setEditMessageText] = useState("");
 
@@ -88,63 +89,78 @@ export default function Messages() {
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // ?chat=<email> (depuis la recherche ou une notification) : ouvre directement la conversation
+  // ?chat=<uid> (depuis la recherche ou une notification) : ouvre directement la conversation
   const chatParam = searchParams.get("chat");
   useEffect(() => {
     if (!chatParam || requests.loading) return;
-    if (buddies.some((b) => b.email === chatParam)) setActiveEmail(chatParam);
+    if (buddies.some((b) => b.uid === chatParam)) setActiveUid(chatParam);
     // On retire le paramètre pour qu'un retour arrière ne rouvre pas la conversation
     setSearchParams((params) => { params.delete("chat"); return params; }, { replace: true });
   }, [chatParam, requests.loading, buddies, setSearchParams]);
 
   const activeIsPending = activeChat?.isPending;
 
-  // Écoute des messages avec le correctif anti-saut de page (block: "nearest")
+  // Nouvelle conversation : on repart des derniers messages
+  useEffect(() => { setPageSize(PAGE_SIZE); }, [activeUid]);
+
+  // Écoute des messages (les plus récents, paginés)
   useEffect(() => {
     // On vide la conversation précédente : sinon ses messages restaient affichés
     // le temps que ceux du nouveau contact arrivent
-    setMessages([]);
-    if (!user?.email || !activeEmail || activeIsPending !== false) return;
+    if (!loadingOlderRef.current) setMessages([]);
+    if (!user?.uid || !activeUid || activeIsPending !== false) return;
 
-    const chatId = [user.email, activeEmail].sort().join("_");
+    const chatId = pairId(user.uid, activeUid);
     // Le filtre "participants" est exigé par les règles Firestore : une requête n'est autorisée
-    // que si Firestore peut prouver que chaque résultat nous concerne.
+    // que si Firestore peut prouver que chaque résultat nous concerne. L'index composite
+    // correspondant est déclaré dans firestore.indexes.json.
     const q = query(
       collection(db, "messages"),
       where("chatId", "==", chatId),
-      where("participants", "array-contains", user.email)
+      where("participants", "array-contains", user.uid),
+      orderBy("createdAt", "desc"),
+      limit(pageSize)
     );
     const unsub = onSnapshot(q, (snapshot) => {
       // serverTimestamps "estimate" : un message qui vient d'être envoyé a un createdAt null
       // tant que le serveur n'a pas répondu, ce qui le faisait apparaître tout en haut du fil
       const rawMessages = snapshot.docs.map(d => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) }));
-      const sortedMessages = rawMessages.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
-      setMessages(sortedMessages);
+      setMessages(rawMessages.reverse());
+      setHasOlder(snapshot.size >= pageSize);
 
       // Conversation ouverte = messages lus : on se retire de unreadBy
       // (pastilles de la liste de contacts et du menu latéral)
       snapshot.docs
-        .filter((d) => (d.data().unreadBy || []).includes(user.email))
+        .filter((d) => (d.data().unreadBy || []).includes(user.uid))
         .forEach((d) => {
-          updateDoc(d.ref, { unreadBy: arrayRemove(user.email) })
+          updateDoc(d.ref, { unreadBy: arrayRemove(user.uid) })
             .catch((error) => console.warn("Message non marqué comme lu :", error));
         });
 
-      // 🛠️ CORRECTIF : Évite que toute la page web ne saute vers le bas au chargement du chat
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      }, 50);
+      // Défilement vers le bas, sauf quand on vient de charger des messages plus anciens
+      if (loadingOlderRef.current) {
+        loadingOlderRef.current = false;
+      } else {
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }, 50);
+      }
     }, (error) => {
       console.error("Erreur de chargement des messages:", error);
     });
     return () => unsub();
-  }, [activeEmail, activeIsPending, user]);
+  }, [activeUid, activeIsPending, user, pageSize]);
+
+  const loadOlder = () => {
+    loadingOlderRef.current = true;
+    setPageSize((n) => n + PAGE_SIZE);
+  };
 
   // --- ACTIONS DES DEMANDES ---
   const handleAcceptRequest = async () => {
-    if (!activeChat?.pendingRequestId) return;
+    if (!activeChat?.requestId) return;
     try {
-      await updateDoc(doc(db, "requests", activeChat.pendingRequestId), { status: "accepted" });
+      await updateDoc(doc(db, "requests", activeChat.requestId), { status: "accepted" });
       toast.success(t('messages.toast.accepted'));
     } catch (error) {
       console.error(error);
@@ -153,11 +169,11 @@ export default function Messages() {
   };
 
   const confirmRejectRequest = async () => {
-    if (!activeChat?.pendingRequestId) return;
+    if (!activeChat?.requestId) return;
     try {
-      await deleteDoc(doc(db, "requests", activeChat.pendingRequestId));
+      await deleteDoc(doc(db, "requests", activeChat.requestId));
       toast.success(t('messages.toast.rejected'));
-      setActiveEmail(null);
+      setActiveUid(null);
     } catch (error) {
       console.error(error);
       toast.error(t('messages.toast.rejectError'));
@@ -166,14 +182,14 @@ export default function Messages() {
     }
   };
 
-  // Retirer un binôme : on supprime toutes les demandes entre nous (il peut y en avoir deux,
-  // croisées). Les messages restent en base mais la conversation disparaît de la liste.
+  // Retirer un binôme : on supprime la demande acceptée. Les messages restent en base mais la
+  // conversation disparaît de la liste, et les règles n'autorisent plus de nouveaux messages.
   const confirmRemoveBuddy = async () => {
     if (!activeChat) return;
     try {
-      await Promise.all(activeChat.requestIds.map((id) => deleteDoc(doc(db, "requests", id))));
+      await deleteDoc(doc(db, "requests", activeChat.requestId));
       toast.success(t('messages.toast.buddyRemoved', { name: activeChat.name }));
-      setActiveEmail(null);
+      setActiveUid(null);
     } catch (error) {
       console.error(error);
       toast.error(t('messages.toast.buddyRemoveError'));
@@ -202,40 +218,48 @@ export default function Messages() {
   };
 
   // --- ACTIONS DES MESSAGES ---
+  // Envoi : le champ est vidé tout de suite (on peut enchaîner les messages sans attendre la
+  // réponse du serveur) et le texte est remis en cas d'échec. Avant, le bouton d'envoi restait
+  // désactivé pendant l'envoi : la touche Entrée ne faisait alors rien et le texte tapé entre-temps
+  // était effacé à la fin du premier envoi, sans avertissement.
   const handleSend = async (e) => {
     e.preventDefault();
-    if ((!newMessage.trim() && !selectedFile) || !activeChat) return;
+    const text = newMessage.trim();
+    const file = selectedFile;
+    if ((!text && !file) || !activeChat || isSending) return;
 
-    setIsSending(true);
+    setNewMessage("");
+    setSelectedFile(null);
+    if (file) setIsSending(true); // seul le téléversement d'un fichier bloque l'envoi suivant
     try {
-      const chatId = [user.email, activeChat.email].sort().join("_");
+      const chatId = pairId(user.uid, activeChat.uid);
       let fileUrl = null, fileType = null, fileName = null;
 
-      if (selectedFile) {
+      if (file) {
         // Un dossier par utilisateur : storage.rules n'autorise l'écriture que dans le sien,
         // personne ne peut donc écraser ou supprimer les fichiers des autres.
-        const fileRef = ref(storage, `chat_files/${user.uid}/${Date.now()}_${toStorageName(selectedFile.name)}`);
-        await uploadBytes(fileRef, selectedFile, { contentType: selectedFile.type || "application/octet-stream" });
+        const fileRef = ref(storage, `chat_files/${user.uid}/${Date.now()}_${toStorageName(file.name)}`);
+        await uploadBytes(fileRef, file, { contentType: file.type || "application/octet-stream" });
         fileUrl = await getDownloadURL(fileRef);
-        fileType = selectedFile.type; 
-        fileName = selectedFile.name;
+        fileType = file.type;
+        fileName = file.name;
       }
 
       await addDoc(collection(db, "messages"), {
-        chatId, text: newMessage.trim(), senderEmail: user.email,
-        participants: [user.email, activeChat.email].sort(),
+        chatId, text, senderUid: user.uid,
+        participants: [user.uid, activeChat.uid].sort(),
         // Non lu par le destinataire jusqu'à ce qu'il ouvre la conversation
-        unreadBy: [activeChat.email],
+        unreadBy: [activeChat.uid],
         createdAt: serverTimestamp(), fileUrl, fileType, fileName
       });
-
-      setNewMessage(""); 
-      setSelectedFile(null);
-    } catch (error) { 
+    } catch (error) {
       console.error(error);
       toast.error(t('messages.toast.sendError'));
-    } finally { 
-      setIsSending(false); 
+      // On rend le texte et le fichier pour que rien ne soit perdu
+      setNewMessage((current) => current || text);
+      setSelectedFile((current) => current || file);
+    } finally {
+      if (file) setIsSending(false);
     }
   };
 
@@ -295,10 +319,10 @@ export default function Messages() {
           <div className="overflow-y-auto flex-1 p-3 space-y-1.5">
             {buddies.length === 0 ? <p className="text-center text-sm text-gray-400 p-4">{t('messages.noConversation')}</p> : 
               buddies.map(buddy => {
-                const unreadCount = unread.byEmail[buddy.email] || 0;
-                const isActive = activeChat?.email === buddy.email;
+                const unreadCount = unread.byUid[buddy.uid] || 0;
+                const isActive = activeChat?.uid === buddy.uid;
                 return (
-                  <button key={buddy.email} onClick={() => setActiveEmail(buddy.email)} className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all ${isActive ? "bg-indigo-50 dark:bg-indigo-500/10 shadow-sm" : "hover:bg-gray-50 dark:hover:bg-[#282a2c]"}`}>
+                  <button key={buddy.uid} onClick={() => setActiveUid(buddy.uid)} className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all ${isActive ? "bg-indigo-50 dark:bg-indigo-500/10 shadow-sm" : "hover:bg-gray-50 dark:hover:bg-[#282a2c]"}`}>
                     <Avatar className="h-12 w-12"><AvatarFallback className="bg-indigo-100 dark:bg-[#282a2c] text-indigo-700 dark:text-indigo-400 font-bold">{getInitial(buddy.name)}</AvatarFallback></Avatar>
                     <span className={`text-left truncate ${unreadCount > 0 ? "font-bold" : "font-semibold"} ${isActive ? "text-indigo-900 dark:text-indigo-300" : "text-gray-700 dark:text-gray-300"}`}>{buddy.name}</span>
 
@@ -330,7 +354,7 @@ export default function Messages() {
               <div className="relative flex-1 flex flex-col items-center justify-center bg-slate-50/50 dark:bg-[#131314] p-6 overflow-y-auto animate-in fade-in zoom-in-95">
                 <Button
                   variant="ghost"
-                  onClick={() => setActiveEmail(null)}
+                  onClick={() => setActiveUid(null)}
                   aria-label={t('messages.backToContacts')}
                   className="lg:hidden absolute top-3 left-3 h-10 w-10 p-0 rounded-xl text-gray-600 dark:text-gray-300"
                 >
@@ -367,7 +391,7 @@ export default function Messages() {
                    {/* Retour à la liste (mobile et tablette : liste et conversation ne s'affichent plus ensemble) */}
                    <Button
                     variant="ghost"
-                    onClick={() => setActiveEmail(null)}
+                    onClick={() => setActiveUid(null)}
                     aria-label={t('messages.backToContacts')}
                     className="lg:hidden h-10 w-10 p-0 shrink-0 rounded-xl text-gray-600 dark:text-gray-300"
                    >
@@ -380,7 +404,7 @@ export default function Messages() {
                    </div>
                    <Button
                     variant="outline"
-                    onClick={() => navigate(`${createPageUrl("Whiteboard")}?sessionId=${encodeURIComponent([user.email, activeChat.email].sort().join("_"))}`)}
+                    onClick={() => navigate(`${createPageUrl("Whiteboard")}?sessionId=${encodeURIComponent(pairId(user.uid, activeChat.uid))}`)}
                     aria-label={t('messages.openWhiteboard')}
                     className="shrink-0 border-indigo-200 dark:border-[#333537] text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-[#282a2c] dark:bg-[#1e1f20] rounded-xl h-11 px-3 xl:px-5"
                    >
@@ -398,8 +422,16 @@ export default function Messages() {
                 </div>
                 
                 <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 bg-slate-50/50 dark:bg-[#131314]">
+                  {/* Pagination : seuls les derniers messages sont chargés au départ */}
+                  {hasOlder && (
+                    <div className="flex justify-center">
+                      <Button variant="ghost" size="sm" onClick={loadOlder} className="rounded-xl text-xs text-gray-500 dark:text-gray-400">
+                        {t('messages.loadOlder')}
+                      </Button>
+                    </div>
+                  )}
                   {messages.map((msg) => {
-                    const isMe = msg.senderEmail === user.email;
+                    const isMe = msg.senderUid === user.uid;
                     const sentAt = formatMessageTime(msg.createdAt, i18n.language);
                     return (
                       <div key={msg.id} className={`flex items-center gap-2 sm:gap-3 group ${isMe ? "justify-end" : "justify-start"}`}>

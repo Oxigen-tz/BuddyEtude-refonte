@@ -11,7 +11,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
   Search, LayoutDashboard, MessageSquare, Calendar,
-  User, LogOut, Menu, X, GraduationCap, Settings as SettingsIcon, Bell, CheckCircle2, Globe, UserPlus
+  User, LogOut, Menu, X, GraduationCap, Settings as SettingsIcon, Bell, CheckCircle2, Globe, UserPlus, ShieldAlert, MailWarning
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -27,7 +27,9 @@ const navItems = [
 ];
 
 export default function Layout({ children, currentPageName }) {
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin, resendVerification, refreshUser } = useAuth();
+  // Entrée "Modération" visible uniquement des comptes administrateurs
+  const menuItems = isAdmin ? [...navItems, { navKey: "Admin", page: "Admin", icon: ShieldAlert }] : navItems;
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -38,7 +40,7 @@ export default function Layout({ children, currentPageName }) {
 
   // Pastille sur l'entrée Messages du menu : messages non lus + demandes de binôme en attente
   // (avant, une demande reçue pendant qu'on était déconnecté n'était signalée nulle part)
-  const unread = useUnreadMessages(user?.email);
+  const unread = useUnreadMessages(user?.uid);
   const [pendingCount, setPendingCount] = useState(0);
   const messagesBadgeCount = unread.total + pendingCount;
   const renderUnreadBadge = (page) =>
@@ -58,7 +60,7 @@ export default function Layout({ children, currentPageName }) {
   };
 
   useEffect(() => {
-    if (!user?.email) return;
+    if (!user?.uid) return;
 
     const formatTime = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -83,7 +85,7 @@ export default function Layout({ children, currentPageName }) {
     let sessionsReady = false;
 
     const unsubAccepted = onSnapshot(
-      query(collection(db, "requests"), where("from_email", "==", user.email), where("status", "==", "accepted")),
+      query(collection(db, "requests"), where("from_uid", "==", user.uid), where("status", "==", "accepted")),
       (snapshot) => {
         if (!acceptedReady) { acceptedReady = true; return; }
         snapshot.docChanges().forEach((change) => {
@@ -104,9 +106,9 @@ export default function Layout({ children, currentPageName }) {
     // Les clés layout.notifications.invite* existaient dans i18n.js sans jamais être utilisées :
     // personne n'était prévenu qu'une demande lui était adressée.
     const unsubInvites = onSnapshot(
-      query(collection(db, "requests"), where("to_email", "==", user.email), where("status", "==", "pending")),
+      query(collection(db, "requests"), where("to_uid", "==", user.uid), where("status", "==", "pending")),
       (snapshot) => {
-        const pendingDocs = snapshot.docs.filter((d) => d.data().from_email !== user.email);
+        const pendingDocs = snapshot.docs.filter((d) => d.data().from_uid !== user.uid);
         setPendingCount(pendingDocs.length);
 
         if (!inviteReady) {
@@ -128,7 +130,7 @@ export default function Layout({ children, currentPageName }) {
         snapshot.docChanges().forEach((change) => {
           if (change.type !== "added") return;
           const data = change.doc.data();
-          if (data.from_email === user.email) return;
+          if (data.from_uid === user.uid) return;
           notify({
             id: `invite-${change.doc.id}`,
             type: "invite",
@@ -143,18 +145,18 @@ export default function Layout({ children, currentPageName }) {
 
     // Nouvelle session planifiée par le binôme : avant, il ne la découvrait qu'en ouvrant Sessions
     const unsubSessions = onSnapshot(
-      query(collection(db, "sessions"), where("participants", "array-contains", user.email)),
+      query(collection(db, "sessions"), where("participants", "array-contains", user.uid)),
       (snapshot) => {
         if (!sessionsReady) { sessionsReady = true; return; }
         snapshot.docChanges().forEach((change) => {
           if (change.type !== "added") return;
           const data = change.doc.data();
-          if (data.organizer_email === user.email || data.status !== "planned") return;
+          if (data.organizer_uid === user.uid || data.status !== "planned") return;
           notify({
             id: `session-${change.doc.id}`,
             type: "session",
             title: t('layout.notifications.sessionTitle'),
-            message: t('layout.notifications.sessionBody', { name: data.organizer_name || data.organizer_email, title: data.title }),
+            message: t('layout.notifications.sessionBody', { name: data.organizer_name || "?", title: data.title }),
             toastTitle: t('layout.notifications.sessionToast'),
             target: "Sessions",
           });
@@ -259,7 +261,7 @@ export default function Layout({ children, currentPageName }) {
         </Link>
 
         <nav className="flex-1 px-4 space-y-1">
-          {navItems.map((item) => {
+          {menuItems.map((item) => {
             const isActive = currentPageName === item.page;
             return (
               <Link
@@ -392,7 +394,7 @@ export default function Layout({ children, currentPageName }) {
 
         {mobileMenuOpen && (
           <nav className="lg:hidden fixed inset-0 top-[73px] bg-white dark:bg-[#1e1f20] z-30 p-4 flex flex-col gap-2 transition-colors duration-300">
-            {navItems.map((item) => (
+            {menuItems.map((item) => (
               <Link key={item.page} to={createPageUrl(item.page)} onClick={() => setMobileMenuOpen(false)} className={`flex items-center gap-3 px-4 py-4 rounded-xl font-medium ${currentPageName === item.page ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400" : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#282a2c]"}`}>
                 <item.icon className="w-5 h-5" />
                 {t(`layout.nav.${item.navKey}`)}
@@ -419,7 +421,24 @@ export default function Layout({ children, currentPageName }) {
           </nav>
         )}
 
-        <main className="flex-1 p-4 md:p-8 text-gray-900 dark:text-gray-100 relative z-0">{children}</main>
+        <main className="flex-1 p-4 md:p-8 text-gray-900 dark:text-gray-100 relative z-0">
+          {/* Compte e-mail pas encore vérifié : rappel discret, avec renvoi du lien */}
+          {user?.needsEmailVerification && (
+            <div role="status" className="mb-6 flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-2xl bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20 text-sm text-amber-900 dark:text-amber-200">
+              <MailWarning className="w-5 h-5 shrink-0" />
+              <span className="flex-1">{t('auth.verifyBanner', { email: user.email })}</span>
+              <div className="flex gap-2">
+                <Button size="sm" variant="ghost" className="rounded-xl" onClick={() => resendVerification().then(() => toast.success(t('auth.verifySent'))).catch(() => toast.error(t('auth.errors.generic')))}>
+                  {t('auth.verifyResend')}
+                </Button>
+                <Button size="sm" variant="outline" className="rounded-xl bg-transparent" onClick={refreshUser}>
+                  {t('auth.verifyDone')}
+                </Button>
+              </div>
+            </div>
+          )}
+          {children}
+        </main>
       </div>
     </div>
   );

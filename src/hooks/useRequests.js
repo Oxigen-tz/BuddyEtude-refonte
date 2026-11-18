@@ -4,17 +4,17 @@ import { db } from "@/firebase/config";
 
 /**
  * Demandes de binôme qui concernent l'utilisateur, en temps réel.
- *  - incoming : reçues (to_email == moi)
- *  - outgoing : envoyées (from_email == moi)
- * Chaque élément contient { id, ...données du document }.
+ *  - incoming : reçues (to_uid == moi)
+ *  - outgoing : envoyées (from_uid == moi)
+ * Chaque demande a pour id la paire de uids (une seule demande possible par paire).
  */
-export function useRequests(email) {
+export function useRequests(uid) {
   const [incoming, setIncoming] = useState([]);
   const [outgoing, setOutgoing] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!email) {
+    if (!uid) {
       setIncoming([]);
       setOutgoing([]);
       setLoading(false);
@@ -27,53 +27,48 @@ export function useRequests(email) {
     const toList = (snap) => snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
     const unsubIn = onSnapshot(
-      query(collection(db, "requests"), where("to_email", "==", email)),
+      query(collection(db, "requests"), where("to_uid", "==", uid)),
       (snap) => { setIncoming(toList(snap)); inReady = true; markReady(); },
       (error) => { console.error("Erreur de chargement des demandes reçues:", error); inReady = true; markReady(); }
     );
     const unsubOut = onSnapshot(
-      query(collection(db, "requests"), where("from_email", "==", email)),
+      query(collection(db, "requests"), where("from_uid", "==", uid)),
       (snap) => { setOutgoing(toList(snap)); outReady = true; markReady(); },
       (error) => { console.error("Erreur de chargement des demandes envoyées:", error); outReady = true; markReady(); }
     );
 
     return () => { unsubIn(); unsubOut(); };
-  }, [email]);
+  }, [uid]);
 
   return { incoming, outgoing, loading };
 }
 
 /**
  * Relation avec chaque autre étudiant, déduite des demandes :
- *  "buddy"    → une demande acceptée existe (dans un sens ou dans l'autre)
+ *  "buddy"    → demande acceptée
  *  "received" → il/elle m'a envoyé une demande en attente
  *  "sent"     → je lui ai envoyé une demande en attente
- * Renvoie une Map email → { status, requestIds, name }.
+ * Renvoie une Map uid → { status, requestId, name }.
  */
-export function buildRelations({ incoming, outgoing }, myEmail) {
+export function buildRelations({ incoming, outgoing }) {
   const relations = new Map();
-  const rank = { buddy: 3, received: 2, sent: 1 };
-
-  const add = (email, status, requestId, name) => {
-    if (!email || email === myEmail) return;
-    const current = relations.get(email);
-    if (!current) {
-      relations.set(email, { status, requestIds: [requestId], name: name || email });
-      return;
-    }
-    current.requestIds.push(requestId);
-    if (rank[status] > rank[current.status]) current.status = status;
-    if (!current.name || current.name === email) current.name = name || current.name;
-  };
-
   incoming.forEach((r) => {
-    if (r.status === "accepted") add(r.from_email, "buddy", r.id, r.from_name);
-    else if (r.status === "pending") add(r.from_email, "received", r.id, r.from_name);
+    if (r.status === "accepted" || r.status === "pending") {
+      relations.set(r.from_uid, {
+        status: r.status === "accepted" ? "buddy" : "received",
+        requestId: r.id,
+        name: r.from_name || "?",
+      });
+    }
   });
   outgoing.forEach((r) => {
-    if (r.status === "accepted") add(r.to_email, "buddy", r.id, r.to_name);
-    else if (r.status === "pending") add(r.to_email, "sent", r.id, r.to_name);
+    if (r.status === "accepted" || r.status === "pending") {
+      relations.set(r.to_uid, {
+        status: r.status === "accepted" ? "buddy" : "sent",
+        requestId: r.id,
+        name: r.to_name || "?",
+      });
+    }
   });
-
   return relations;
 }

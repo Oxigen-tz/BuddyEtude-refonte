@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { db } from "../firebase/config";
-import { collection, query, where, onSnapshot, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, query, where, onSnapshot, setDoc, doc, getDoc, limit, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "@/lib/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -18,6 +18,13 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation, Trans } from "react-i18next";
 import { createPageUrl } from "@/utils";
 import { useRequests, buildRelations } from "@/hooks/useRequests";
+import { useBlocks } from "@/hooks/useBlocks";
+import { pairId } from "@/lib/pairs";
+import { computeMatch } from "@/lib/matching";
+
+// Nombre maximum de profils chargés : suffisant pour quelques centaines d'inscrits ; au-delà,
+// il faudra filtrer côté serveur (par niveau ou par ville) plutôt que tout charger.
+const MAX_PROFILES = 300;
 
 // On ne garde ici que les valeurs techniques ; le libellé affiché vient de
 // search.levels.<value> / search.types.<value> via t(), résolu au rendu.
@@ -25,15 +32,13 @@ const LEVEL_VALUES = ["all", "college", "lycee", "prepa", "bts_iut", "licence", 
 const TYPE_VALUES = ["all", "online", "inperson"];
 
 // Un profil n'apparaît dans la recherche que s'il est exploitable :
-// - un email (sinon impossible de lui envoyer une demande),
 // - au moins une matière,
 // - un niveau ou un établissement.
 // Le flag profile_complete seul ne suffit pas : il peut être à true avec un profil quasi vide.
 const hasUsableProfile = (p) => {
-  const hasEmail = Boolean(p.email);
   const hasSubjects = Array.isArray(p.subjects) && p.subjects.length > 0;
   const hasContext = Boolean(p.level || p.school);
-  return hasEmail && hasSubjects && hasContext;
+  return hasSubjects && hasContext && p.banned !== true;
 };
 
 export default function Search() {
@@ -56,28 +61,33 @@ export default function Search() {
 
   // Demandes dans les deux sens : permet d'afficher "Déjà binôme" / "Vous a envoyé une demande"
   // au lieu de proposer une nouvelle demande (avant, on pouvait créer deux demandes croisées)
-  const requests = useRequests(user?.email);
-  const relations = buildRelations(requests, user?.email);
+  const requests = useRequests(user?.uid);
+  const relations = buildRelations(requests);
+  const blocked = useBlocks(user?.uid);
+
+  // Mon propre profil : sert à calculer la compatibilité avec les autres
+  const [myProfile, setMyProfile] = useState(null);
+  useEffect(() => {
+    if (!user?.uid) return;
+    getDoc(doc(db, "users", user.uid)).then((snap) => setMyProfile(snap.exists() ? snap.data() : null)).catch(() => {});
+  }, [user?.uid]);
 
   useEffect(() => {
-    if (!user?.email) return;
-
-    const myEmail = user.email.toLowerCase();
+    if (!user?.uid) return;
 
     // profile_visible == true est exigé par les règles Firestore (réglage de visibilité)
     const qProfiles = query(
       collection(db, "users"),
       where("profile_complete", "==", true),
-      where("profile_visible", "==", true)
+      where("profile_visible", "==", true),
+      limit(MAX_PROFILES)
     );
     const unsubProfiles = onSnapshot(
       qProfiles,
       (snapshot) => {
         const pList = snapshot.docs
           .map(d => ({ id: d.id, ...d.data() }))
-          // On s'exclut soi-même par uid (id du document) ET par email (insensible à la casse)
           .filter(p => p.id !== user.uid)
-          .filter(p => (p.email || "").toLowerCase() !== myEmail)
           // On masque les profils vides ou inexploitables
           .filter(hasUsableProfile);
         setProfiles(pList);
@@ -157,13 +167,13 @@ export default function Search() {
     }
   };
 
-  const openConversation = (email) => navigate(`${createPageUrl("Messages")}?chat=${encodeURIComponent(email)}`);
+  const openConversation = (uid) => navigate(`${createPageUrl("Messages")}?chat=${encodeURIComponent(uid)}`);
 
   const handleSendRequest = async () => {
     if (!requestDialog || !user) return;
 
     // Garde-fous : jamais de demande à soi-même, ni de doublon (dans un sens ou dans l'autre)
-    if (requestDialog.email === user.email || relations.has(requestDialog.email)) {
+    if (requestDialog.id === user.uid || relations.has(requestDialog.id)) {
       setRequestDialog(null);
       setRequestMessage("");
       return;
@@ -178,11 +188,13 @@ export default function Search() {
           : requestDialog.subjects[0].name;
       }
 
-      await addDoc(collection(db, "requests"), {
-        from_email: user.email,
-        from_name: user.displayName || user.full_name || t('search.defaultStudent'),
-        to_email: requestDialog.email,
+      // Une seule demande par paire : son id est la paire de uids (voir firestore.rules)
+      await setDoc(doc(db, "requests", pairId(user.uid, requestDialog.id)), {
+        from_uid: user.uid,
+        from_name: myProfile?.display_name || user.displayName || user.full_name || t('search.defaultStudent'),
+        to_uid: requestDialog.id,
         to_name: requestDialog.display_name || requestDialog.full_name,
+        participants: [user.uid, requestDialog.id].sort(),
         message: requestMessage,
         status: "pending",
         subject: defaultSubject,
@@ -201,6 +213,7 @@ export default function Search() {
   };
 
   const filteredProfiles = profiles.filter(p => {
+    if (blocked.has(p.id)) return false;
     if (levelFilter !== "all" && p.level !== levelFilter) return false;
     if (typeFilter === "online" && !p.is_online) return false;
     if (typeFilter === "inperson" && !p.is_in_person) return false;
@@ -219,7 +232,10 @@ export default function Search() {
       return matchName || matchSchool;
     }
     return true;
-  });
+  })
+    // Les profils les plus compatibles en premier (matières en commun, niveau, ville…)
+    .map((p) => ({ profile: p, match: computeMatch(myProfile, p) }))
+    .sort((a, b) => b.match.score - a.match.score);
 
   const resetFilters = () => {
     setSearch("");
@@ -337,14 +353,15 @@ export default function Search() {
         </div>
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredProfiles.map(p => (
+          {filteredProfiles.map(({ profile: p, match }) => (
             <BuddyCard
               key={p.id}
               profile={p}
+              match={match}
               onRequest={(profile) => setRequestDialog(profile)}
-              onOpenConversation={() => openConversation(p.email)}
-              relation={relations.get(p.email)?.status || null}
-              isOwnProfile={p.id === user.uid || p.email === user.email}
+              onOpenConversation={() => openConversation(p.id)}
+              relation={relations.get(p.id)?.status || null}
+              isOwnProfile={p.id === user.uid}
             />
           ))}
         </div>

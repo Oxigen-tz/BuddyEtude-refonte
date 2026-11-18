@@ -24,22 +24,22 @@ export default function Dashboard() {
   const firstName = user?.displayName?.split(" ")[0] || user?.full_name?.split(" ")[0] || t("settings.account.defaultStudent");
 
   useEffect(() => {
-    if (!user?.email) return;
+    if (!user?.uid) return;
 
     const checkUserProgress = async () => {
       try {
-        // Lecture directe de son propre profil : une requête sur "users" filtrée par email serait
+        // Lecture directe de son propre profil : une requête sur "users" sur la collection serait
         // refusée par les règles (elles ne laissent lister que les profils visibles)
         const userSnap = await getDoc(doc(db, "users", user.uid));
         if (userSnap.exists()) {
           setIsProfileComplete(!!userSnap.data().profile_complete);
         }
 
-        const reqQueryTo = query(collection(db, "requests"), where("to_email", "==", user.email), where("status", "==", "accepted"));
+        const reqQueryTo = query(collection(db, "requests"), where("to_uid", "==", user.uid), where("status", "==", "accepted"));
         // Une demande envoyée mais pas encore acceptée ne fait pas de vous un binôme
-        const reqQueryFrom = query(collection(db, "requests"), where("from_email", "==", user.email), where("status", "==", "accepted"));
+        const reqQueryFrom = query(collection(db, "requests"), where("from_uid", "==", user.uid), where("status", "==", "accepted"));
         
-        const sessionsQuery = query(collection(db, "sessions"), where("participants", "array-contains", user.email));
+        const sessionsQuery = query(collection(db, "sessions"), where("participants", "array-contains", user.uid));
 
         const [toSnap, fromSnap, sessionsSnap] = await Promise.all([
           getDocs(reqQueryTo), getDocs(reqQueryFrom), getDocs(sessionsQuery)
@@ -193,7 +193,7 @@ export default function Dashboard() {
                 <ul className="mt-2 space-y-2">
                   {upcomingSessions.map((s) => {
                     const start = parseSessionStart(s);
-                    const withName = s.organizer_email === user?.email ? s.buddy_name : s.organizer_name;
+                    const withName = s.organizer_uid === user?.uid ? s.buddy_name : s.organizer_name;
                     return (
                       <li key={s.id} className="text-sm">
                         <span className="font-medium text-foreground">{s.title}</span>

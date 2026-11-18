@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { MapPin, GraduationCap, Send, Check, AlertTriangle, Loader2, MessageSquare, Inbox } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { MapPin, GraduationCap, Send, Check, AlertTriangle, Loader2, MessageSquare, Inbox, Ban, Sparkles } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -11,17 +11,21 @@ import { db } from "@/firebase/config";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "@/lib/AuthContext";
 import { useTranslation } from "react-i18next";
+import { blockUser } from "@/hooks/useBlocks";
 
 const REPORT_REASON_VALUES = ["harassment", "spam", "fake", "inappropriate", "other"];
 
 // relation : null (aucune), "sent" (demande envoyée), "received" (demande reçue), "buddy" (binôme)
-export default function BuddyCard({ profile, onRequest, onOpenConversation, relation, isOwnProfile }) {
+// match : compatibilité calculée par lib/matching.js (matières en commun, niveau, ville)
+export default function BuddyCard({ profile, match, onRequest, onOpenConversation, relation, isOwnProfile }) {
   const { user } = useAuth();
   const { t } = useTranslation();
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [reportDetails, setReportDetails] = useState("");
   const [isReporting, setIsReporting] = useState(false);
+  const [isBlocking, setIsBlocking] = useState(false);
+  const [photoFailed, setPhotoFailed] = useState(false);
 
   const name = profile.display_name || profile.full_name || t('buddyCard.defaultStudent');
   const initials = name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
@@ -31,8 +35,8 @@ export default function BuddyCard({ profile, onRequest, onOpenConversation, rela
     setIsReporting(true);
     try {
       await addDoc(collection(db, "reports"), {
-        reporter_email: user.email,
-        reported_user_email: profile.email,
+        reporter_uid: user.uid,
+        reported_uid: profile.id,
         reported_user_name: name,
         reason: reportReason,
         details: reportDetails,
@@ -51,6 +55,21 @@ export default function BuddyCard({ profile, onRequest, onOpenConversation, rela
     }
   };
 
+  // Bloquer : la personne disparaît de la recherche et ne peut plus nous écrire
+  const handleBlock = async () => {
+    setIsBlocking(true);
+    try {
+      await blockUser(user.uid, profile.id, name);
+      toast.success(t('buddyCard.blocked', { name }));
+      setReportDialogOpen(false);
+    } catch (error) {
+      console.error(error);
+      toast.error(t('buddyCard.blockError'));
+    } finally {
+      setIsBlocking(false);
+    }
+  };
+
   return (
     <div className="group bg-white dark:bg-[#1e1f20] border border-gray-100 dark:border-[#282a2c] rounded-2xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col">
 
@@ -63,6 +82,10 @@ export default function BuddyCard({ profile, onRequest, onOpenConversation, rela
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 min-w-0">
             <Avatar className="h-12 w-12 rounded-xl shrink-0 border border-gray-100 dark:border-[#333537]">
+              {/* Photo de profil (Google) : un visage inspire plus confiance que des initiales */}
+              {profile.photo_url && !photoFailed && (
+                <AvatarImage src={profile.photo_url} alt="" referrerPolicy="no-referrer" onError={() => setPhotoFailed(true)} className="rounded-xl object-cover" />
+              )}
               <AvatarFallback className="bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl text-sm font-bold font-sans">
                 {initials}
               </AvatarFallback>
@@ -91,6 +114,7 @@ export default function BuddyCard({ profile, onRequest, onOpenConversation, rela
               onClick={() => setReportDialogOpen(true)}
               className="text-gray-300 dark:text-gray-600 hover:text-red-500 transition-colors p-1 shrink-0"
               title={t('buddyCard.report')}
+              aria-label={t('buddyCard.report')}
             >
               <AlertTriangle className="w-4 h-4" />
             </button>
@@ -122,6 +146,16 @@ export default function BuddyCard({ profile, onRequest, onOpenConversation, rela
                 {typeof s === "string" ? s : s.name}
               </Badge>
             ))}
+          </div>
+        )}
+
+        {/* --- COMPATIBILITÉ --- */}
+        {!isOwnProfile && match && (match.sharedSubjects.length > 0 || match.sameLevel || match.sameCity) && (
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
+            <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
+            {match.sharedSubjects.length > 0 && <span>{t('buddyCard.match.subjects', { count: match.sharedSubjects.length })}</span>}
+            {match.sameLevel && <span>{t('buddyCard.match.level')}</span>}
+            {match.sameCity && <span>{t('buddyCard.match.city')}</span>}
           </div>
         )}
       </div>
@@ -202,7 +236,10 @@ export default function BuddyCard({ profile, onRequest, onOpenConversation, rela
               />
             </div>
           </div>
-          <DialogFooter className="gap-2 pt-2">
+          <DialogFooter className="gap-2 pt-2 sm:justify-between">
+            <Button variant="ghost" size="sm" onClick={handleBlock} disabled={isBlocking} className="rounded-xl text-xs text-gray-600 dark:text-gray-300 sm:mr-auto">
+              {isBlocking ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Ban className="w-3.5 h-3.5 mr-1.5" />} {t('buddyCard.block')}
+            </Button>
             <Button variant="ghost" size="sm" onClick={() => setReportDialogOpen(false)} className="rounded-xl text-xs">{t('buddyCard.reportDialog.cancel')}</Button>
             <Button size="sm" className="bg-red-500 hover:bg-red-600 text-white rounded-xl text-xs" onClick={handleSendReport} disabled={isReporting}>
               {isReporting && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />} {t('buddyCard.reportDialog.confirm')}

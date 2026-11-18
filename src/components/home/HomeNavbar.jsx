@@ -2,15 +2,14 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { GraduationCap, Globe } from "lucide-react"; 
 import { useAuth } from "@/lib/AuthContext"; 
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useTranslation } from "react-i18next"; 
 
 export default function HomeNavbar() {
   const [scrolled, setScrolled] = useState(false);
-  const { user, loginWithGoogle } = useAuth(); 
+  const { user, openLogin } = useAuth();
   const { t, i18n } = useTranslation();
-  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -27,14 +26,9 @@ export default function HomeNavbar() {
 
   // Avec Google comme seule méthode d'authentification, "Connexion" et "Inscription"
   // déclenchent la même action. On la centralise : try/catch + redirection vers le tableau de bord.
-  const handleLogin = async () => {
-    try {
-      await loginWithGoogle();
-      navigate("/Dashboard");
-    } catch (error) {
-      console.error("Erreur lors de la connexion", error);
-    }
-  };
+  // Ouvre la fenêtre de connexion commune (Google, Microsoft, e-mail). La redirection vers le
+  // tableau de bord après connexion est faite par la page d'accueil (Home.jsx).
+  const handleLogin = openLogin;
 
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${

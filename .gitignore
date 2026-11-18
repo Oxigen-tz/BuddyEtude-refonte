@@ -28,3 +28,7 @@ dist-ssr
 *.sw?
 
 .env
+
+# Modèle de configuration (sans secret), à versionner
+!.env.example
+tests/e2e/output/

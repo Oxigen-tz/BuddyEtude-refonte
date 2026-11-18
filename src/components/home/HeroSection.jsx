@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, PenTool, Users, Sparkles } from "lucide-react"; 
 import { useAuth } from "@/lib/AuthContext"; 
 import { motion } from "framer-motion";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useTranslation, Trans } from "react-i18next";
 import { db } from "@/firebase/config";
 import { doc, getDoc } from "firebase/firestore";
@@ -15,18 +15,12 @@ const SOCIAL_PROOF_THRESHOLD = 20;
 const PREVIEW_IMAGE = "/whiteboard-preview.png";
 
 export default function HeroSection() {
-  const { user, loginWithGoogle } = useAuth(); 
+  const { user, openLogin } = useAuth();
   const { t } = useTranslation();
-  const navigate = useNavigate();
 
-  const handleLogin = async () => {
-    try {
-      await loginWithGoogle();
-      navigate("/Dashboard");
-    } catch (error) {
-      console.error("Erreur lors de la connexion", error);
-    }
-  };
+  // Ouvre la fenêtre de connexion commune (Google, Microsoft, e-mail). La redirection vers le
+  // tableau de bord après connexion est faite par la page d'accueil (Home.jsx).
+  const handleLogin = openLogin;
 
   const [studentCount, setStudentCount] = useState(null);
   const [previewFailed, setPreviewFailed] = useState(false);

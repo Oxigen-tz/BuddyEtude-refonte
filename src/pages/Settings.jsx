@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { db, auth, storage } from "../firebase/config";
-import { doc, getDoc, setDoc, deleteDoc, collection, query, where, getDocs, writeBatch } from "firebase/firestore";
+import { doc, getDoc, setDoc, deleteDoc, collection, query, where, getDocs, writeBatch, onSnapshot } from "firebase/firestore";
 import { ref, deleteObject } from "firebase/storage";
-import { reauthenticateWithPopup, GoogleAuthProvider, deleteUser } from "firebase/auth";
+import { reauthenticateWithPopup, reauthenticateWithCredential, EmailAuthProvider, GoogleAuthProvider, OAuthProvider, deleteUser } from "firebase/auth";
+import { privateSettingsRef } from "../firebase/services";
+import { unblockUser } from "@/hooks/useBlocks";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/AuthContext";
 import { getRequestAlertsEnabled, setRequestAlertsEnabled } from "@/lib/preferences";
@@ -97,37 +99,77 @@ export default function Settings() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const isPasswordAccount = auth.currentUser?.providerData[0]?.providerId === "password";
+
+  // Notifications par e-mail (envoyées par les Cloud Functions) : réglage privé, activé par défaut
+  const [emailNotifs, setEmailNotifs] = useState(true);
+  useEffect(() => {
+    if (!user?.uid) return;
+    getDoc(privateSettingsRef(user.uid))
+      .then((snap) => { if (snap.exists() && snap.data().email_notifications === false) setEmailNotifs(false); })
+      .catch(() => {});
+  }, [user?.uid]);
+  const handleEmailNotifsChange = async (value) => {
+    setEmailNotifs(value);
+    try {
+      await setDoc(privateSettingsRef(user.uid), { email_notifications: value }, { merge: true });
+      toast.success(t('settings.toast.saved'));
+    } catch (error) {
+      console.error(error);
+      setEmailNotifs(!value);
+      toast.error(t('settings.toast.error'));
+    }
+  };
+
+  // Personnes bloquées (débloquer depuis les paramètres)
+  const [blockedList, setBlockedList] = useState([]);
+  useEffect(() => {
+    if (!user?.uid) return;
+    return onSnapshot(query(collection(db, "blocks"), where("blocker", "==", user.uid)),
+      (snap) => setBlockedList(snap.docs.map((d) => d.data())),
+      (error) => console.error(error));
+  }, [user?.uid]);
   const confirmWord = t('settings.danger.confirmWord');
 
   const handleDeleteAccount = async () => {
     const current = auth.currentUser;
-    if (!current || !user?.email) return;
+    if (!current || !user?.uid) return;
     setIsDeleting(true);
     try {
-      // Firebase exige une connexion récente pour supprimer un compte : on la demande d'abord,
-      // AVANT d'effacer quoi que ce soit (sinon on risquerait une suppression à moitié faite)
-      await reauthenticateWithPopup(current, new GoogleAuthProvider());
+      // Firebase exige une connexion récente pour supprimer un compte : on la redemande d'abord,
+      // AVANT d'effacer quoi que ce soit (sinon on risquerait une suppression à moitié faite).
+      // La méthode dépend de la façon dont le compte se connecte.
+      const providerId = current.providerData[0]?.providerId;
+      if (providerId === "password") {
+        await reauthenticateWithCredential(current, EmailAuthProvider.credential(current.email, deletePassword));
+      } else if (providerId === "microsoft.com") {
+        await reauthenticateWithPopup(current, new OAuthProvider("microsoft.com"));
+      } else {
+        await reauthenticateWithPopup(current, new GoogleAuthProvider());
+      }
 
-      const email = user.email;
+      const uid = user.uid;
 
       // 1. Mes messages, et leurs pièces jointes dans Storage
-      const messagesSnap = await getDocs(query(collection(db, "messages"), where("participants", "array-contains", email)));
-      const myMessages = messagesSnap.docs.filter((d) => d.data().senderEmail === email);
+      const messagesSnap = await getDocs(query(collection(db, "messages"), where("participants", "array-contains", uid)));
+      const myMessages = messagesSnap.docs.filter((d) => d.data().senderUid === uid);
       await Promise.all(myMessages.map((d) => {
         const url = d.data().fileUrl;
         return url ? deleteObject(ref(storage, url)).catch(() => {}) : null;
       }));
       await deleteInBatches(myMessages.map((d) => d.ref));
 
-      // 2. Mes demandes de binôme, envoyées et reçues
-      const [incoming, outgoing] = await Promise.all([
-        getDocs(query(collection(db, "requests"), where("to_email", "==", email))),
-        getDocs(query(collection(db, "requests"), where("from_email", "==", email))),
+      // 2. Mes demandes de binôme (envoyées et reçues) et mes blocages
+      const [incoming, outgoing, blocks] = await Promise.all([
+        getDocs(query(collection(db, "requests"), where("to_uid", "==", uid))),
+        getDocs(query(collection(db, "requests"), where("from_uid", "==", uid))),
+        getDocs(query(collection(db, "blocks"), where("blocker", "==", uid))),
       ]);
-      await deleteInBatches([...incoming.docs, ...outgoing.docs].map((d) => d.ref));
+      await deleteInBatches([...incoming.docs, ...outgoing.docs, ...blocks.docs].map((d) => d.ref));
 
       // 3. Mes sessions prévues : annulées, pour que mon binôme ne m'attende pas
-      const sessionsSnap = await getDocs(query(collection(db, "sessions"), where("participants", "array-contains", email)));
+      const sessionsSnap = await getDocs(query(collection(db, "sessions"), where("participants", "array-contains", uid)));
       const plannedRefs = sessionsSnap.docs.filter((d) => d.data().status === "planned").map((d) => d.ref);
       for (let i = 0; i < plannedRefs.length; i += 450) {
         const batch = writeBatch(db);
@@ -135,8 +177,9 @@ export default function Settings() {
         await batch.commit();
       }
 
-      // 4. Mon profil
-      await deleteDoc(doc(db, "users", user.uid));
+      // 4. Mes données privées puis mon profil
+      await deleteDoc(privateSettingsRef(uid)).catch(() => {});
+      await deleteDoc(doc(db, "users", uid));
 
       // 5. Le compte de connexion lui-même
       await deleteUser(current);
@@ -145,6 +188,8 @@ export default function Settings() {
       console.error("Erreur de suppression du compte:", error);
       if (error?.code === "auth/popup-closed-by-user" || error?.code === "auth/cancelled-popup-request") {
         toast.error(t('settings.danger.reauthCancelled'));
+      } else if (error?.code === "auth/wrong-password" || error?.code === "auth/invalid-credential") {
+        toast.error(t('auth.errors.invalidCredential'));
       } else {
         toast.error(t('settings.danger.error'));
       }
@@ -272,13 +317,21 @@ export default function Settings() {
                   autoComplete="off"
                   className="mt-2 mb-6 rounded-xl bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537]"
                 />
+                {/* Compte e-mail : la confirmation se fait par mot de passe (pas de fenêtre Google) */}
+                {isPasswordAccount && (
+                  <>
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="delete-password">{t('auth.password')}</label>
+                    <Input id="delete-password" type="password" value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)}
+                      autoComplete="current-password" className="mt-2 mb-6 rounded-xl bg-gray-50 dark:bg-[#131314] border-gray-200 dark:border-[#333537]" />
+                  </>
+                )}
                 <div className="flex gap-3 justify-end">
                   <Button variant="ghost" disabled={isDeleting} onClick={() => setShowDeleteModal(false)} className="rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#282a2c]">
                     {t('settings.danger.cancel')}
                   </Button>
                   <Button
                     onClick={handleDeleteAccount}
-                    disabled={isDeleting || deleteConfirmText.trim().toUpperCase() !== confirmWord.toUpperCase()}
+                    disabled={isDeleting || deleteConfirmText.trim().toUpperCase() !== confirmWord.toUpperCase() || (isPasswordAccount && !deletePassword)}
                     className="bg-red-500 hover:bg-red-600 text-white rounded-xl"
                   >
                     {isDeleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
@@ -353,6 +406,20 @@ export default function Settings() {
                           className="data-[state=checked]:bg-indigo-600"
                         />
                       </div>
+                      {/* E-mails : nouvelle demande, nouveau message (au plus un par conversation et
+                          par demi-heure), rappels de session. Envoyés par les Cloud Functions. */}
+                      <div className="flex items-center justify-between gap-8">
+                        <div className="flex-1">
+                          <p className="font-semibold text-gray-900 dark:text-gray-100">{t('settings.preferences.emailNotifs')}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('settings.preferences.emailNotifsDesc')}</p>
+                        </div>
+                        <Switch
+                          aria-label={t('settings.preferences.emailNotifs')}
+                          checked={emailNotifs}
+                          onCheckedChange={handleEmailNotifsChange}
+                          className="data-[state=checked]:bg-indigo-600"
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -376,6 +443,26 @@ export default function Settings() {
                           disabled={!visibilityLoaded}
                           className="data-[state=checked]:bg-indigo-600"
                         />
+                      </div>
+
+                      {/* Personnes bloquées */}
+                      <div>
+                        <p className="font-semibold text-gray-900 dark:text-gray-100">{t('settings.preferences.blocked')}</p>
+                        {blockedList.length === 0 ? (
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('settings.preferences.noBlocked')}</p>
+                        ) : (
+                          <ul className="mt-3 space-y-2">
+                            {blockedList.map((b) => (
+                              <li key={b.blocked} className="flex items-center justify-between gap-4 p-3 rounded-xl bg-gray-50 dark:bg-[#131314]">
+                                <span className="text-sm text-gray-800 dark:text-gray-200 truncate">{b.blocked_name || t('settings.preferences.unknownUser')}</span>
+                                <Button variant="ghost" size="sm" className="rounded-xl text-indigo-600 dark:text-indigo-400"
+                                  onClick={() => unblockUser(user.uid, b.blocked).then(() => toast.success(t('settings.toast.saved')))}>
+                                  {t('settings.preferences.unblock')}
+                                </Button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                       </div>
                     </div>
                   </div>

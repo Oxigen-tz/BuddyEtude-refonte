@@ -1,0 +1,61 @@
+# Vérification automatique à chaque push et pull request :
+# lint, build, règles de sécurité, Cloud Functions et scénario complet dans Chrome,
+# le tout sur les émulateurs Firebase (aucune donnée réelle touchée).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      # Les émulateurs Firebase ont besoin de Java
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Installer les dépendances
+        run: |
+          npm ci
+          npm ci --prefix functions
+          npm install -g firebase-tools@15
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Règles Firestore et Storage
+        run: npm run test:rules
+
+      - name: Cloud Functions
+        run: npm run test:functions
+
+      # Google Chrome est préinstallé sur les machines ubuntu-latest de GitHub
+      - name: Scénario de bout en bout
+        run: npm run test:e2e
+
+      - name: Captures en cas d'échec
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: captures-e2e
+          path: tests/e2e/output/
+          if-no-files-found: ignore

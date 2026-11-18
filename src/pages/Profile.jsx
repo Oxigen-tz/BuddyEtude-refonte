@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { db } from "../firebase/config";
-import { doc, getDoc, setDoc, increment } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { privateSettingsRef } from "../firebase/services";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,9 +39,12 @@ export default function Profile() {
       if (!user?.uid) return;
       try {
         const docRef = doc(db, "users", user.uid);
-        const docSnap = await getDoc(docRef);
+        const [docSnap, privateSnap] = await Promise.all([getDoc(docRef), getDoc(privateSettingsRef(user.uid))]);
+        // Tranche d'âge et accord parental : stockés à part (document privé), pas dans le profil public
+        const privateData = privateSnap.exists() ? privateSnap.data() : {};
+        const ageFields = { age_bracket: privateData.age_bracket || "", parental_consent: privateData.parental_consent === true };
         if (docSnap.exists()) {
-          const data = docSnap.data();
+          const data = { ...docSnap.data(), ...ageFields };
           // S'il n'y a pas encore de photo dans Firestore mais qu'on a une photo Google, on l'associe
           if (!data.photo_url && user.photoURL) {
             data.photo_url = user.photoURL;
@@ -54,7 +58,8 @@ export default function Profile() {
           setProfile({
             display_name: defaultName,
             photo_url: user.photoURL || "",
-            subjects: [], goals: [], availability: [], profile_complete: false
+            subjects: [], goals: [], availability: [], profile_complete: false,
+            ...ageFields,
           });
           setIsEditing(true); 
         }
@@ -72,27 +77,27 @@ export default function Profile() {
     setIsSaving(true);
     try {
       const docRef = doc(db, "users", user.uid);
+      // Champs qui ne vont PAS dans le profil public : l'âge (document privé), l'email (n'est plus
+      // stocké, voir firestore.rules) et le bannissement (réservé à la modération)
+      const { age_bracket, parental_consent, email: _email, banned: _banned, ...publicData } = formData;
+      await setDoc(privateSettingsRef(user.uid), {
+        age_bracket,
+        parental_consent: age_bracket === "under15" ? parental_consent === true : false,
+        updatedAt: new Date().toISOString(),
+      }, { merge: true });
       const dataToSave = { 
-        ...formData, 
-        email: user.email, 
+        ...publicData, 
         photo_url: formData.photo_url || profile?.photo_url || user.photoURL || "",
         profile_complete: true,
         // Toujours présent : la recherche (et les règles Firestore) filtrent sur ce champ
         profile_visible: profile?.profile_visible !== false,
         updatedAt: new Date().toISOString() 
       };
-      const wasComplete = Boolean(profile?.profile_complete);
+      // Le compteur d'étudiants de l'accueil est tenu à jour par la Cloud Function onProfileWrite
       await setDoc(docRef, dataToSave, { merge: true });
-
-      // Premier profil complété : +1 au compteur public affiché sur l'accueil (HeroSection).
-      // Un échec ici (règles pas encore déployées…) ne doit pas bloquer l'enregistrement du profil.
-      if (!wasComplete) {
-        setDoc(doc(db, "stats", "public"), { studentCount: increment(1) }, { merge: true })
-          .catch((error) => console.warn("Compteur public non mis à jour :", error));
-      }
       // merge: true côté Firestore → même chose côté état local (sinon des champs comme
       // profile_visible disparaissaient de l'état jusqu'au rechargement)
-      setProfile(prev => ({ ...prev, ...dataToSave }));
+      setProfile(prev => ({ ...prev, ...dataToSave, age_bracket, parental_consent }));
       setPhotoFailed(false);
       
       toast.success(t('profile.toast.saved'), {
