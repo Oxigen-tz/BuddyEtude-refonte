@@ -107,8 +107,8 @@ export default function Dashboard() {
       {/* --- BANDEAU D'ACCUEIL --- */}
       <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-600 via-brand-700 to-purple-700 text-white p-6 sm:p-8 shadow-glow">
         <div className="absolute inset-0 opacity-[0.14] [background-image:radial-gradient(circle,white_1px,transparent_1px)] [background-size:20px_20px]" />
-        <div className="absolute -top-16 -right-10 w-64 h-64 rounded-full bg-coral-400/40 blur-3xl" />
-        <div className="absolute -bottom-20 left-1/3 w-64 h-64 rounded-full bg-lime-300/25 blur-3xl" />
+        <div className="absolute -top-16 -right-10 w-64 h-64 rounded-full bg-coral-400/40 blur-3xl animate-aurora" />
+        <div className="absolute -bottom-20 left-1/3 w-64 h-64 rounded-full bg-lime-300/25 blur-3xl animate-aurora-slow" />
         <div className="relative flex flex-col sm:flex-row sm:items-end justify-between gap-6">
           <div>
             <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight flex items-center gap-3">

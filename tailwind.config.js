@@ -99,6 +99,12 @@ module.exports = {
         },
         "gradient-x": { "0%, 100%": { backgroundPosition: "0% 50%" }, "50%": { backgroundPosition: "100% 50%" } },
         marquee: { from: { transform: "translateX(0)" }, to: { transform: "translateX(-50%)" } },
+        aurora: {
+          "0%, 100%": { transform: "translate(0, 0) scale(1) rotate(0deg)" },
+          "33%": { transform: "translate(6%, -8%) scale(1.15) rotate(20deg)" },
+          "66%": { transform: "translate(-6%, 6%) scale(0.92) rotate(-12deg)" },
+        },
+        shine: { from: { backgroundPosition: "200% 0" }, to: { backgroundPosition: "-200% 0" } },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -108,6 +114,9 @@ module.exports = {
         wave: "wave 2.2s ease-in-out 0.4s 1",
         "gradient-x": "gradient-x 8s ease infinite",
         marquee: "marquee 45s linear infinite",
+        aurora: "aurora 18s ease-in-out infinite",
+        "aurora-slow": "aurora 26s ease-in-out infinite reverse",
+        shine: "shine 6s linear infinite",
       },
     },
   },

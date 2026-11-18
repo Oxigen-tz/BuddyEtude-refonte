@@ -47,7 +47,7 @@ const LayoutWrapper = ({ children, currentPageName }) => {
 
   // Visiteur (ou accueil) : plein écran, sans barre latérale
   return (
-    <div className="min-h-screen flex flex-col bg-background text-gray-900 dark:text-gray-100 transition-colors duration-300">
+    <div className={`min-h-screen flex flex-col transition-colors duration-300 ${isHome ? "dark bg-ink-950 text-white" : "bg-background text-gray-900 dark:text-gray-100"}`}>
       {!isHome && <PublicHeader />}
       <div className={isHome ? "flex-1" : "flex-1 px-4"}>{isPublic ? children : <LoginRequired />}</div>
       <Footer />

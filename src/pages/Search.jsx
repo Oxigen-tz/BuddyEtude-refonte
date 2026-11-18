@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import Reveal from "@/components/ui/reveal";
 import { db } from "../firebase/config";
 import { collection, query, where, onSnapshot, setDoc, doc, getDoc, limit, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "@/lib/AuthContext";
@@ -377,7 +378,8 @@ export default function Search() {
       ) : (
         <>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredProfiles.map(({ profile: p, match, help }) => (
+          {filteredProfiles.map(({ profile: p, match, help }, i) => (
+            <Reveal key={p.id} index={i} className="h-full">
             <BuddyCard
               key={p.id}
               profile={p}
@@ -389,6 +391,7 @@ export default function Search() {
               relation={relations.get(p.id)?.status || null}
               isOwnProfile={p.id === user.uid}
             />
+            </Reveal>
           ))}
         </div>
         {/* Peu de résultats : proposer d'inviter des camarades */}

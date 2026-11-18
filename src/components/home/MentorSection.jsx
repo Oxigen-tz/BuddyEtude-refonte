@@ -1,5 +1,5 @@
-import React from "react";
-import { motion } from "framer-motion";
+import React, { useRef } from "react";
+import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Check, GraduationCap, HandHeart, Sparkles } from "lucide-react";
 import SectionHeading, { reveal } from "./SectionHeading";
@@ -7,9 +7,16 @@ import SectionHeading, { reveal } from "./SectionHeading";
 // Bandeau sombre sur le mentorat : contraste avec le reste de la page.
 export default function MentorSection() {
   const { t } = useTranslation();
+  const ref = useRef(null);
+  const reduce = useReducedMotion();
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
+  const cardY = useTransform(scrollYProgress, [0, 1], reduce ? [0, 0] : [90, -90]);
+  const cardRotate = useTransform(scrollYProgress, [0, 1], reduce ? [0, 0] : [6, -4]);
+  const glowY = useTransform(scrollYProgress, [0, 1], reduce ? [0, 0] : [-120, 120]);
   return (
-    <section className="py-10 sm:py-16 px-4 sm:px-6">
-      <div className="relative max-w-6xl mx-auto overflow-hidden rounded-[2rem] sm:rounded-[2.5rem] bg-ink-950 dark:bg-ink-900 dark:border dark:border-ink-700 px-6 py-14 sm:p-16">
+    <section ref={ref} className="py-10 sm:py-16 px-4 sm:px-6">
+      <div className="relative max-w-6xl mx-auto overflow-hidden rounded-[2rem] sm:rounded-[2.5rem] bg-gradient-to-br from-ink-900 to-ink-950 border border-white/10 px-6 py-14 sm:p-16">
+        <motion.div style={{ y: glowY }} className="absolute top-0 right-1/4 w-80 h-80 rounded-full bg-lime-300/10 blur-[100px]" />
         <div className="absolute inset-0 bg-grid opacity-40 mask-radial" />
         <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-brand-600/40 blur-3xl" />
         <div className="absolute -bottom-32 left-10 w-80 h-80 rounded-full bg-purple-600/25 blur-3xl" />
@@ -30,7 +37,7 @@ export default function MentorSection() {
           </div>
 
           {/* Illustration : une demande d'aide reçue par un étudiant « Avancé » */}
-          <motion.div {...reveal(0.15)} className="relative max-w-md mx-auto w-full" aria-hidden="true">
+          <motion.div style={{ y: cardY, rotate: cardRotate }} className="relative max-w-md mx-auto w-full" aria-hidden="true">
             <div className="absolute -top-6 -left-4 sm:-left-8 z-10 rotate-[-6deg] inline-flex items-center gap-2 rounded-2xl bg-lime-300 text-gray-900 px-4 py-2 text-sm font-extrabold shadow-lift">
               <GraduationCap className="w-4 h-4" /> {t("landing.mentor.card.badge")}
             </div>

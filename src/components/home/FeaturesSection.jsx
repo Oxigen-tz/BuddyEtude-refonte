@@ -1,132 +1,156 @@
-import React from "react";
-import { Target, MessageCircle, PenTool, Send, CalendarDays, BookOpen, Paperclip } from "lucide-react";
-import { motion } from "framer-motion";
+import React, { useLayoutEffect, useRef, useState } from "react";
+import { Target, MessageCircle, PenTool, Send, CalendarDays, BookOpen, Paperclip, ArrowRight } from "lucide-react";
+import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import SectionHeading, { reveal } from "./SectionHeading";
 
-// Les textes viennent de features.items.<id> dans i18n.js. Grille « bento » : chaque carte
-// a une petite illustration de la fonctionnalité.
-const SUBJECTS = [
-  "Mathématiques", "Droit", "Médecine", "Physique", "Économie", "Informatique", "Anglais", "Biologie",
-  "Histoire", "Philosophie", "Chimie", "Gestion", "Psychologie", "Marketing", "Espagnol", "Statistiques",
-];
+// Galerie horizontale : en faisant défiler la page, les cartes glissent de droite à gauche.
+// Les textes viennent de features.items.<id> dans i18n.js.
+const SUBJECTS = ["Mathématiques", "Droit", "Médecine", "Physique", "Économie", "Informatique", "Anglais", "Biologie", "Histoire", "Philosophie", "Chimie", "Gestion"];
 
-function Card({ children, className = "", delay = 0 }) {
+function MatchArt() {
   return (
-    <motion.div
-      {...reveal(delay)}
-      className={`group relative overflow-hidden rounded-3xl bg-white dark:bg-ink-900 border border-gray-200/80 dark:border-ink-700 p-7 shadow-soft hover:shadow-lift transition-shadow duration-300 ${className}`}
-    >
-      {children}
-    </motion.div>
+    <div className="space-y-2.5">
+      {[["LM", 94, "from-coral-400 to-purple-500"], ["YB", 81, "from-brand-400 to-brand-700"], ["SA", 67, "from-lime-300 to-lime-500"]].map(([ini, s, g], i) => (
+        <div key={ini} className="flex items-center gap-3 rounded-xl bg-white/[0.06] border border-white/10 p-2.5">
+          <span className={`w-8 h-8 rounded-lg bg-gradient-to-br ${g} text-white text-[11px] font-bold flex items-center justify-center`}>{ini}</span>
+          <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
+            <motion.div initial={{ width: 0 }} whileInView={{ width: `${s}%` }} viewport={{ once: true }} transition={{ duration: 1, delay: i * 0.15 }} className="h-full rounded-full bg-gradient-to-r from-brand-400 to-lime-300" />
+          </div>
+          <span className="text-sm font-bold text-white w-10 text-right">{s}%</span>
+        </div>
+      ))}
+    </div>
   );
 }
-
-function Title({ id, icon: Icon, tone }) {
+function ChatArt() {
   const { t } = useTranslation();
   return (
-    <>
-      <div className={`w-11 h-11 rounded-2xl ${tone} flex items-center justify-center mb-5`}>
-        <Icon className="w-5 h-5" />
+    <div className="space-y-2 text-[13px] font-medium">
+      <div className="w-fit rounded-2xl rounded-bl-md bg-white/[0.08] text-white/85 px-3 py-2">{t("landing.mock.chat1")}</div>
+      <div className="w-fit rounded-2xl rounded-bl-md bg-white/[0.08] text-white/85 px-3 py-2 flex items-center gap-1.5"><Paperclip className="w-3.5 h-3.5" /> {t("landing.story.file")}</div>
+      <div className="ml-auto w-fit rounded-2xl rounded-br-md bg-brand-600 text-white px-3 py-2">{t("landing.mock.thanks")}</div>
+    </div>
+  );
+}
+function BoardArt() {
+  return (
+    <svg viewBox="0 0 300 130" className="w-full h-32">
+      <motion.path d="M10 90 C 60 0, 110 0, 150 60 S 220 110, 290 20" fill="none" stroke="#DE9DFF" strokeWidth="5" strokeLinecap="round"
+        initial={{ pathLength: 0 }} whileInView={{ pathLength: 1 }} viewport={{ once: true }} transition={{ duration: 1.6, ease: "easeInOut" }} />
+      <motion.circle cx="150" cy="40" r="16" fill="none" stroke="#FF8A66" strokeWidth="3.5"
+        initial={{ pathLength: 0 }} whileInView={{ pathLength: 1 }} viewport={{ once: true }} transition={{ duration: 0.8, delay: 1.2 }} />
+      <text x="196" y="122" fill="#DCF46B" style={{ font: "italic 700 22px 'Bricolage Grotesque', serif" }}>f′(x) = 0</text>
+    </svg>
+  );
+}
+function CalendarArt() {
+  return (
+    <div className="grid grid-cols-7 gap-1.5">
+      {Array.from({ length: 21 }, (_, i) => (
+        <span key={i} className={`aspect-square rounded-lg text-[10px] font-bold flex items-center justify-center ${
+          i === 11 ? "bg-brand-500 text-white shadow-glow" : [4, 16].includes(i) ? "bg-lime-300 text-gray-900" : "bg-white/[0.06] text-white/40"
+        }`}>{i + 3}</span>
+      ))}
+    </div>
+  );
+}
+function RequestArt() {
+  const { t } = useTranslation();
+  return (
+    <div className="rounded-2xl bg-white/[0.06] border border-white/10 p-4">
+      <p className="text-[13px] text-white/80 leading-relaxed">« {t("landing.mock.chat1")} »</p>
+      <div className="mt-3 flex gap-2">
+        <span className="flex-1 h-9 rounded-xl bg-white text-gray-900 text-xs font-bold flex items-center justify-center">{t("landing.mentor.card.accept")}</span>
+        <span className="w-9 h-9 rounded-xl border border-white/15 text-white/50 flex items-center justify-center">×</span>
       </div>
-      <h3 className="font-display text-xl font-bold text-gray-900 dark:text-white mb-2">{t(`features.items.${id}.title`)}</h3>
-      <p className="text-gray-600 dark:text-gray-400 leading-relaxed">{t(`features.items.${id}.desc`)}</p>
-    </>
+    </div>
+  );
+}
+function SubjectsArt() {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {SUBJECTS.map((s, i) => (
+        <span key={s} className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${
+          ["bg-brand-500/15 border-brand-400/30 text-brand-200", "bg-white/[0.06] border-white/10 text-white/80", "bg-lime-300/10 border-lime-300/30 text-lime-200", "bg-coral-500/15 border-coral-400/30 text-coral-300"][i % 4]
+        }`}>{s}</span>
+      ))}
+    </div>
   );
 }
 
-const MATCHES = [
-  { initials: "LM", grad: "from-coral-400 to-purple-500", score: 94, w: "w-[94%]" },
-  { initials: "YB", grad: "from-brand-400 to-brand-700", score: 81, w: "w-[81%]" },
-  { initials: "SA", grad: "from-lime-300 to-lime-500", score: 67, w: "w-[67%]" },
+const CARDS = [
+  { id: "filters", icon: Target, Art: MatchArt, glow: "bg-brand-500" },
+  { id: "chat", icon: MessageCircle, Art: ChatArt, glow: "bg-sky-500" },
+  { id: "whiteboard", icon: PenTool, Art: BoardArt, glow: "bg-purple-500" },
+  { id: "schedule", icon: CalendarDays, Art: CalendarArt, glow: "bg-lime-400" },
+  { id: "requests", icon: Send, Art: RequestArt, glow: "bg-coral-500" },
+  { id: "subjects", icon: BookOpen, Art: SubjectsArt, glow: "bg-brand-400" },
 ];
+
+function FeatureCard({ id, icon: Icon, Art, glow, index }) {
+  const { t } = useTranslation();
+  return (
+    <article className="group relative shrink-0 w-[82vw] sm:w-[420px] h-[460px] sm:h-[500px] rounded-[2rem] bg-gradient-to-b from-white/[0.09] to-white/[0.02] border border-white/10 p-7 sm:p-8 overflow-hidden flex flex-col">
+      <div className={`absolute -top-24 -right-24 w-64 h-64 rounded-full ${glow} opacity-25 blur-[80px] transition-opacity duration-500 group-hover:opacity-50`} />
+      <div className="relative flex items-center justify-between">
+        <span className="w-12 h-12 rounded-2xl bg-white/10 border border-white/10 text-white flex items-center justify-center"><Icon className="w-5 h-5" /></span>
+        <span className="font-display text-5xl font-extrabold text-white/[0.07]">0{index + 1}</span>
+      </div>
+      <h3 className="relative mt-6 font-display text-2xl font-bold text-white">{t(`features.items.${id}.title`)}</h3>
+      <p className="relative mt-2 text-white/60 leading-relaxed text-[15px]">{t(`features.items.${id}.desc`)}</p>
+      <div className="relative mt-auto pt-6" aria-hidden="true"><Art /></div>
+    </article>
+  );
+}
 
 export default function FeaturesSection() {
   const { t } = useTranslation();
+  const reduce = useReducedMotion();
+  const sectionRef = useRef(null);
+  const trackRef = useRef(null);
+  const [distance, setDistance] = useState(0);
+
+  useLayoutEffect(() => {
+    const measure = () => {
+      if (trackRef.current) setDistance(Math.max(0, trackRef.current.scrollWidth - window.innerWidth));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (trackRef.current) ro.observe(trackRef.current);
+    window.addEventListener("resize", measure);
+    return () => { ro.disconnect(); window.removeEventListener("resize", measure); };
+  }, []);
+
+  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start start", "end end"] });
+  const x = useTransform(scrollYProgress, [0, 1], [0, -distance]);
+  const progress = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
+
+  const intro = (
+    <div className="shrink-0 w-[82vw] sm:w-[400px] flex flex-col justify-center pr-4">
+      <span className="text-xs font-bold uppercase tracking-[0.18em] text-lime-300 mb-4">{t("landing.featuresEyebrow")}</span>
+      <h2 className="font-display text-4xl sm:text-5xl font-extrabold tracking-tight leading-[1.02] text-white">{t("features.title")}</h2>
+      <p className="mt-5 text-white/60 text-lg leading-relaxed">{t("features.subtitle")}</p>
+      {!reduce && <span className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-white/50">{t("landing.scrollHint")} <ArrowRight className="w-4 h-4 animate-pulse" /></span>}
+    </div>
+  );
+
+  if (reduce) {
+    return (
+      <section className="px-4 sm:px-6 py-24">
+        <div className="max-w-6xl mx-auto flex flex-wrap gap-6">{intro}{CARDS.map((c, i) => <FeatureCard key={c.id} {...c} index={i} />)}</div>
+      </section>
+    );
+  }
 
   return (
-    <section className="relative py-20 sm:py-28 px-4 sm:px-6">
-      <div className="max-w-6xl mx-auto">
-        <SectionHeading eyebrow={t("landing.featuresEyebrow")} title={t("features.title")} subtitle={t("features.subtitle")} />
-
-        <div className="grid md:grid-cols-3 gap-5">
-          {/* Compatibilité */}
-          <Card className="md:col-span-2 grid sm:grid-cols-2 gap-8 items-center">
-            <div><Title id="filters" icon={Target} tone="bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-300" /></div>
-            <div className="space-y-3" aria-hidden="true">
-              {MATCHES.map((m, i) => (
-                <div key={m.initials} className="flex items-center gap-3 rounded-2xl bg-gray-50 dark:bg-ink-850 border border-gray-100 dark:border-ink-700 p-3">
-                  <span className={`w-9 h-9 rounded-xl bg-gradient-to-br ${m.grad} text-white text-xs font-bold flex items-center justify-center shrink-0`}>{m.initials}</span>
-                  <div className="flex-1 h-2 rounded-full bg-gray-200/80 dark:bg-ink-700 overflow-hidden">
-                    <motion.div
-                      initial={{ scaleX: 0 }} whileInView={{ scaleX: 1 }} viewport={{ once: true }}
-                      transition={{ duration: 1, delay: 0.2 + i * 0.15, ease: "easeOut" }}
-                      className={`h-full ${m.w} origin-left rounded-full bg-gradient-to-r from-brand-500 to-coral-400`}
-                    />
-                  </div>
-                  <span className="text-sm font-bold text-gray-900 dark:text-white w-10 text-right">{m.score}%</span>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          {/* Chat */}
-          <Card delay={0.05}>
-            <Title id="chat" icon={MessageCircle} tone="bg-sky-50 text-sky-600 dark:bg-sky-500/15 dark:text-sky-300" />
-            <div className="mt-6 space-y-2" aria-hidden="true">
-              <div className="w-fit rounded-2xl rounded-bl-md bg-gray-100 dark:bg-ink-800 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
-                <Paperclip className="w-3.5 h-3.5" /> fiche-chapitre-3.pdf
-              </div>
-              <div className="ml-auto w-fit rounded-2xl rounded-br-md bg-brand-600 px-3 py-2 text-xs font-medium text-white">{t("landing.mock.thanks")}</div>
-            </div>
-          </Card>
-
-          {/* Tableau blanc */}
-          <Card delay={0.1}>
-            <Title id="whiteboard" icon={PenTool} tone="bg-purple-50 text-purple-600 dark:bg-purple-500/15 dark:text-purple-300" />
-            <svg viewBox="0 0 240 70" className="mt-5 w-full h-16" aria-hidden="true">
-              <motion.path d="M8 50 C 40 10, 70 10, 95 40 S 150 70, 175 30 S 220 20, 232 35" fill="none" stroke="#B83DF5" strokeWidth="4" strokeLinecap="round"
-                initial={{ pathLength: 0 }} whileInView={{ pathLength: 1 }} viewport={{ once: true }} transition={{ duration: 1.6, ease: "easeInOut" }} />
-              <motion.circle cx="120" cy="22" r="10" fill="none" stroke="#FF6B42" strokeWidth="3"
-                initial={{ pathLength: 0 }} whileInView={{ pathLength: 1 }} viewport={{ once: true }} transition={{ duration: 0.8, delay: 1 }} />
-            </svg>
-          </Card>
-
-          {/* Sessions */}
-          <Card delay={0.15}>
-            <Title id="schedule" icon={CalendarDays} tone="bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-300" />
-            <div className="mt-6 grid grid-cols-7 gap-1.5" aria-hidden="true">
-              {Array.from({ length: 14 }, (_, i) => (
-                <span key={i} className={`aspect-square rounded-lg text-[10px] font-bold flex items-center justify-center ${
-                  i === 9 ? "bg-brand-600 text-white shadow-glow" : i === 4 || i === 12 ? "bg-lime-200 text-gray-900 dark:bg-lime-400/20 dark:text-lime-200" : "bg-gray-100 text-gray-400 dark:bg-ink-800 dark:text-gray-500"
-                }`}>{i + 10}</span>
-              ))}
-            </div>
-          </Card>
-
-          {/* Demandes */}
-          <Card delay={0.2}>
-            <Title id="requests" icon={Send} tone="bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300" />
-          </Card>
-
-          {/* Matières */}
-          <Card className="md:col-span-3 !p-0" delay={0.05}>
-            <div className="p-7 pb-5 sm:flex sm:items-end sm:justify-between gap-8">
-              <div className="max-w-xl"><Title id="subjects" icon={BookOpen} tone="bg-coral-100 text-coral-600 dark:bg-coral-500/15 dark:text-coral-300" /></div>
-            </div>
-            <div className="relative overflow-hidden pb-7 [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]" aria-hidden="true">
-              <div className="flex w-max gap-3 animate-marquee group-hover:[animation-play-state:paused]">
-                {[...SUBJECTS, ...SUBJECTS].map((s, i) => (
-                  <span key={i} className={`px-4 py-2 rounded-full text-sm font-semibold border whitespace-nowrap ${
-                    ["bg-brand-50 border-brand-100 text-brand-700 dark:bg-brand-500/10 dark:border-brand-500/20 dark:text-brand-200",
-                     "bg-white border-gray-200 text-gray-700 dark:bg-ink-850 dark:border-ink-700 dark:text-gray-200",
-                     "bg-lime-100 border-lime-200 text-gray-800 dark:bg-lime-400/10 dark:border-lime-400/20 dark:text-lime-200",
-                     "bg-coral-100 border-coral-100 text-coral-600 dark:bg-coral-500/10 dark:border-coral-500/20 dark:text-coral-300"][i % 4]
-                  }`}>{s}</span>
-                ))}
-              </div>
-            </div>
-          </Card>
+    <section ref={sectionRef} className="relative" style={{ height: `calc(100svh + ${distance}px)` }}>
+      <div className="sticky top-0 h-[100svh] flex flex-col justify-center overflow-hidden">
+        <motion.div ref={trackRef} style={{ x }} className="flex gap-5 sm:gap-6 w-max px-[6vw] sm:px-[8vw] items-center">
+          {intro}
+          {CARDS.map((c, i) => <FeatureCard key={c.id} {...c} index={i} />)}
+        </motion.div>
+        <div className="mt-10 mx-auto w-48 h-1 rounded-full bg-white/10 overflow-hidden">
+          <motion.div style={{ width: progress }} className="h-full rounded-full bg-gradient-to-r from-brand-400 to-lime-300" />
         </div>
       </div>
     </section>

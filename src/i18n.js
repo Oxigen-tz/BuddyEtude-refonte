@@ -412,6 +412,25 @@ const resources = {
         }
       },
       landing: {
+        manifesto: "Réviser seul, c'est long, démotivant, et on bloque vite. À deux, on s'explique, on se motive et on avance pour de vrai. BuddyEtude te trouve la bonne personne.",
+        scrollHint: "Fais défiler",
+        story: {
+          profileTitle: "Mon profil",
+          subjects: "Matières",
+          avail: "Disponibilités",
+          evening: "Soir",
+          weekend: "Week-end",
+          online: "En ligne",
+          beginner: "Débutant",
+          advanced: "Avancé",
+          intermediate: "Intermédiaire",
+          results: "Les plus compatibles",
+          call: "Appel vidéo",
+          page: "Page 1 / 3",
+          typing: "Léa écrit…",
+          file: "fiche-chapitre-3.pdf",
+          accepted: "Demande acceptée 🎉"
+        },
         heroBadge: "Nouveau : le mentorat entre étudiants",
         secondaryCta: "Comment ça marche",
         trust: {
@@ -1411,6 +1430,25 @@ const resources = {
         }
       },
       landing: {
+        manifesto: "Studying alone is slow, demotivating, and you get stuck fast. Together, you explain things, keep each other going and really make progress. BuddyEtude finds you the right person.",
+        scrollHint: "Scroll",
+        story: {
+          profileTitle: "My profile",
+          subjects: "Subjects",
+          avail: "Availability",
+          evening: "Evening",
+          weekend: "Weekend",
+          online: "Online",
+          beginner: "Beginner",
+          advanced: "Advanced",
+          intermediate: "Intermediate",
+          results: "Best matches",
+          call: "Video call",
+          page: "Page 1 / 3",
+          typing: "Léa is typing…",
+          file: "chapter-3-notes.pdf",
+          accepted: "Request accepted 🎉"
+        },
         heroBadge: "New: peer mentoring",
         secondaryCta: "How it works",
         trust: {

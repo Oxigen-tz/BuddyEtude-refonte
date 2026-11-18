@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import Reveal from "@/components/ui/reveal";
 import { db } from "../firebase/config";
 import { collection, query, where, onSnapshot, addDoc, updateDoc, doc, setDoc, serverTimestamp, Timestamp } from "firebase/firestore";
 import { useAuth } from "@/lib/AuthContext";
@@ -189,8 +190,10 @@ export default function Sessions() {
           </p>
         ) : (
           <div className="grid md:grid-cols-2 gap-5">
-            {planned.map(s => (
-              <SessionCard key={s.id} session={s} myUid={user?.uid} onUpdateStatus={updateStatus} onJoinWhiteboard={() => openBoard(s)} />
+            {planned.map((s, i) => (
+              <Reveal key={s.id} index={i}>
+                <SessionCard session={s} myUid={user?.uid} onUpdateStatus={updateStatus} onJoinWhiteboard={() => openBoard(s)} />
+              </Reveal>
             ))}
           </div>
         )}

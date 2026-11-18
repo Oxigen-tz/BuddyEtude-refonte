@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import Logo from "@/components/Logo";
+import { motion } from "framer-motion";
 
 // On ne stocke plus que la clé de page ici : le libellé affiché vient
 // de layout.nav.<page> via t(), résolu au moment du rendu.
@@ -413,7 +414,13 @@ export default function Layout({ children, currentPageName }) {
               </div>
             </div>
           )}
-          {children}
+          {currentPageName === "Whiteboard" ? children : (
+            // Transition à chaque changement de page (l'opacité seule ne crée pas de bloc
+            // conteneur, donc les fenêtres « fixed » des pages restent bien placées)
+            <motion.div key={currentPageName} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.35, ease: "easeOut" }}>
+              {children}
+            </motion.div>
+          )}
         </main>
 
         {/* --- BARRE D'ONGLETS (mobile et tablette) --- */}
