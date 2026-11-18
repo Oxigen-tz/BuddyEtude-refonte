@@ -14,3 +14,8 @@ export function detectContactInfo(text) {
   const value = String(text || "");
   return PHONE.test(value) || EMAIL.test(value) || LINK.test(value) || SOCIAL.test(value);
 }
+
+// Messageries grand public : une adresse d'établissement est requise pour le badge « étudiant
+// vérifié » (liste complète côté serveur : FREE_MAIL_DOMAINS dans functions/index.js)
+const PERSONAL_DOMAINS = /@(gmail|googlemail|outlook|hotmail|live|msn|yahoo|ymail|icloud|me|mac|aol|orange|wanadoo|free|sfr|neuf|laposte|bbox|gmx|proton|protonmail|pm|tutanota|yandex|mail|zoho|hey|fastmail)\.[a-z.]+$/i;
+export const isSchoolLikeEmail = (email) => /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(email || "") && !PERSONAL_DOMAINS.test(email);

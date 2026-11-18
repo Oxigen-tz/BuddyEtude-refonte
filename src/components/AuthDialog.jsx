@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2 } from "lucide-react";
+import { Loader2, BadgeCheck } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -89,6 +89,14 @@ export default function AuthDialog({ open, onOpenChange }) {
           <DialogTitle className="text-2xl font-bold">{t(titles[mode])}</DialogTitle>
           <DialogDescription className="text-sm text-gray-500 dark:text-gray-400">{t("auth.dialogDesc")}</DialogDescription>
         </DialogHeader>
+
+        {/* Inciter à utiliser l'adresse étudiante : elle permet ensuite le badge « étudiant vérifié » */}
+        {mode !== "reset" && (
+          <p className="flex gap-2.5 items-start text-xs leading-relaxed text-sky-900 dark:text-sky-200 bg-sky-50 dark:bg-sky-500/10 border border-sky-100 dark:border-sky-500/20 rounded-xl p-3">
+            <BadgeCheck className="w-4 h-4 shrink-0 text-sky-500 mt-0.5" aria-hidden="true" />
+            <span>{t("auth.studentEmailTip")}</span>
+          </p>
+        )}
 
         {mode !== "reset" && (
           <div className="grid gap-3 mt-2">

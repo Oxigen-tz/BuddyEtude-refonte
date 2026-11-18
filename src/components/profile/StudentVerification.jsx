@@ -4,6 +4,8 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { BadgeCheck, Loader2, Mail } from "lucide-react";
 import { functions } from "../../firebase/config";
+import { useAuth } from "@/lib/AuthContext";
+import { isSchoolLikeEmail } from "@/lib/safety";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -11,8 +13,11 @@ import { Input } from "@/components/ui/input";
 // requestStudentVerification / confirmStudentVerification). Seul le domaine est conservé.
 export default function StudentVerification({ verifiedDomain, onChange }) {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  // Connecté avec une adresse d'établissement : elle est proposée d'office (vérification en un clic)
+  const loginEmail = isSchoolLikeEmail(user?.email) ? user.email : "";
   const [step, setStep] = useState("idle"); // idle | email | code
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(loginEmail);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -46,7 +51,7 @@ export default function StudentVerification({ verifiedDomain, onChange }) {
     call("confirmStudentVerification", { code }, (result) => {
       setStep("idle");
       setCode("");
-      setEmail("");
+      setEmail(loginEmail);
       onChange?.(result.domain);
       toast.success(t("verification.done", { domain: result.domain }));
     });
@@ -65,7 +70,10 @@ export default function StudentVerification({ verifiedDomain, onChange }) {
           {verifiedDomain ? (
             <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{t("verification.verified", { domain: verifiedDomain })}</p>
           ) : (
-            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{t("verification.desc")}</p>
+            <>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{t("verification.desc")}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{loginEmail ? t("verification.loginEmailHint", { email: loginEmail }) : t("verification.personalHint")}</p>
+            </>
           )}
 
           {!verifiedDomain && step === "idle" && (
