@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import StudentVerification from "@/components/profile/StudentVerification";
+import AvatarEditor from "@/components/profile/AvatarEditor";
 import { db } from "../firebase/config";
 import { doc, getDoc, setDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { privateSettingsRef } from "../firebase/services";
@@ -216,6 +217,8 @@ export default function Profile() {
         <div className="px-5 sm:px-8 pb-6">
           <div className="flex flex-col md:flex-row md:items-end gap-4 md:gap-6">
             <div className="-mt-12 sm:-mt-12 relative shrink-0 w-fit">
+              <AvatarEditor uid={user.uid} currentUrl={profile.photo_url} fallbackUrl={user.photoURL || ""}
+                onChange={(url) => { setPhotoFailed(false); setProfile((prev) => ({ ...prev, photo_url: url })); }}>
               {profile.photo_url && !photoFailed ? (
                 // Les photos Google refusent souvent de se charger avec un Referer
                 <img src={profile.photo_url} alt={profile.display_name} referrerPolicy="no-referrer" onError={() => setPhotoFailed(true)}
@@ -225,6 +228,7 @@ export default function Profile() {
                   {initial}
                 </div>
               )}
+              </AvatarEditor>
               {profile.verified_domain && (
                 <span className="absolute -bottom-1 -right-1 w-9 h-9 rounded-full bg-white dark:bg-ink-900 flex items-center justify-center shadow-soft">
                   <BadgeCheck className="w-6 h-6 text-sky-500" aria-label={t('buddyCard.verified', { domain: profile.verified_domain })} />

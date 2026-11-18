@@ -187,7 +187,7 @@ const resources = {
           {
             title: "2. Données traitées",
             items: [
-              { label: "Compte :", text: "nom, adresse e-mail et photo de profil (fournis par Google ou saisis à l'inscription). Le mot de passe est géré par Google Firebase ; nous n'y avons jamais accès. Votre adresse e-mail n'est jamais affichée aux autres étudiants." },
+              { label: "Compte :", text: "nom et adresse e-mail (fournis par Google ou saisis à l'inscription), photo de profil (celle de Google, ou celle que vous envoyez depuis votre profil). Le mot de passe est géré par Google Firebase ; nous n'y avons jamais accès. Votre adresse e-mail n'est jamais affichée aux autres étudiants." },
               { label: "Profil :", text: "ville, niveau d'études, matières, disponibilités, mode de révision, présentation." },
               { label: "Âge :", text: "tranche d'âge (15 ans ou plus / moins de 15 ans) et, le cas échéant, déclaration d'accord parental. Ces informations sont privées." },
               { label: "Statut étudiant (facultatif) :", text: "si vous demandez le badge « étudiant vérifié », l'adresse de votre établissement sert uniquement à vous envoyer un code ; elle est effacée dès la validation (ou au bout d'un jour), et seul son nom de domaine (ex. univ-rennes.fr) reste affiché sur votre profil. Une empreinte chiffrée de l'adresse est conservée pour qu'elle ne vérifie qu'un seul compte." },
@@ -983,6 +983,24 @@ const resources = {
       },
       profileUi: {
         editProfile: "Modifier le profil",
+        photo: {
+          change: "Changer la photo de profil",
+          title: "Photo de profil",
+          desc: "Une photo nette de ton visage aide les autres étudiants à te reconnaître.",
+          cropHint: "Fais glisser l'image pour la recadrer, et utilise le curseur pour zoomer.",
+          choose: "Choisir une image",
+          formats: "JPG, PNG ou WebP · 20 Mo maximum",
+          other: "Autre image",
+          zoom: "Zoom",
+          save: "Enregistrer la photo",
+          saved: "Photo de profil mise à jour",
+          remove: "Retirer la photo",
+          revertGoogle: "Revenir à ma photo Google",
+          removed: "Photo retirée",
+          tooBig: "Image trop lourde (20 Mo maximum).",
+          invalid: "Ce fichier n'est pas une image lisible (JPG, PNG ou WebP).",
+          error: "La photo n'a pas pu être enregistrée. Réessaie."
+        },
         publicNote: "C'est ce que voient les autres étudiants",
         stats: { subjects: "Matières", buddies: "Binômes", sessions: "Sessions faites", completion: "Profil complété" },
         strength: {
@@ -1309,7 +1327,7 @@ const resources = {
           {
             title: "2. Data we process",
             items: [
-              { label: "Account:", text: "name, email address and profile photo (provided by Google or entered at sign-up). Passwords are handled by Google Firebase; we never have access to them. Your email address is never shown to other students." },
+              { label: "Account:", text: "name and email address (provided by Google or entered at sign-up), profile photo (your Google photo, or one you upload from your profile). Passwords are handled by Google Firebase; we never have access to them. Your email address is never shown to other students." },
               { label: "Profile:", text: "city, level of study, subjects, availability, study mode, bio." },
               { label: "Age:", text: "age bracket (15 or over / under 15) and, where applicable, a declaration of parental consent. This information is private." },
               { label: "Student status (optional):", text: "if you request the “verified student” badge, your school address is only used to send you a code; it is erased as soon as you confirm (or after one day), and only its domain name (e.g. univ-rennes.fr) is shown on your profile. A hashed fingerprint of the address is kept so it can verify only one account." },
@@ -2105,6 +2123,24 @@ const resources = {
       },
       profileUi: {
         editProfile: "Edit profile",
+        photo: {
+          change: "Change profile photo",
+          title: "Profile photo",
+          desc: "A clear photo of your face helps other students recognize you.",
+          cropHint: "Drag the image to crop it, and use the slider to zoom.",
+          choose: "Choose an image",
+          formats: "JPG, PNG or WebP · 20 MB max",
+          other: "Other image",
+          zoom: "Zoom",
+          save: "Save photo",
+          saved: "Profile photo updated",
+          remove: "Remove photo",
+          revertGoogle: "Go back to my Google photo",
+          removed: "Photo removed",
+          tooBig: "Image too large (20 MB max).",
+          invalid: "This file isn't a readable image (JPG, PNG or WebP).",
+          error: "The photo couldn't be saved. Try again."
+        },
         publicNote: "This is what other students see",
         stats: { subjects: "Subjects", buddies: "Buddies", sessions: "Sessions done", completion: "Profile complete" },
         strength: {

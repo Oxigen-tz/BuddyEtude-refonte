@@ -502,9 +502,11 @@ exports.adminCleanupLegacy = onCall({ timeoutSeconds: 540, memory: "512MiB" }, a
 async function cleanupUserData(uid) {
   await db.recursiveDelete(db.collection(`users/${uid}/private`));
   for (const d of (await db.collection("verified_emails").where("uid", "==", uid).get()).docs) await d.ref.delete();
-  // Fichiers envoyés (pièces jointes, pages de PDF importées dans un tableau blanc)
+  // Fichiers envoyés (pièces jointes, pages de PDF importées dans un tableau blanc, photos de profil)
   await getStorage().bucket().deleteFiles({ prefix: `chat_files/${uid}/` })
     .catch((e) => logger.warn("Fichiers non supprimés", { uid, error: e.message }));
+  await getStorage().bucket().deleteFiles({ prefix: `avatars/${uid}/` })
+    .catch((e) => logger.warn("Photos de profil non supprimées", { uid, error: e.message }));
   // Groupes : ceux qu'il a créés sont supprimés (avec leur discussion), il quitte les autres
   for (const g of (await db.collection("groups").where("members", "array-contains", uid).get()).docs) {
     if (g.get("owner_uid") === uid) await g.ref.delete(); // onGroupDeleted efface la suite
