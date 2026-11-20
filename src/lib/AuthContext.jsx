@@ -11,6 +11,9 @@ import AuthDialog from '@/components/AuthDialog';
 
 const AuthContext = createContext();
 
+// Lien de l'e-mail de vérification : après validation, bouton « Continuer » vers BuddyEtude
+const verificationSettings = () => ({ url: `${window.location.origin}/Dashboard` });
+
 const toAppUser = (firebaseUser) => ({
   uid: firebaseUser.uid,
   email: firebaseUser.email,
@@ -93,7 +96,7 @@ export const AuthProvider = ({ children }) => {
     await updateProfile(result.user, { displayName: name.trim() });
     // Le profil a pu être créé juste avant (à la détection de la connexion) sans le nom saisi
     await setDoc(doc(db, 'users', result.user.uid), { display_name: name.trim(), full_name: name.trim() }, { merge: true }).catch(() => {});
-    await sendEmailVerification(result.user).catch(() => {});
+    await sendEmailVerification(result.user, verificationSettings()).catch(() => {});
     setUser(toAppUser(auth.currentUser));
     return afterLogin(result);
   });
@@ -101,15 +104,18 @@ export const AuthProvider = ({ children }) => {
   const resetPassword = (email) => sendPasswordResetEmail(auth, email.trim());
 
   const resendVerification = async () => {
-    if (auth.currentUser) await sendEmailVerification(auth.currentUser);
+    if (auth.currentUser) await sendEmailVerification(auth.currentUser, verificationSettings());
   };
 
-  // Après un clic sur le lien de vérification (autre onglet), on relit l'état du compte
-  const refreshUser = async () => {
-    if (!auth.currentUser) return;
+  // Après un clic sur le lien de vérification (autre onglet, application Mail…), on relit l'état
+  // du compte. Renvoie true si l'adresse est maintenant vérifiée.
+  const refreshUser = useCallback(async () => {
+    if (!auth.currentUser) return false;
     await auth.currentUser.reload();
+    if (auth.currentUser.emailVerified) await auth.currentUser.getIdToken(true).catch(() => {});
     setUser(toAppUser(auth.currentUser));
-  };
+    return auth.currentUser.emailVerified;
+  }, []);
 
   const logout = async () => {
     await signOut(auth);

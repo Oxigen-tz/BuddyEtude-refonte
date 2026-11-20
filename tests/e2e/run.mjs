@@ -409,6 +409,20 @@ async function scenario(browser) {
     await Z.locator("#auth-password").fill("motdepasse-solide");
     await Z.getByRole("button", { name: "Créer mon compte" }).click();
     await Z.getByText(/Vérifie ton adresse e-mail/).waitFor({ timeout: 15000 });
+    // Nouveau compte : la page de création du profil s'ouvre, avec le nom saisi à l'inscription
+    await Z.getByText("Bienvenue sur BuddyEtude").first().waitFor({ timeout: 15000 });
+    if ((await Z.locator("#profile-name").inputValue()) !== `Zoé ${RUN}`) throw new Error("nom saisi à l'inscription absent du profil");
+    // « C'est fait » avant d'avoir cliqué sur le lien : message explicatif
+    await Z.getByRole("button", { name: "C'est fait" }).click();
+    await Z.getByText(/pas encore vérifiée/).first().waitFor({ timeout: 10000 });
+    // Clic sur le lien de l'e-mail (émulateur Auth), puis « C'est fait » : bandeau retiré
+    const oob = await (await fetch(`http://127.0.0.1:9099/emulator/v1/projects/${PROJECT}/oobCodes`)).json();
+    const link = oob.oobCodes.reverse().find((c) => c.email === `zoe_${RUN}@test.com` && c.requestType === "VERIFY_EMAIL")?.oobLink;
+    if (!link) throw new Error("e-mail de vérification non envoyé");
+    await fetch(link);
+    await Z.getByRole("button", { name: "C'est fait" }).click();
+    await Z.getByText("Adresse e-mail vérifiée").first().waitFor({ timeout: 10000 });
+    await Z.getByText(/Vérifie ton adresse e-mail/).waitFor({ state: "detached", timeout: 10000 });
     await Z.goto(BASE + "/Settings");
     await Z.getByRole("button", { name: "Supprimer mon compte" }).last().click();
     await Z.locator("#delete-confirm").fill("SUPPRIMER");

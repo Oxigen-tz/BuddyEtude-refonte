@@ -107,6 +107,8 @@ const resources = {
         verifySent: "E-mail de vérification renvoyé.",
         verifyResend: "Renvoyer l'e-mail",
         verifyDone: "C'est fait",
+        verifyOk: "Adresse e-mail vérifiée ✓",
+        verifyNotYet: "Ton adresse n'est pas encore vérifiée. Ouvre l'e-mail reçu (regarde aussi dans « Courrier indésirable »), clique sur le lien, puis reviens ici.",
         errors: {
           invalidCredential: "Adresse e-mail ou mot de passe incorrect.",
           invalidEmail: "Adresse e-mail invalide.",
@@ -1346,6 +1348,8 @@ const resources = {
         verifySent: "Verification email sent again.",
         verifyResend: "Resend the email",
         verifyDone: "Done",
+        verifyOk: "Email address verified ✓",
+        verifyNotYet: "Your address isn't verified yet. Open the email you received (check your spam folder too), click the link, then come back here.",
         errors: {
           invalidCredential: "Incorrect email or password.",
           invalidEmail: "Invalid email address.",

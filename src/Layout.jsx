@@ -11,7 +11,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
   Search, LayoutDashboard, MessageSquare, Calendar,
-  User, LogOut, Menu, X, Settings as SettingsIcon, Bell, CheckCircle2, Globe, UserPlus, ShieldAlert, MailWarning, UsersRound
+  User, LogOut, Menu, X, Settings as SettingsIcon, Bell, CheckCircle2, Globe, UserPlus, ShieldAlert, MailWarning, UsersRound, Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -36,6 +36,30 @@ export default function Layout({ children, currentPageName }) {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Vérification de l'adresse e-mail : bouton « C'est fait » avec un retour clair, et nouvelle
+  // vérification automatique quand on revient sur l'onglet (après avoir cliqué sur le lien reçu)
+  const [checkingEmail, setCheckingEmail] = useState(false);
+  const checkEmailVerified = async () => {
+    setCheckingEmail(true);
+    try {
+      if (await refreshUser()) toast.success(t('auth.verifyOk'));
+      else toast.info(t('auth.verifyNotYet'), { duration: 8000 });
+    } catch {
+      toast.error(t('auth.errors.generic'));
+    } finally {
+      setCheckingEmail(false);
+    }
+  };
+  useEffect(() => {
+    if (!user?.needsEmailVerification) return;
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      refreshUser().then((ok) => { if (ok) toast.success(t('auth.verifyOk')); }).catch(() => {});
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [user?.needsEmailVerification, refreshUser, t]);
 
   // Profil pas encore créé : on ramène vers la page Profil (sauf Paramètres, pour pouvoir
   // supprimer son compte). Avant, un nouvel inscrit naviguait avec le nom « Étudiant ».
@@ -423,7 +447,8 @@ export default function Layout({ children, currentPageName }) {
                 <Button size="sm" variant="ghost" className="rounded-xl" onClick={() => resendVerification().then(() => toast.success(t('auth.verifySent'))).catch(() => toast.error(t('auth.errors.generic')))}>
                   {t('auth.verifyResend')}
                 </Button>
-                <Button size="sm" variant="outline" className="rounded-xl bg-transparent" onClick={refreshUser}>
+                <Button size="sm" variant="outline" className="rounded-xl bg-transparent" disabled={checkingEmail} onClick={checkEmailVerified}>
+                  {checkingEmail && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />}
                   {t('auth.verifyDone')}
                 </Button>
               </div>
