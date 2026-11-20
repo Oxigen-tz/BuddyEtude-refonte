@@ -2,7 +2,8 @@ import React, { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
-import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
+import { useLiteMotion } from "@/hooks/useLiteMotion";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { LogoMark } from "@/components/Logo";
@@ -12,7 +13,7 @@ export default function CTASection() {
   const { user, openLogin } = useAuth();
   const { t } = useTranslation();
   const ref = useRef(null);
-  const reduce = useReducedMotion();
+  const reduce = useLiteMotion();
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "center center"] });
   const scale = useTransform(scrollYProgress, [0, 1], reduce ? [1, 1] : [0.82, 1]);
   const radius = useTransform(scrollYProgress, [0, 1], reduce ? [40, 40] : [80, 40]);

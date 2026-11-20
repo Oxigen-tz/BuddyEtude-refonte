@@ -1,5 +1,6 @@
 import React, { useRef } from "react";
-import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
+import { useLiteMotion } from "@/hooks/useLiteMotion";
 import { useTranslation } from "react-i18next";
 
 // Chaque mot passe de transparent à blanc au fil du défilement.
@@ -15,7 +16,7 @@ function Word({ children, progress, range, accent }) {
 export default function Manifesto() {
   const { t } = useTranslation();
   const ref = useRef(null);
-  const reduce = useReducedMotion();
+  const reduce = useLiteMotion();
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start 0.85", "end 0.45"] });
   const words = t("landing.manifesto").split(" ");
   // La dernière phrase (nom de la marque) est mise en couleur

@@ -45,12 +45,12 @@ export default function HomeNavbar() {
           </button>
 
           {user ? (
-            <Link to={createPageUrl("Dashboard")}>
-              <Button className="rounded-xl px-4 sm:px-5 group">
+            <Button asChild className="rounded-xl px-4 sm:px-5 group">
+              <Link to={createPageUrl("Dashboard")}>
                 {t("home.nav.dashboard")}
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           ) : (
             <>
               <Button

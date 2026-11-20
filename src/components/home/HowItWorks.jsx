@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
-import { motion, AnimatePresence, useScroll, useMotionValueEvent, useTransform, useReducedMotion } from "framer-motion";
+import { motion, AnimatePresence, useScroll, useMotionValueEvent, useTransform } from "framer-motion";
+import { useLiteMotion } from "@/hooks/useLiteMotion";
 import { useTranslation } from "react-i18next";
 import { UserRoundPen, Sparkles, PenLine, BadgeCheck, Video, Mic, CalendarClock } from "lucide-react";
 
@@ -118,7 +119,7 @@ const VISUALS = [ProfileVisual, MatchVisual, StudyVisual];
 export default function HowItWorks() {
   const { t } = useTranslation();
   const ref = useRef(null);
-  const reduce = useReducedMotion();
+  const reduce = useLiteMotion();
   const [active, setActive] = useState(0);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
   useMotionValueEvent(scrollYProgress, "change", (v) => setActive(Math.min(STEPS.length - 1, Math.max(0, Math.floor(v * STEPS.length)))));

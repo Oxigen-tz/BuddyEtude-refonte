@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Check, Sparkles, Users, BadgeCheck, CalendarClock, Video, ChevronDown } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
-import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
+import { useLiteMotion } from "@/hooks/useLiteMotion";
 import { Link } from "react-router-dom";
 import { useTranslation, Trans } from "react-i18next";
 import { db } from "@/firebase/config";
@@ -15,7 +16,7 @@ const EASE = [0.22, 1, 0.36, 1];
 export default function HeroSection() {
   const { user, openLogin } = useAuth();
   const { t } = useTranslation();
-  const reduce = useReducedMotion();
+  const reduce = useLiteMotion();
   const [studentCount, setStudentCount] = useState(null);
 
   useEffect(() => {
@@ -97,7 +98,8 @@ export default function HeroSection() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.85, duration: 0.8, ease: EASE }}
           className="mt-10 flex flex-col sm:flex-row gap-3 justify-center">
           {user ? (
-            <Link to="/Dashboard"><Button size="lg" className={`w-full sm:w-auto ${ctaClass}`}>{t("hero.btn_dashboard")}<ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" /></Button></Link>
+            // Lien stylé en bouton (et non un bouton dans un lien : sur iPhone, le toucher n'ouvrait pas toujours la page)
+            <Button asChild size="lg" className={`w-full sm:w-auto ${ctaClass}`}><Link to="/Dashboard">{t("hero.btn_dashboard")}<ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" /></Link></Button>
           ) : (
             <Button size="lg" onClick={openLogin} className={ctaClass}>{t("hero.btn_start")}<ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" /></Button>
           )}

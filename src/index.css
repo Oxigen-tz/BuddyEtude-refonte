@@ -72,6 +72,11 @@
   ::selection {
     background: rgba(122, 85, 255, 0.22);
   }
+  /* Téléphones et tablettes : pas d'animation continue (halos, reflets, flottement). Ces effets
+     occupaient le processeur graphique en permanence et la page ne se redessinait plus en défilant. */
+  @media (max-width: 767px), (hover: none) and (pointer: coarse) {
+    .animate-aurora, .animate-aurora-slow, .animate-shine, .animate-float, .animate-gradient-x { animation: none !important; }
+  }
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
     *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }

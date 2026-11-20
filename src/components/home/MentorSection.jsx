@@ -1,5 +1,6 @@
 import React, { useRef } from "react";
-import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
+import { useLiteMotion } from "@/hooks/useLiteMotion";
 import { useTranslation } from "react-i18next";
 import { Check, GraduationCap, HandHeart, Sparkles } from "lucide-react";
 import SectionHeading, { reveal } from "./SectionHeading";
@@ -8,7 +9,7 @@ import SectionHeading, { reveal } from "./SectionHeading";
 export default function MentorSection() {
   const { t } = useTranslation();
   const ref = useRef(null);
-  const reduce = useReducedMotion();
+  const reduce = useLiteMotion();
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
   const cardY = useTransform(scrollYProgress, [0, 1], reduce ? [0, 0] : [90, -90]);
   const cardRotate = useTransform(scrollYProgress, [0, 1], reduce ? [0, 0] : [6, -4]);

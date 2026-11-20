@@ -1,6 +1,7 @@
 import React, { useLayoutEffect, useRef, useState } from "react";
 import { Target, MessageCircle, PenTool, Send, CalendarDays, BookOpen, Paperclip, ArrowRight } from "lucide-react";
-import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
+import { useLiteMotion } from "@/hooks/useLiteMotion";
 import { useTranslation } from "react-i18next";
 
 // Galerie horizontale : en faisant défiler la page, les cartes glissent de droite à gauche.
@@ -87,10 +88,10 @@ const CARDS = [
   { id: "subjects", icon: BookOpen, Art: SubjectsArt, glow: "bg-brand-400" },
 ];
 
-function FeatureCard({ id, icon: Icon, Art, glow, index }) {
+function FeatureCard({ id, icon: Icon, Art, glow, index, fluid = false }) {
   const { t } = useTranslation();
   return (
-    <article className="group relative shrink-0 w-[82vw] sm:w-[420px] h-[460px] sm:h-[500px] rounded-[2rem] bg-gradient-to-b from-white/[0.09] to-white/[0.02] border border-white/10 p-7 sm:p-8 overflow-hidden flex flex-col">
+    <article className={`group relative ${fluid ? "w-full min-h-[420px]" : "shrink-0 w-[82vw] sm:w-[420px] h-[460px] sm:h-[500px]"} rounded-[2rem] bg-gradient-to-b from-white/[0.09] to-white/[0.02] border border-white/10 p-7 sm:p-8 overflow-hidden flex flex-col`}>
       <div className={`absolute -top-24 -right-24 w-64 h-64 rounded-full ${glow} opacity-25 blur-[80px] transition-opacity duration-500 group-hover:opacity-50`} />
       <div className="relative flex items-center justify-between">
         <span className="w-12 h-12 rounded-2xl bg-white/10 border border-white/10 text-white flex items-center justify-center"><Icon className="w-5 h-5" /></span>
@@ -105,7 +106,7 @@ function FeatureCard({ id, icon: Icon, Art, glow, index }) {
 
 export default function FeaturesSection() {
   const { t } = useTranslation();
-  const reduce = useReducedMotion();
+  const reduce = useLiteMotion();
   const sectionRef = useRef(null);
   const trackRef = useRef(null);
   const [distance, setDistance] = useState(0);
@@ -137,7 +138,10 @@ export default function FeaturesSection() {
   if (reduce) {
     return (
       <section className="px-4 sm:px-6 py-24">
-        <div className="max-w-6xl mx-auto flex flex-wrap gap-6">{intro}{CARDS.map((c, i) => <FeatureCard key={c.id} {...c} index={i} />)}</div>
+        <div className="max-w-6xl mx-auto grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="sm:col-span-2 lg:col-span-3 [&>div]:w-full [&>div]:pr-0">{intro}</div>
+          {CARDS.map((c, i) => <FeatureCard key={c.id} {...c} index={i} fluid />)}
+        </div>
       </section>
     );
   }
