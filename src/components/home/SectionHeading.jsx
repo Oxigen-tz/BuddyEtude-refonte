@@ -1,7 +1,11 @@
 import React from "react";
 import { motion } from "framer-motion";
+import { isLiteDevice } from "@/hooks/useLiteMotion";
 
-export const reveal = (delay = 0) => ({
+// Apparition au défilement. Sur téléphone et tablette : contenu affiché directement (sur certains
+// téléphones, l'apparition ne se déclenchait pas et la page restait noire après l'introduction).
+const LITE = isLiteDevice();
+export const reveal = (delay = 0) => LITE ? {} : ({
   initial: { opacity: 0, y: 28 },
   whileInView: { opacity: 1, y: 0 },
   viewport: { once: true, margin: "-60px" },

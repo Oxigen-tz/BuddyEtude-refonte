@@ -1,7 +1,8 @@
 import React, { useLayoutEffect, useRef, useState } from "react";
 import { Target, MessageCircle, PenTool, Send, CalendarDays, BookOpen, Paperclip, ArrowRight } from "lucide-react";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { useLiteMotion } from "@/hooks/useLiteMotion";
+import { useLiteMotion, isLiteDevice } from "@/hooks/useLiteMotion";
+const LITE = isLiteDevice();
 import { useTranslation } from "react-i18next";
 
 // Galerie horizontale : en faisant défiler la page, les cartes glissent de droite à gauche.
@@ -15,7 +16,7 @@ function MatchArt() {
         <div key={ini} className="flex items-center gap-3 rounded-xl bg-white/[0.06] border border-white/10 p-2.5">
           <span className={`w-8 h-8 rounded-lg bg-gradient-to-br ${g} text-white text-[11px] font-bold flex items-center justify-center`}>{ini}</span>
           <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
-            <motion.div initial={{ width: 0 }} whileInView={{ width: `${s}%` }} viewport={{ once: true }} transition={{ duration: 1, delay: i * 0.15 }} className="h-full rounded-full bg-gradient-to-r from-brand-400 to-lime-300" />
+            <motion.div initial={LITE ? false : { width: 0 }} whileInView={{ width: `${s}%` }} animate={LITE ? { width: `${s}%` } : undefined} viewport={{ once: true }} transition={{ duration: 1, delay: i * 0.15 }} className="h-full rounded-full bg-gradient-to-r from-brand-400 to-lime-300" />
           </div>
           <span className="text-sm font-bold text-white w-10 text-right">{s}%</span>
         </div>
@@ -37,9 +38,9 @@ function BoardArt() {
   return (
     <svg viewBox="0 0 300 130" className="w-full h-32">
       <motion.path d="M10 90 C 60 0, 110 0, 150 60 S 220 110, 290 20" fill="none" stroke="#DE9DFF" strokeWidth="5" strokeLinecap="round"
-        initial={{ pathLength: 0 }} whileInView={{ pathLength: 1 }} viewport={{ once: true }} transition={{ duration: 1.6, ease: "easeInOut" }} />
+        initial={LITE ? false : { pathLength: 0 }} whileInView={{ pathLength: 1 }} viewport={{ once: true }} transition={{ duration: 1.6, ease: "easeInOut" }} />
       <motion.circle cx="150" cy="40" r="16" fill="none" stroke="#FF8A66" strokeWidth="3.5"
-        initial={{ pathLength: 0 }} whileInView={{ pathLength: 1 }} viewport={{ once: true }} transition={{ duration: 0.8, delay: 1.2 }} />
+        initial={LITE ? false : { pathLength: 0 }} whileInView={{ pathLength: 1 }} viewport={{ once: true }} transition={{ duration: 0.8, delay: 1.2 }} />
       <text x="196" y="122" fill="#DCF46B" style={{ font: "italic 700 22px 'Bricolage Grotesque', serif" }}>f′(x) = 0</text>
     </svg>
   );

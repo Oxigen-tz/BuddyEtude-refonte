@@ -27,7 +27,7 @@ export default function Home() {
   }, [user, loginCount, navigate]);
 
   return (
-    <div className="dark min-h-screen bg-ink-950 text-white overflow-x-clip">
+    <div className="home-root dark min-h-screen bg-ink-950 text-white overflow-x-clip">
       <motion.div style={{ scaleX: progress }} className="fixed top-0 inset-x-0 h-[3px] z-[60] origin-left bg-gradient-to-r from-brand-400 via-purple-400 to-lime-300" />
       <HomeNavbar />
       <main>

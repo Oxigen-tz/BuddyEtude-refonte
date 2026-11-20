@@ -1,10 +1,12 @@
 import React from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
+import { useLiteMotion } from "@/hooks/useLiteMotion";
 
 // Apparition douce d'un élément quand il entre à l'écran (cartes, listes).
 // `index` décale légèrement chaque élément d'une grille pour un effet en cascade.
 export default function Reveal({ children, index = 0, className = "" }) {
-  const reduce = useReducedMotion();
+  // Téléphone, tablette ou animations réduites : affiché directement
+  const reduce = useLiteMotion();
   if (reduce) return <div className={className}>{children}</div>;
   return (
     <motion.div

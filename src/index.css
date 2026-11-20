@@ -76,6 +76,10 @@
      occupaient le processeur graphique en permanence et la page ne se redessinait plus en défilant. */
   @media (max-width: 767px), (hover: none) and (pointer: coarse) {
     .animate-aurora, .animate-aurora-slow, .animate-shine, .animate-float, .animate-gradient-x { animation: none !important; }
+    /* Halos décoratifs très flous : coûteux à dessiner pour Safari (zones noires), masqués */
+    .absolute[class*="blur-"]:not([class*="backdrop-blur"]) { display: none !important; }
+    /* À la place, sur l'accueil : un dégradé fixe, sans coût de calcul */
+    .home-root { background-image: radial-gradient(60rem 40rem at 85% -10%, rgba(100, 56, 245, 0.35), transparent 60%), radial-gradient(40rem 30rem at -10% 30%, rgba(255, 107, 66, 0.12), transparent 60%); background-repeat: no-repeat; }
   }
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }

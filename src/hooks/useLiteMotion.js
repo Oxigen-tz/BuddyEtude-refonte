@@ -19,3 +19,9 @@ export function useLiteMotion() {
   }, []);
   return reduce || lite;
 }
+
+// Même règle, lue une fois au chargement (pour les animations définies hors composant)
+export const isLiteDevice = () => {
+  if (typeof window === "undefined" || !window.matchMedia) return false;
+  return window.matchMedia(QUERY).matches || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+};
