@@ -3,16 +3,16 @@ import { db, storage } from "../firebase/config";
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, arrayRemove, orderBy, limit } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { useAuth } from "@/lib/AuthContext";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useRequests, buildRelations } from "@/hooks/useRequests";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 import { detectContactInfo } from "@/lib/safety";
-import { pairId } from "@/lib/pairs";
+import { pairId, pairCallUrl, studentUrl } from "@/lib/pairs";
 import { createPageUrl } from "@/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Send, MessageSquare, Loader2, Paperclip, FileText, PenTool, X, Edit2, Trash2, Check, UserPlus, UserMinus, AlertTriangle, ArrowLeft } from "lucide-react";
+import { Send, MessageSquare, Loader2, Paperclip, FileText, PenTool, X, Edit2, Trash2, Check, UserPlus, UserMinus, AlertTriangle, ArrowLeft, Video } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation, Trans } from "react-i18next";
 
@@ -411,11 +411,22 @@ export default function Messages() {
                    >
                      <ArrowLeft className="w-5 h-5" />
                    </Button>
-                   <Avatar className="h-10 w-10 sm:h-12 sm:w-12 shrink-0"><AvatarFallback className="bg-indigo-100 dark:bg-ink-800 text-indigo-700 dark:text-indigo-400 font-bold text-lg">{getInitial(activeChat.name)}</AvatarFallback></Avatar>
-                   <div className="flex-1 min-w-0">
-                     <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100 leading-tight truncate">{activeChat.name}</h3>
-                     <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{t('messages.studyBuddy')}</p>
-                   </div>
+                   {/* Nom et avatar cliquables : ouvrent le profil complet */}
+                   <Link to={studentUrl(activeChat.uid)} className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0 rounded-xl -m-1 p-1 hover:bg-white/70 dark:hover:bg-ink-800/60 transition-colors" title={t('student.viewProfile')}>
+                     <Avatar className="h-10 w-10 sm:h-12 sm:w-12 shrink-0"><AvatarFallback className="bg-indigo-100 dark:bg-ink-800 text-indigo-700 dark:text-indigo-400 font-bold text-lg">{getInitial(activeChat.name)}</AvatarFallback></Avatar>
+                     <div className="flex-1 min-w-0">
+                       <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100 leading-tight truncate">{activeChat.name}</h3>
+                       <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{t('student.viewProfile')}</p>
+                     </div>
+                   </Link>
+                   <Button
+                    onClick={() => navigate(pairCallUrl(user.uid, activeChat.uid))}
+                    aria-label={t('call.start')}
+                    title={t('call.start')}
+                    className="shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-11 px-3 xl:px-5"
+                   >
+                     <Video className="w-5 h-5 xl:mr-2" /> <span className="hidden xl:inline">{t('call.start')}</span>
+                   </Button>
                    <Button
                     variant="outline"
                     onClick={() => navigate(`${createPageUrl("Whiteboard")}?sessionId=${encodeURIComponent(pairId(user.uid, activeChat.uid))}`)}

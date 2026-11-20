@@ -219,7 +219,7 @@ export default function ProfileForm({ profile, onSave, saving }) {
             )}
           </div>
           <Select value={newSubjectLevel} onValueChange={setNewSubjectLevel}>
-            <SelectTrigger className={`${fieldClass} w-full md:w-[200px]`}><SelectValue /></SelectTrigger>
+            <SelectTrigger className={`${fieldClass} w-full md:w-[290px]`}><SelectValue /></SelectTrigger>
             <SelectContent>
               {SUBJECT_LEVEL_VALUES.map(value => (
                 <SelectItem key={value} value={value} className="cursor-pointer">{t(`profileForm.subjectLevels.${value}`)}</SelectItem>

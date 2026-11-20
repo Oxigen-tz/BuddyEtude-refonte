@@ -16,7 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation, Trans } from "react-i18next";
 import { createPageUrl } from "@/utils";
 import { useRequests, buildRelations } from "@/hooks/useRequests";
@@ -74,6 +74,21 @@ export default function Search() {
   const requests = useRequests(user?.uid);
   const relations = buildRelations(requests);
   const blocked = useBlocks(user?.uid);
+
+  // Arrivée depuis le profil d'un étudiant (« Contacter ») : /Search?contact=<uid>
+  const [searchParams, setSearchParams] = useSearchParams();
+  const contactParam = searchParams.get("contact");
+  useEffect(() => {
+    if (!contactParam || isLoading) return;
+    const target = profiles.find((p) => p.id === contactParam);
+    if (target && !relations.get(contactParam)) {
+      setRequestDialog({ profile: target, kind: "buddy", helpSubjects: [] });
+      setRequestSubject("");
+      setRequestMessage("");
+      setContactWarning(false);
+    }
+    setSearchParams((params) => { params.delete("contact"); return params; }, { replace: true });
+  }, [contactParam, isLoading, profiles]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Mon propre profil : sert à calculer la compatibilité avec les autres
   const [myProfile, setMyProfile] = useState(null);

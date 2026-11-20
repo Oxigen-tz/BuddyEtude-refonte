@@ -102,7 +102,9 @@ await t("e-mail : nouvelle session", async () => {
   const start = new Date(Date.now() + 3 * 86400000);
   await write(`sessions/s1`, { title: "Chapitre 4", organizer_uid: A, organizer_name: "Alice", buddy_uid: B, participants: [A, B], status: "planned", start_at: start, date: "2030-01-01", time: "18:00", mode: "en_ligne", meeting_url: "https://meet.jit.si/test" });
   const [mail] = await waitForMails((f) => to(f) === "bob@test.com" && /Nouvelle session/.test(subject(f)), 1, "session");
-  if (!mail.fields.message.mapValue.fields.text.stringValue.includes("https://meet.jit.si/test")) throw new Error("lien d'appel absent");
+  // Les anciens liens meet.jit.si sont remplacés par l'appel intégré
+  const text = mail.fields.message.mapValue.fields.text.stringValue;
+  if (!text.includes("/Call?type=session&id=s1") || text.includes("meet.jit.si")) throw new Error("lien d'appel intégré absent");
 });
 
 await t("rappels : la veille et 1 h avant, sans doublon", async () => {
@@ -281,6 +283,74 @@ await t("statistiques : entonnoir et mentorat", async () => {
   if (!Array.isArray(r.funnel) || r.funnel.length !== 5 || r.funnel[0].key !== "accounts") throw new Error(JSON.stringify(r.funnel));
   if (r.verified < 1) throw new Error(`vérifiés : ${r.verified}`);
   r.funnel.forEach((step, i) => { if (i > 0 && step.count > r.funnel[i - 1].count) throw new Error(`entonnoir qui remonte : ${JSON.stringify(r.funnel)}`); });
+});
+
+// --- Changement de nom propagé (demandes, sessions, groupes)
+await t("nom : un changement de nom est recopié dans les demandes, sessions et groupes", async () => {
+  await write(`requests/${pair}`, { from_uid: A, to_uid: B, from_name: "Alice", to_name: "Bob", status: "accepted", participants: [A, B] });
+  await write("sessions/s-nom", { organizer_uid: A, organizer_name: "Alice", buddy_name: "Bob", participants: [A, B], status: "planned", title: "Test" });
+  await write("groups/g-nom", { owner_uid: A, members: [A, B], member_names: { [A]: "Alice", [B]: "Bob" }, name: "Groupe" });
+  await write(`users/${B}`, { display_name: "Bob", profile_complete: true }); // profil existant (supprimé plus haut)
+  await sleep(1500);
+  await write(`users/${B}`, { display_name: "Bobby", profile_complete: true });
+  for (let i = 0; i < 40; i++) {
+    const [r, sess, g] = await Promise.all([get(`requests/${pair}`), get("sessions/s-nom"), get("groups/g-nom")]);
+    if (r.fields?.to_name?.stringValue === "Bobby" && sess.fields?.buddy_name?.stringValue === "Bobby"
+      && g.fields?.member_names?.mapValue?.fields?.[B]?.stringValue === "Bobby") return;
+    await sleep(500);
+  }
+  throw new Error("nom non recopié");
+});
+
+// --- Appels vidéo : contrôle d'accès (sans clé Daily dans l'émulateur)
+await t("appel : refusé à un étudiant hors du binôme", async () => {
+  const { status, body } = await call("createCallToken", { type: "pair", id: pair }, await idToken("carla@test.com"));
+  if (status === 200 || body.error?.message !== "not-allowed") throw new Error(`${status} ${JSON.stringify(body)}`);
+});
+await t("appel : membre du binôme autorisé (s'arrête à la clé Daily absente)", async () => {
+  const { status, body } = await call("createCallToken", { type: "pair", id: pair }, await idToken("alice@test.com"));
+  if (status === 200 || body.error?.message !== "calls-not-configured") throw new Error(`${status} ${JSON.stringify(body)}`);
+});
+await t("appel : paramètres invalides refusés", async () => {
+  const { body } = await call("createCallToken", { type: "x", id: "../../" }, await idToken("alice@test.com"));
+  if (body.error?.message !== "bad-request") throw new Error(JSON.stringify(body));
+});
+
+// --- Appels vidéo : salle et jeton Daily (API simulée)
+await t("appel : salle créée une fois, réutilisée ensuite, jeton nominatif", async () => {
+  const require = createRequire(import.meta.url);
+  const calls = require("../../functions/calls.js");
+  const rooms = new Map();
+  const seen = [];
+  const fakeFetch = async (url, { method = "GET", body } = {}) => {
+    const path = url.replace(/^https:\/\/api\.daily\.co\/v1/, "");
+    seen.push(`${method} ${path}`);
+    const json = (status, data) => ({ status, json: async () => data });
+    if (method === "GET" && path.startsWith("/rooms/")) {
+      const room = rooms.get(path.slice(7));
+      return room ? json(200, room) : json(404, { error: "not-found" });
+    }
+    if (method === "POST" && path === "/rooms") {
+      const b = JSON.parse(body);
+      if (b.privacy !== "private") return json(400, { error: "privacy" });
+      const room = { name: b.name, url: `https://test.daily.co/${b.name}`, config: { exp: b.properties.exp } };
+      rooms.set(b.name, room);
+      return json(200, room);
+    }
+    if (method === "POST" && path === "/meeting-tokens") {
+      const b = JSON.parse(body);
+      return json(200, { token: `tok-${b.properties.room_name}-${b.properties.user_name}` });
+    }
+    return json(404, {});
+  };
+  const first = await calls.ensureRoom("k", { type: "pair", id: pair }, { fetchImpl: fakeFetch });
+  const again = await calls.ensureRoom("k", { type: "pair", id: pair }, { fetchImpl: fakeFetch });
+  if (first.url !== again.url || rooms.size !== 1) throw new Error("salle non réutilisée");
+  if (!/^be-[0-9a-f]{24}$/.test(first.name)) throw new Error(`nom de salle : ${first.name}`);
+  if (calls.roomNameFor("pair", pair) === calls.roomNameFor("group", pair)) throw new Error("salles identiques pour deux contextes");
+  const token = await calls.createToken("k", { roomName: first.name, userName: "Alice" }, fakeFetch);
+  if (token !== `tok-${first.name}-Alice`) throw new Error(token);
+  if (seen.filter((x) => x === "POST /rooms").length !== 1) throw new Error(seen.join(", "));
 });
 
 console.log(`\nFunctions : ${pass} test(s) réussi(s), ${failures.length} échec(s)`);

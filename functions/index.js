@@ -32,6 +32,7 @@ const { getStorage } = require("firebase-admin/storage");
 const { getAuth } = require("firebase-admin/auth");
 const { getMessaging } = require("firebase-admin/messaging");
 const crypto = require("node:crypto");
+const calls = require("./calls");
 
 initializeApp();
 const db = getFirestore();
@@ -46,6 +47,8 @@ const SMTP_HOST = defineString("SMTP_HOST", { default: "smtp-relay.brevo.com" })
 const SMTP_USER = defineString("SMTP_USER", { description: "Identifiant SMTP (Brevo : SMTP et API → Connexion)" });
 const MAIL_FROM = defineString("MAIL_FROM", { default: "BuddyEtude <notifications@buddyetude.com>" });
 const SMTP_PASSWORD = defineSecret("SMTP_PASSWORD");
+// Appels vidéo (Daily.co) : firebase functions:secrets:set DAILY_API_KEY
+const DAILY_API_KEY = defineSecret("DAILY_API_KEY");
 
 const MESSAGE_EMAIL_COOLDOWN_MS = 30 * 60 * 1000; // au plus un e-mail par conversation / 30 min
 
@@ -235,6 +238,14 @@ exports.onGroupMessageCreated = onDocumentCreated("groups/{groupId}/messages/{me
 
 // ------------------------------------------------------------------ Sessions
 
+// Lien d'appel d'une session en ligne : appel intégré, ou lien externe choisi (Zoom, Teams…)
+// Les anciens liens meet.jit.si ne sont plus proposés (Jitsi exige désormais un « hôte » connecté).
+function callLinkOf(s, sessionId) {
+  if (s.meeting_url && !/^https:\/\/meet\.jit\.si\//.test(s.meeting_url)) return s.meeting_url;
+  if (s.mode === "en_ligne") return `${APP_URL.value()}/Call?type=session&id=${encodeURIComponent(sessionId)}`;
+  return null;
+}
+
 exports.onSessionCreated = onDocumentCreated("sessions/{sessionId}", async (event) => {
   const s = event.data?.data();
   if (!s || s.status !== "planned") return;
@@ -242,7 +253,8 @@ exports.onSessionCreated = onDocumentCreated("sessions/{sessionId}", async (even
   const to = await recipientEmail(otherUid);
   const lines = [`${s.organizer_name || "Ton binôme"} a planifié « ${s.title} » avec toi.`, `Quand : ${formatStart(s.start_at) || `${s.date} ${s.time}`}`];
   if (s.mode === "presentiel" && s.location) lines.push(`Où : ${s.location}`);
-  if (s.meeting_url) lines.push(`Lien d'appel : ${s.meeting_url}`);
+  const link = callLinkOf(s, event.params.sessionId);
+  if (link) lines.push(`Appel vidéo : ${link}`);
   await sendMail(to, `Nouvelle session : ${s.title}`,
     renderEmail({ title: "Nouvelle session de révision 📅", lines, ctaLabel: "Voir mes sessions", ctaPath: "/Sessions" }));
   await sendPush(otherUid, { title: "Nouvelle session 📅", body: `${s.title} — ${formatStart(s.start_at) || `${s.date} ${s.time}`}`, link: "/Sessions", tag: `session-${event.params.sessionId}` });
@@ -269,7 +281,8 @@ exports.sessionReminders = onSchedule({ schedule: "every 15 minutes", timeZone: 
     await docSnap.ref.update(kind === "1h" ? { reminder1h: true, reminder24h: true } : { reminder24h: true });
     const lines = [`« ${s.title} » ${kind === "1h" ? "commence dans moins d'une heure" : "a lieu demain"} : ${formatStart(s.start_at)}.`];
     if (s.mode === "presentiel" && s.location) lines.push(`Où : ${s.location}`);
-    if (s.meeting_url) lines.push(`Lien d'appel : ${s.meeting_url}`);
+    const link = callLinkOf(s, docSnap.id);
+    if (link) lines.push(`Appel vidéo : ${link}`);
     for (const uid of s.participants || []) {
       const to = await recipientEmail(uid);
       await sendMail(to, `Rappel : ${s.title} ${kind === "1h" ? "dans 1 heure" : "demain"}`,
@@ -346,6 +359,67 @@ exports.onProfileWrite = onDocumentWritten("users/{uid}", async (event) => {
   const after = event.data?.after.exists ? event.data.after.get("profile_complete") === true : false;
   if (before === after) return;
   await db.doc("stats/public").set({ studentCount: FieldValue.increment(after ? 1 : -1) }, { merge: true });
+});
+
+// Changement de nom : les noms recopiés dans les demandes, sessions, groupes et blocages
+// (affichés dans la messagerie, les notifications…) et le compte de connexion sont mis à jour.
+exports.onDisplayNameChanged = onDocumentUpdated("users/{uid}", async (event) => {
+  const before = (event.data.before.get("display_name") || "").trim();
+  const name = (event.data.after.get("display_name") || "").trim();
+  if (!name || name === before) return;
+  const uid = event.params.uid;
+  const writer = db.bulkWriter();
+  const each = async (query, update) => (await query.get()).docs.forEach((d) => writer.update(d.ref, update(d)));
+  await Promise.all([
+    each(db.collection("requests").where("from_uid", "==", uid), () => ({ from_name: name })),
+    each(db.collection("requests").where("to_uid", "==", uid), () => ({ to_name: name })),
+    each(db.collection("sessions").where("participants", "array-contains", uid),
+      (d) => (d.get("organizer_uid") === uid ? { organizer_name: name } : { buddy_name: name })),
+    each(db.collection("groups").where("members", "array-contains", uid), () => ({ [`member_names.${uid}`]: name })),
+    each(db.collection("blocks").where("blocked", "==", uid), () => ({ blocked_name: name })),
+  ]);
+  await writer.close();
+  await getAuth().updateUser(uid, { displayName: name }).catch((e) => logger.warn("Nom du compte non mis à jour", { uid, error: e.message }));
+});
+
+// ------------------------------------------------------------------ Appels vidéo
+
+// Donne l'accès à l'appel vidéo d'un binôme (type "pair", id = paire de uids), d'un groupe
+// ou d'une session, après vérification que l'appelant en fait partie.
+exports.createCallToken = onCall({ secrets: [DAILY_API_KEY] }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Connexion requise.");
+  const { type, id } = request.data || {};
+  if (!["pair", "group", "session"].includes(type) || typeof id !== "string" || !id || id.length > 200 || id.includes("/")) {
+    throw new HttpsError("invalid-argument", "bad-request");
+  }
+
+  let title = "";
+  if (type === "pair") {
+    const req = await db.doc(`requests/${id}`).get();
+    if (!req.exists || req.get("status") !== "accepted" || !(req.get("participants") || []).includes(uid)) throw new HttpsError("permission-denied", "not-allowed");
+    title = req.get("from_uid") === uid ? req.get("to_name") : req.get("from_name");
+  } else if (type === "group") {
+    const group = await db.doc(`groups/${id}`).get();
+    if (!group.exists || !(group.get("members") || []).includes(uid)) throw new HttpsError("permission-denied", "not-allowed");
+    title = group.get("name");
+  } else {
+    const session = await db.doc(`sessions/${id}`).get();
+    if (!session.exists || !(session.get("participants") || []).includes(uid) || session.get("status") !== "planned") throw new HttpsError("permission-denied", "not-allowed");
+    title = session.get("title");
+  }
+
+  const apiKey = (DAILY_API_KEY.value() || "").trim();
+  if (!apiKey) throw new HttpsError("failed-precondition", "calls-not-configured");
+  const me = await db.doc(`users/${uid}`).get();
+  try {
+    const room = await calls.ensureRoom(apiKey, { type, id });
+    const token = await calls.createToken(apiKey, { roomName: room.name, userName: me.get("display_name") });
+    return { url: room.url, token, title: title || "" };
+  } catch (error) {
+    logger.error("Appel vidéo : erreur Daily", { type, error: error.message });
+    throw new HttpsError("unavailable", "calls-unavailable");
+  }
 });
 
 // ------------------------------------------------------------------ Modération

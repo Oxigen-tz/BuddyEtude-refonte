@@ -22,7 +22,7 @@ export default function PublicHeader() {
           className="flex items-center gap-1.5 px-3 h-10 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-ink-800 transition-colors"
         >
           <Globe className="w-4 h-4" />
-          {isFr ? "EN" : "FR"}
+          {isFr ? "FR" : "EN"}
         </button>
       </div>
     </header>

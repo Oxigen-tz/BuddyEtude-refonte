@@ -10,5 +10,7 @@ Disallow: /Whiteboard
 Disallow: /Profile
 Disallow: /Admin
 Disallow: /Groups
+Disallow: /Call
+Disallow: /Student
 
 Sitemap: https://buddyetude.com/sitemap.xml

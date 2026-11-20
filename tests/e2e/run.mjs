@@ -87,7 +87,8 @@ async function googleLogin(page, { email, name, create }) {
   } else {
     await popup.getByText(email).click();
   }
-  await page.getByText(/Bonjour,/).first().waitFor({ timeout: 20000 });
+  // Nouveau compte : redirigé vers la création du profil ; compte existant : tableau de bord
+  await page.getByText(/Bonjour,|Bienvenue sur BuddyEtude/).first().waitFor({ timeout: 20000 });
 }
 
 async function completeProfile(page, { level, subject }) {
@@ -187,7 +188,7 @@ async function scenario(browser) {
     if (await B.locator("aside nav a", { hasText: "Messages" }).locator("span.bg-red-500").count()) throw new Error("pastille encore visible");
   });
 
-  await step("Bob planifie une session avec lien Jitsi", async () => {
+  await step("Bob planifie une session en ligne (appel vidéo intégré)", async () => {
     await B.goto(BASE + "/Sessions");
     await B.getByRole("button", { name: /Nouvelle session/ }).click();
     const dlg = B.getByRole("dialog");
@@ -197,8 +198,7 @@ async function scenario(browser) {
     const d = new Date(Date.now() + 2 * 86400000);
     await dlg.locator("#session-date").fill(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
     await dlg.locator("#session-time").fill("18:00");
-    await dlg.getByRole("button", { name: /Créer un lien/ }).click();
-    if (!(await dlg.locator("#session-link").inputValue()).startsWith("https://meet.jit.si/")) throw new Error("lien Jitsi non généré");
+    await dlg.getByText(/Appel vidéo inclus/).waitFor();
     await dlg.getByRole("button", { name: /Créer|Planifier/ }).last().click();
     await B.getByText("Chapitre 4").first().waitFor({ timeout: 10000 });
   });
@@ -208,6 +208,23 @@ async function scenario(browser) {
     await A.getByText("Chapitre 4").waitFor({ timeout: 10000 });
     await A.goto(BASE + "/Sessions");
     await A.getByRole("link", { name: /Rejoindre l'appel vidéo/ }).waitFor({ timeout: 10000 });
+  });
+
+  await step("Profil d'un binôme : ouvert depuis la conversation, matières en commun", async () => {
+    await B.goto(BASE + "/Messages");
+    await B.getByRole("button", { name: new RegExp(U.alice.name) }).click();
+    await B.getByRole("link", { name: new RegExp(U.alice.name) }).click();
+    await B.waitForURL(/Student\?id=/);
+    await B.getByRole("heading", { name: U.alice.name }).waitFor({ timeout: 10000 });
+    await B.getByText("En commun avec toi").first().waitFor();
+    await B.getByRole("link", { name: /Écrire/ }).waitFor();
+  });
+  await step("Appel vidéo : page d'appel réservée au binôme (sans clé Daily : message clair)", async () => {
+    await B.getByRole("link", { name: /Appel vidéo/ }).click();
+    await B.waitForURL(/Call\?type=pair/);
+    await B.getByText(/pas encore activés|ne répond pas/).waitFor({ timeout: 20000 });
+    await E.goto(B.url());
+    await E.getByText(/réservé aux membres/).waitFor({ timeout: 20000 });
   });
 
   await step("Tableau blanc : Alice dessine, Bob voit le trait", async () => {
@@ -291,6 +308,18 @@ async function scenario(browser) {
     await B.waitForURL(/Whiteboard\?sessionId=grp-/);
     await B.getByRole("heading", { name: `Révisions ${RUN}` }).waitFor({ timeout: 10000 });
     await B.getByText("1 / 1").waitFor();
+  });
+
+  await step("Changement de nom : Bob voit le nouveau nom d'Alice dans ses contacts", async () => {
+    const newName = `Alice-Marie ${RUN}`;
+    await A.goto(BASE + "/Profile");
+    await A.getByRole("button", { name: /Modifier le profil/ }).click();
+    await A.locator("#profile-name").fill(newName);
+    await A.getByRole("button", { name: /Enregistrer/ }).click();
+    await A.waitForURL(/Dashboard/, { timeout: 10000 });
+    await B.goto(BASE + "/Messages");
+    await B.getByRole("button", { name: new RegExp(newName) }).waitFor({ timeout: 20000 });
+    U.alice.name = newName;
   });
 
   await step("Session terminée → avis demandé et enregistré", async () => {

@@ -15,3 +15,9 @@ export const otherMember = (id, myUid) => {
   if (!members || !members.includes(myUid)) return null;
   return members[0] === myUid ? members[1] : members[0];
 };
+
+// Adresses de l'appel vidéo intégré (page Call)
+export const callUrl = (type, id) => `/Call?type=${type}&id=${encodeURIComponent(id)}`;
+export const pairCallUrl = (uidA, uidB) => callUrl("pair", pairId(uidA, uidB));
+// Profil complet d'un étudiant (page Student)
+export const studentUrl = (uid) => `/Student?id=${encodeURIComponent(uid)}`;

@@ -5,7 +5,7 @@ import {
   signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail,
   sendEmailVerification, updateProfile,
 } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { syncUserProfile, ensureProfileDefaults } from '../firebase/services';
 import AuthDialog from '@/components/AuthDialog';
 
@@ -91,6 +91,8 @@ export const AuthProvider = ({ children }) => {
   const signupWithEmail = (name, email, password) => runLogin(async () => {
     const result = await createUserWithEmailAndPassword(auth, email.trim(), password);
     await updateProfile(result.user, { displayName: name.trim() });
+    // Le profil a pu être créé juste avant (à la détection de la connexion) sans le nom saisi
+    await setDoc(doc(db, 'users', result.user.uid), { display_name: name.trim(), full_name: name.trim() }, { merge: true }).catch(() => {});
     await sendEmailVerification(result.user).catch(() => {});
     setUser(toAppUser(auth.currentUser));
     return afterLogin(result);

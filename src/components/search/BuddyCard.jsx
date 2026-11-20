@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import { studentUrl } from "@/lib/pairs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -92,7 +94,7 @@ export default function BuddyCard({ profile, match, help = [], mode = "buddy", o
             </Avatar>
             <div className="min-w-0">
               <h3 className="font-bold text-gray-900 dark:text-white text-base truncate font-serif flex items-center gap-1.5">
-                <span className="truncate">{name}</span>
+                <Link to={studentUrl(profile.id)} className="truncate hover:text-brand-600 dark:hover:text-brand-300 hover:underline underline-offset-2" title={t('student.viewProfile')}>{name}</Link>
                 {profile.verified_domain && (
                   <BadgeCheck className="w-4 h-4 shrink-0 text-sky-500" aria-label={t('buddyCard.verified', { domain: profile.verified_domain })}>
                     <title>{t('buddyCard.verified', { domain: profile.verified_domain })}</title>

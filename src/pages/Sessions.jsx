@@ -11,19 +11,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import {
   Calendar, Plus, Clock, MapPin, Monitor, Users, Check, AlertCircle,
-  Loader2, Presentation, Video, CalendarPlus, Star, Wand2
+  Loader2, Presentation, Video, CalendarPlus, Star, Link2, ExternalLink
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useTranslation } from "react-i18next";
 import { useRequests, buildRelations } from "@/hooks/useRequests";
-import { pairId } from "@/lib/pairs";
+import { pairId, callUrl, studentUrl } from "@/lib/pairs";
 import {
   parseSessionStart, parseSessionEnd, sessionStartTime as startTime, isSessionOver,
-  generateJitsiUrl, isSafeMeetingUrl, downloadIcs,
+  isSafeMeetingUrl, downloadIcs,
 } from "@/lib/sessions";
 
 const EMPTY_FORM = {
@@ -294,19 +294,19 @@ export default function Sessions() {
                   className="bg-gray-50 dark:bg-ink-950 border-gray-200 dark:border-ink-700 text-gray-900 dark:text-white rounded-xl" />
               </div>
             ) : (
-              // Lien d'appel vidéo : réviser à distance se fait à la voix, pas seulement au tableau
-              <div className="space-y-2">
-                <Label htmlFor="session-link" className="dark:text-gray-300">{t('sessions.createDialog.meetingLabel')}</Label>
-                <div className="flex gap-2">
-                  <Input id="session-link" type="url" value={form.meeting_url} onChange={(e) => setForm({ ...form, meeting_url: e.target.value })}
-                    placeholder="https://meet.jit.si/…" maxLength={300}
-                    className="bg-gray-50 dark:bg-ink-950 border-gray-200 dark:border-ink-700 text-gray-900 dark:text-white rounded-xl" />
-                  <Button type="button" variant="outline" onClick={() => setForm({ ...form, meeting_url: generateJitsiUrl() })}
-                    className="shrink-0 rounded-xl border-gray-200 dark:border-ink-700">
-                    <Wand2 className="w-4 h-4 mr-1.5" /> {t('sessions.createDialog.generateLink')}
-                  </Button>
+              // Appel vidéo intégré (page Call) inclus d'office ; un lien externe reste possible
+              <div className="space-y-3">
+                <div className="flex items-start gap-3 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 p-3.5">
+                  <Video className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                  <p className="text-sm text-emerald-900 dark:text-emerald-200">{t('sessions.createDialog.callIncluded')}</p>
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{t('sessions.createDialog.meetingHint')}</p>
+                <div className="space-y-2">
+                  <Label htmlFor="session-link" className="dark:text-gray-300">{t('sessions.createDialog.meetingLabel')}</Label>
+                  <Input id="session-link" type="url" value={form.meeting_url} onChange={(e) => setForm({ ...form, meeting_url: e.target.value })}
+                    placeholder="https://zoom.us/j/…" maxLength={300}
+                    className="bg-gray-50 dark:bg-ink-950 border-gray-200 dark:border-ink-700 text-gray-900 dark:text-white rounded-xl" />
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t('sessions.createDialog.meetingHint')}</p>
+                </div>
               </div>
             )}
           </div>
@@ -394,6 +394,7 @@ function SessionCard({ session, myUid, onUpdateStatus, onJoinWhiteboard, onFeedb
   const { t, i18n } = useTranslation();
   const isOrganizer = session.organizer_uid === myUid;
   const buddyName = (isOrganizer ? session.buddy_name : session.organizer_name) || "?";
+  const otherUid = (session.participants || []).find((p) => p !== myUid);
 
   const start = parseSessionStart(session);
   const end = parseSessionEnd(session);
@@ -414,7 +415,13 @@ function SessionCard({ session, myUid, onUpdateStatus, onJoinWhiteboard, onFeedb
     badgeText = t('sessions.status.past');
   }
 
-  const meetingUrl = session.meeting_url && isSafeMeetingUrl(session.meeting_url) ? session.meeting_url : null;
+  // Lien externe éventuel (Zoom, Teams…). Les anciens liens meet.jit.si sont remplacés par l'appel intégré.
+  const meetingUrl = session.meeting_url && isSafeMeetingUrl(session.meeting_url) && !/^https:\/\/meet\.jit\.si\//.test(session.meeting_url) ? session.meeting_url : null;
+  const builtInCall = session.mode === "en_ligne" ? callUrl("session", session.id) : null;
+  const copyLink = async (url) => {
+    try { await navigator.clipboard.writeText(url); toast.success(t('call.copied')); }
+    catch { window.prompt(t('call.copyPrompt'), url); }
+  };
 
   return (
     <div className="bg-white dark:bg-ink-900 border border-gray-100 dark:border-ink-700 shadow-sm rounded-2xl hover:shadow-md transition-all duration-300 overflow-hidden">
@@ -422,7 +429,9 @@ function SessionCard({ session, myUid, onUpdateStatus, onJoinWhiteboard, onFeedb
         <div className="flex items-start justify-between gap-3 mb-4">
           <div className="min-w-0">
             <h3 className="font-bold text-gray-900 dark:text-white text-lg leading-tight break-words">{session.title}</h3>
-            <p className="text-sm text-indigo-600 dark:text-indigo-400 font-medium mt-1">{t('sessions.with', { name: buddyName })}</p>
+            <p className="text-sm text-indigo-600 dark:text-indigo-400 font-medium mt-1">
+              {otherUid ? <Link to={studentUrl(otherUid)} className="hover:underline underline-offset-2">{t('sessions.with', { name: buddyName })}</Link> : t('sessions.with', { name: buddyName })}
+            </p>
           </div>
           <Badge className={`border-0 shrink-0 ${badgeClass}`}>{badgeText}</Badge>
         </div>
@@ -447,11 +456,29 @@ function SessionCard({ session, myUid, onUpdateStatus, onJoinWhiteboard, onFeedb
 
         {session.status === "planned" && (
           <div className="mt-6 flex flex-col gap-3">
+            {!isPast && builtInCall && (
+              <div className="flex gap-2">
+                <Link to={builtInCall}
+                  className="flex-1 inline-flex items-center justify-center rounded-xl font-medium py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm text-sm">
+                  <Video className="w-4 h-4 mr-2" /> {t('sessions.joinCall')}
+                </Link>
+                <Button type="button" variant="outline" onClick={() => copyLink(window.location.origin + builtInCall)}
+                  aria-label={t('call.copyLink')} title={t('call.copyLink')} className="shrink-0 rounded-xl px-3">
+                  <Link2 className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
             {!isPast && meetingUrl && (
-              <a href={meetingUrl} target="_blank" rel="noopener noreferrer"
-                className="w-full inline-flex items-center justify-center rounded-xl font-medium py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm text-sm">
-                <Video className="w-4 h-4 mr-2" /> {t('sessions.joinCall')}
-              </a>
+              <div className="flex gap-2">
+                <a href={meetingUrl} target="_blank" rel="noopener noreferrer"
+                  className="flex-1 inline-flex items-center justify-center rounded-xl font-medium py-2 border border-gray-200 dark:border-ink-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-ink-800 text-sm">
+                  <ExternalLink className="w-4 h-4 mr-2" /> {t('sessions.externalLink')}
+                </a>
+                <Button type="button" variant="outline" onClick={() => copyLink(meetingUrl)}
+                  aria-label={t('call.copyLink')} title={t('call.copyLink')} className="shrink-0 rounded-xl px-3">
+                  <Link2 className="w-4 h-4" />
+                </Button>
+              </div>
             )}
             {session.mode === "en_ligne" && onJoinWhiteboard && (
               <Button onClick={onJoinWhiteboard}

@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, Link } from "react-router-dom";
 import {
   addDoc, arrayRemove, arrayUnion, collection, deleteDoc, deleteField, doc, limit, onSnapshot,
   orderBy, query, serverTimestamp, setDoc, updateDoc, where,
 } from "firebase/firestore";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { ArrowLeft, Crown, LogOut, PenTool, Plus, Send, Trash2, UsersRound, X, Loader2 } from "lucide-react";
+import { ArrowLeft, Crown, LogOut, PenTool, Plus, Send, Trash2, UsersRound, X, Loader2, Video } from "lucide-react";
+import { callUrl, studentUrl } from "@/lib/pairs";
 import { db } from "../firebase/config";
 import { useAuth } from "@/lib/AuthContext";
 import { useRequests, buildRelations } from "@/hooks/useRequests";
@@ -254,6 +255,9 @@ function GroupView({ group, user, onBack, t, lang }) {
             <h2 className="font-bold text-lg text-gray-900 dark:text-white truncate">{group.name}</h2>
             {group.subject && <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{group.subject}</p>}
           </div>
+          <Button onClick={() => navigate(callUrl("group", group.id))} className="rounded-xl shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white" aria-label={t("call.start")} title={t("call.start")}>
+            <Video className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">{t("call.start")}</span>
+          </Button>
           <Button onClick={() => navigate(`/Whiteboard?sessionId=grp-${group.id}`)} variant="outline" className="rounded-xl shrink-0">
             <PenTool className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">{t("groups.whiteboard")}</span>
           </Button>
@@ -272,7 +276,9 @@ function GroupView({ group, user, onBack, t, lang }) {
           {group.members.map((uid) => (
             <span key={uid} className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-gray-100 dark:bg-ink-800 text-gray-700 dark:text-gray-300">
               {uid === group.owner_uid && <Crown className="w-3 h-3 text-amber-500" aria-label={t("groups.owner")} />}
-              {uid === user.uid ? t("groups.you") : (names[uid] || "…")}
+              {uid === user.uid ? t("groups.you") : (
+                <Link to={studentUrl(uid)} className="hover:text-brand-600 dark:hover:text-brand-300 hover:underline underline-offset-2" title={t("student.viewProfile")}>{names[uid] || "…"}</Link>
+              )}
               {isOwner && uid !== user.uid && (
                 <button onClick={() => removeMember(uid)} disabled={busy} aria-label={t("groups.remove", { name: names[uid] || "" })} className="ml-0.5 text-gray-400 hover:text-red-500">
                   <X className="w-3 h-3" />
@@ -310,7 +316,7 @@ function GroupView({ group, user, onBack, t, lang }) {
           const mine = m.senderUid === user.uid;
           return (
             <div key={m.id} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
-              {!mine && <span className="text-[11px] text-gray-500 dark:text-gray-400 mb-0.5 px-1">{m.senderName || names[m.senderUid]}</span>}
+              {!mine && <span className="text-[11px] text-gray-500 dark:text-gray-400 mb-0.5 px-1">{names[m.senderUid] || m.senderName}</span>}
               <div className={`max-w-[80%] px-3.5 py-2 rounded-2xl text-sm whitespace-pre-wrap break-words ${mine ? "bg-indigo-600 text-white rounded-br-md" : "bg-gray-100 dark:bg-ink-800 text-gray-900 dark:text-gray-100 rounded-bl-md"}`}>
                 {m.text}
               </div>

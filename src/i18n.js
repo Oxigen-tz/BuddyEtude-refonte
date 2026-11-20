@@ -222,7 +222,7 @@ const resources = {
               { label: "Vercel :", text: "hébergement du site web (États-Unis)." },
               { label: "Brevo (France) :", text: "envoi des e-mails de notification." },
               { label: "Sentry :", text: "suivi des erreurs techniques, hébergé dans l'Union européenne." },
-              { label: "Jitsi Meet :", text: "les appels vidéo se font sur meet.jit.si, un service externe ; BuddyEtude ne fait que générer le lien et n'enregistre pas les appels." },
+              { label: "Daily (Daily.co, États-Unis) :", text: "les appels vidéo intégrés passent par les serveurs de Daily. Seuls les participants invités peuvent entrer dans un appel, avec un accès nominatif créé par BuddyEtude ; les appels ne sont pas enregistrés. Votre nom affiché est transmis à Daily pour apparaître dans l'appel." },
               { label: "Services publics de l'État :", text: "pendant que vous tapez une ville ou un établissement, le texte saisi est envoyé à geo.api.gouv.fr et data.enseignementsup-recherche.gouv.fr pour proposer des suggestions (aucune autre donnée)." }
             ],
           },
@@ -285,7 +285,7 @@ const resources = {
           sessionBody: "{{name}} a planifié « {{title}} » avec vous.",
           sessionToast: "Nouvelle session planifiée !"
         },
-        language: "English",
+        language: "Français",
         logout: "Déconnexion",
         unreadMessages: "{{count}} nouveauté(s) dans Messages",
         menu: "Menu"
@@ -762,6 +762,7 @@ const resources = {
         noUpcoming: "Aucune session prévue",
         toClose: "À clôturer",
         joinCall: "Rejoindre l'appel vidéo",
+        externalLink: "Ouvrir le lien externe",
         addToCalendar: "Ajouter à mon agenda",
         feedback: {
           title: "Comment s'est passée la session ?",
@@ -811,9 +812,10 @@ const resources = {
           modeInPerson: "Présentiel",
           locationLabel: "Lieu",
           locationPlaceholder: "Ex: Bibliothèque universitaire, salle 2",
-          meetingLabel: "Lien d'appel vidéo (facultatif)",
+          meetingLabel: "Lien externe (facultatif)",
+          callIncluded: "Appel vidéo inclus : un bouton « Rejoindre l'appel vidéo » apparaîtra sur la session, pour vous deux, directement dans BuddyEtude.",
           generateLink: "Créer un lien",
-          meetingHint: "Jitsi Meet : gratuit, sans compte, fonctionne dans le navigateur.",
+          meetingHint: "Seulement si vous préférez un autre outil (Zoom, Teams, Google Meet…).",
           cancel: "Annuler",
           submit: "Planifier la session"
         },
@@ -918,6 +920,42 @@ const resources = {
         }
       },
       // --- NOUVEAU : PAGE PARAMÈTRES ---
+      // --- Appel vidéo intégré et profil d'un étudiant ---
+      call: {
+        title: "Appel vidéo",
+        titleWith: "Appel avec {{name}}",
+        start: "Appel vidéo",
+        back: "Retour",
+        copyLink: "Copier le lien",
+        copied: "Lien copié : envoie-le à ton binôme",
+        copyPrompt: "Copie ce lien :",
+        openBoard: "Tableau blanc",
+        newTab: "Nouvel onglet",
+        loading: "Préparation de l'appel…",
+        errorTitle: "Impossible de rejoindre l'appel",
+        privacy: "Seuls les participants peuvent rejoindre cet appel. Rien n'est enregistré.",
+        errors: {
+          "not-allowed": "Cet appel est réservé aux membres du binôme, du groupe ou de la session.",
+          "calls-not-configured": "Les appels vidéo ne sont pas encore activés sur le site. Réessaie un peu plus tard.",
+          "calls-unavailable": "Le service d'appel ne répond pas pour le moment. Réessaie dans quelques instants.",
+          "bad-request": "Ce lien d'appel est incomplet."
+        }
+      },
+      student: {
+        viewProfile: "Voir le profil",
+        yourBuddy: "Ton binôme",
+        message: "Écrire",
+        contact: "Contacter",
+        answer: "Répondre à sa demande",
+        pending: "Demande envoyée",
+        common: "En commun avec toi",
+        inCommon: "En commun",
+        memberSince: "Inscrit depuis",
+        noBio: "{{name}} n'a pas encore écrit de présentation.",
+        missingTitle: "Profil introuvable",
+        missingDesc: "Ce profil n'existe plus ou n'est pas visible.",
+        backToSearch: "Retour à la recherche"
+      },
       // --- Soutien et page « Pour les établissements » ---
       support: {
         title: "Soutenir BuddyEtude",
@@ -1043,6 +1081,7 @@ const resources = {
       },
       profileUi: {
         editProfile: "Modifier le profil",
+        welcome: { title: "Bienvenue sur BuddyEtude 👋", desc: "Crée ton profil pour trouver ton binôme : ça prend une minute." },
         photo: {
           change: "Changer la photo de profil",
           title: "Photo de profil",
@@ -1422,7 +1461,7 @@ const resources = {
               { label: "Vercel:", text: "website hosting (United States)." },
               { label: "Brevo (France):", text: "sending notification emails." },
               { label: "Sentry:", text: "technical error tracking, hosted in the European Union." },
-              { label: "Jitsi Meet:", text: "video calls take place on meet.jit.si, an external service; BuddyEtude only generates the link and does not record calls." },
+              { label: "Daily (Daily.co, United States):", text: "built-in video calls go through Daily's servers. Only invited participants can join a call, with a personal access created by BuddyEtude; calls are not recorded. Your display name is sent to Daily so it appears in the call." },
               { label: "French government open data services:", text: "while you type a city or a school, the typed text is sent to geo.api.gouv.fr and data.enseignementsup-recherche.gouv.fr to suggest options (no other data)." }
             ]
           },
@@ -1485,7 +1524,7 @@ const resources = {
           sessionBody: "{{name}} scheduled \"{{title}}\" with you.",
           sessionToast: "New session scheduled!"
         },
-        language: "Français",
+        language: "English",
         logout: "Logout",
         unreadMessages: "{{count}} new item(s) in Messages",
         menu: "Menu"
@@ -1962,6 +2001,7 @@ const resources = {
         noUpcoming: "No session planned",
         toClose: "To close",
         joinCall: "Join the video call",
+        externalLink: "Open the external link",
         addToCalendar: "Add to my calendar",
         feedback: {
           title: "How did the session go?",
@@ -2011,9 +2051,10 @@ const resources = {
           modeInPerson: "In-person",
           locationLabel: "Location",
           locationPlaceholder: "E.g. University library, room 2",
-          meetingLabel: "Video call link (optional)",
+          meetingLabel: "External link (optional)",
+          callIncluded: "Video call included: a “Join the video call” button will appear on the session for both of you, right inside BuddyEtude.",
           generateLink: "Create a link",
-          meetingHint: "Jitsi Meet: free, no account needed, works in the browser.",
+          meetingHint: "Only if you prefer another tool (Zoom, Teams, Google Meet…).",
           cancel: "Cancel",
           submit: "Schedule session"
         },
@@ -2118,6 +2159,42 @@ const resources = {
         }
       },
       // --- NEW: SETTINGS PAGE ---
+      // --- Built-in video call and student profile ---
+      call: {
+        title: "Video call",
+        titleWith: "Call with {{name}}",
+        start: "Video call",
+        back: "Back",
+        copyLink: "Copy link",
+        copied: "Link copied: send it to your study buddy",
+        copyPrompt: "Copy this link:",
+        openBoard: "Whiteboard",
+        newTab: "New tab",
+        loading: "Getting the call ready…",
+        errorTitle: "Can't join the call",
+        privacy: "Only participants can join this call. Nothing is recorded.",
+        errors: {
+          "not-allowed": "This call is only for members of the pair, group or session.",
+          "calls-not-configured": "Video calls aren't enabled on the site yet. Please try again later.",
+          "calls-unavailable": "The call service isn't responding right now. Please try again in a moment.",
+          "bad-request": "This call link is incomplete."
+        }
+      },
+      student: {
+        viewProfile: "View profile",
+        yourBuddy: "Your study buddy",
+        message: "Message",
+        contact: "Contact",
+        answer: "Reply to their request",
+        pending: "Request sent",
+        common: "In common with you",
+        inCommon: "In common",
+        memberSince: "Member since",
+        noBio: "{{name}} hasn't written a bio yet.",
+        missingTitle: "Profile not found",
+        missingDesc: "This profile no longer exists or isn't visible.",
+        backToSearch: "Back to search"
+      },
       // --- Support and "For schools" page ---
       support: {
         title: "Support BuddyEtude",
@@ -2243,6 +2320,7 @@ const resources = {
       },
       profileUi: {
         editProfile: "Edit profile",
+        welcome: { title: "Welcome to BuddyEtude 👋", desc: "Create your profile to find your study buddy: it takes a minute." },
         photo: {
           change: "Change profile photo",
           title: "Profile photo",

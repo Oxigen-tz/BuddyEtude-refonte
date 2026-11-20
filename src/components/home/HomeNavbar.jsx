@@ -41,7 +41,7 @@ export default function HomeNavbar() {
             className="flex items-center gap-1.5 px-2.5 sm:px-3 h-10 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-ink-800 transition-colors"
           >
             <Globe className="w-4 h-4" />
-            {isFr ? "EN" : "FR"}
+            {isFr ? "FR" : "EN"}
           </button>
 
           {user ? (

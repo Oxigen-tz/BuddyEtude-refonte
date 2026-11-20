@@ -12,8 +12,9 @@ export const syncUserProfile = async (user) => {
   if (!userSnap.exists()) {
     await setDoc(userRef, {
       uid: user.uid,
-      full_name: user.displayName || "Étudiant",
-      display_name: user.displayName || "Étudiant",
+      // Pas de nom par défaut : le nouvel inscrit choisit le sien en créant son profil
+      full_name: user.displayName || "",
+      display_name: user.displayName || "",
       photo_url: user.photoURL || "",
       createdAt: new Date().toISOString(),
       profile_complete: false, // Indique s'il a rempli son niveau/matières

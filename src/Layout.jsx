@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
 import { db } from "./firebase/config"; 
-import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { collection, query, where, onSnapshot, doc } from "firebase/firestore";
 import { createPageUrl } from "@/utils";
 import { useAuth } from "@/lib/AuthContext";
 import { getRequestAlertsEnabled } from "@/lib/preferences";
@@ -36,6 +36,21 @@ export default function Layout({ children, currentPageName }) {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Profil pas encore créé : on ramène vers la page Profil (sauf Paramètres, pour pouvoir
+  // supprimer son compte). Avant, un nouvel inscrit naviguait avec le nom « Étudiant ».
+  const [profileComplete, setProfileComplete] = useState(null);
+  useEffect(() => {
+    if (!user?.uid) return;
+    return onSnapshot(doc(db, "users", user.uid),
+      (snap) => setProfileComplete(snap.exists() ? snap.data().profile_complete === true : false),
+      () => setProfileComplete(true)); // en cas d'erreur, on ne bloque pas l'application
+  }, [user?.uid]);
+  useEffect(() => {
+    if (profileComplete === false && !["Profile", "Settings"].includes(currentPageName)) {
+      navigate(createPageUrl("Profile"), { replace: true });
+    }
+  }, [profileComplete, currentPageName, navigate]);
   
   // 🔔 États pour gérer les notifications
   const [notifications, setNotifications] = useState([]);
@@ -296,7 +311,7 @@ export default function Layout({ children, currentPageName }) {
 
           {/* --- BAS : langue, notifications, paramètres, profil --- */}
           <div className="p-3 mt-3 border-t border-gray-100 dark:border-ink-700 flex flex-col gap-0.5">
-            <button onClick={toggleLanguage} className={utilityClass(false)}>
+            <button onClick={toggleLanguage} className={utilityClass(false)} title={t('home.nav.switchLanguage')} aria-label={t('home.nav.switchLanguage')}>
               <Globe className="w-[18px] h-[18px]" />
               {t('layout.language')}
             </button>
@@ -384,7 +399,7 @@ export default function Layout({ children, currentPageName }) {
               </Link>
             ))}
             <div className="my-2 h-px bg-gray-200/70 dark:bg-ink-700" />
-            <button onClick={toggleLanguage} className={`${utilityClass(false)} py-3.5 text-base`}>
+            <button onClick={toggleLanguage} className={`${utilityClass(false)} py-3.5 text-base`} aria-label={t('home.nav.switchLanguage')}>
               <Globe className="w-5 h-5" />
               {t('layout.language')}
             </button>

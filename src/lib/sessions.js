@@ -25,12 +25,6 @@ export const isSessionOver = (session, now = new Date()) => {
   return end !== null && end < now;
 };
 
-// Salle Jitsi Meet (gratuite, sans compte) : nom long et aléatoire pour qu'elle ne soit pas devinable
-export const generateJitsiUrl = () => {
-  const random = Array.from(crypto.getRandomValues(new Uint8Array(9)), (b) => b.toString(36).padStart(2, "0")).join("");
-  return `https://meet.jit.si/BuddyEtude-${random}`;
-};
-
 // Lien d'appel accepté : https uniquement (pas de javascript:, data:…)
 export const isSafeMeetingUrl = (url) => {
   try {
@@ -48,8 +42,12 @@ export const buildIcs = (session, { withName, onlineLabel }) => {
   const start = parseSessionStart(session);
   const end = parseSessionEnd(session);
   if (!start || !end) return null;
-  const location = session.mode === "presentiel" ? session.location : (session.meeting_url || onlineLabel);
-  const description = [withName, session.meeting_url].filter(Boolean).join("\n");
+  // Appel intégré pour les sessions en ligne, sauf lien externe choisi (Zoom, Teams…)
+  const external = session.meeting_url && !/^https:\/\/meet\.jit\.si\//.test(session.meeting_url) ? session.meeting_url : null;
+  const call = session.mode === "en_ligne" && typeof window !== "undefined" ? `${window.location.origin}/Call?type=session&id=${session.id}` : null;
+  const link = external || call;
+  const location = session.mode === "presentiel" ? session.location : (link || onlineLabel);
+  const description = [withName, link].filter(Boolean).join("\n");
   return [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
