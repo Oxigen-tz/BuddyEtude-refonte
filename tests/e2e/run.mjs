@@ -3,9 +3,10 @@
 //
 // Trois étudiants (Alice, Bob, Eve) utilisent l'application dans Chrome sans interface.
 // Navigateur : Google Chrome installé (ou CHROME_PATH=/chemin/vers/chrome).
-import { chromium } from "playwright-core";
+import { chromium, webkit, devices } from "playwright-core";
 import { spawn, spawnSync } from "node:child_process";
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
+import { auditPage, auditDialog } from "./mobile-audit.mjs";
 
 const PORT = 5174;
 const BASE = `http://localhost:${PORT}`;
@@ -340,6 +341,81 @@ async function scenario(browser) {
     await M.getByRole("button", { name: new RegExp(U.alice.name) }).waitFor();
     await M.context().close();
   });
+
+  // Audit d'affichage sur téléphone (Android via Chrome, iPhone via WebKit s'il est installé) :
+  // toutes les pages publiques et connectées, plus les fenêtres principales.
+  const mobileTargets = [{ name: "Android", launch: async () => browser, device: { viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true } }];
+  // iPhone (WebKit) : sur demande (E2E_IPHONE=1). En fin de long scénario, WebKit cumule les
+  // connexions d'écoute vers l'émulateur Firestore et finit parfois sur une page blanche, ce qui
+  // n'arrive pas en production ; l'audit iPhone seul, lui, est fiable.
+  if (process.env.E2E_IPHONE && existsSync(webkit.executablePath())) {
+    mobileTargets.push({ name: "iPhone", launch: () => webkit.launch(), device: devices["iPhone 13"] });
+  }
+  for (const target of process.env.SKIP_MOBILE_AUDIT ? [] : mobileTargets) {
+    await step(`Affichage mobile (${target.name}) : aucune page cassée`, async () => {
+      const engine = await target.launch();
+      const ctx = await engine.newContext({ ...target.device, locale: "fr-FR" });
+      ctx.setDefaultTimeout(15000);
+      const M = await ctx.newPage();
+      const errors = [];
+      // WebKit signale l'arrêt des connexions d'écoute de l'émulateur Firestore (autre port) à
+      // chaque changement de page : propre à l'environnement de test, ignoré
+      M.on("pageerror", (e) => { if (!/Firestore\/Listen\/channel|access control checks/.test(e.message)) errors.push(e.message); });
+      openPages.push(M);
+      const report = [];
+      let where = "";
+      const audit = async (path, extra) => {
+        where = path;
+        await M.goto(BASE + path, { waitUntil: "load" });
+        await M.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => {});
+        // Une nouvelle tentative après rechargement : sous WebKit, les connexions d'écoute vers
+        // l'émulateur Firestore s'accumulent d'une page à l'autre et retardent parfois les données
+        if (extra) await extra().catch(async () => { await M.reload({ waitUntil: "load" }); await extra(); });
+        for (const i of await auditPage(M)) report.push(`${path} [${i.type}] ${i.detail}`);
+      };
+      const auditOpenDialog = async (path, open) => {
+        where = `${path} (ouverture de la fenêtre)`;
+        await M.goto(BASE + path, { waitUntil: "load" });
+        await open();
+        await M.getByRole("dialog").first().waitFor({ timeout: 10000 });
+        for (const i of await auditDialog(M)) report.push(`${path} (fenêtre) [${i.type}] ${i.detail}`);
+        await M.keyboard.press("Escape");
+      };
+      // Garde-fou : un navigateur bloqué ne doit pas suspendre tout le scénario
+      let timer;
+      const watchdog = new Promise((_, reject) => { timer = setTimeout(() => reject(new Error("délai dépassé")), 6 * 60000); });
+      try {
+        await Promise.race([watchdog, (async () => {
+        for (const p of ["/", "/About", "/Etablissements", "/Legal", "/Privacy"]) await audit(p);
+        await auditOpenDialog("/", () => M.getByRole("button", { name: /Commencer|S'inscrire|Inscription/ }).first().click());
+        await googleLogin(M, { ...U.alice, create: false });
+        const bobUid = await uidOf(U.bob.name);
+        const eveUid = await uidOf(U.eve.name);
+        for (const p of ["/", "/Dashboard", "/Search", "/Messages", "/Sessions", "/Groups", "/Profile",
+          "/Settings", "/Settings?tab=appearance", "/Settings?tab=notifications", "/Settings?tab=privacy", `/Student?id=${bobUid}`]) await audit(p);
+        await audit("/Messages", () => M.getByRole("button", { name: new RegExp(U.bob.name) }).first().click());
+        await audit("/Groups", () => M.getByText(/Groupe/).first().click().catch(() => {}));
+        await auditOpenDialog("/Sessions", () => M.getByRole("button", { name: /Nouvelle session/ }).first().click());
+        await auditOpenDialog(`/Search?contact=${eveUid}`, async () => {});
+        })()]);
+      } catch (e) {
+        // Capture de l'écran du téléphone et des boutons présents, pour comprendre l'échec
+        await M.screenshot({ path: `${OUTPUT}/mobile-${target.name}.png` }).catch(() => {});
+        const buttons = await M.getByRole("button").allInnerTexts().catch(() => []);
+        console.log(`        boutons visibles : ${buttons.map((b) => b.replace(/\s+/g, " ").trim()).filter(Boolean).slice(0, 15).join(" | ")}`);
+        throw new Error(`${where} : ${e.message.split("\n")[0]}`);
+      } finally {
+        clearTimeout(timer);
+        await ctx.close().catch(() => {});
+        if (engine !== browser) await engine.close().catch(() => {});
+      }
+      if (errors.length) report.push(`erreurs JavaScript : ${[...new Set(errors)].join(" | ")}`);
+      if (report.length) {
+        console.log(report.map((r) => `        ${r}`).join("\n"));
+        throw new Error(`${report.length} défaut(s) d'affichage mobile (détail ci-dessus)`);
+      }
+    });
+  }
 
   await step("Bob signale Eve, puis la bloque : elle disparaît de sa recherche", async () => {
     await B.goto(BASE + "/Search");

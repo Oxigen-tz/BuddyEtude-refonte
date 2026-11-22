@@ -103,11 +103,9 @@ export default function HeroSection() {
           ) : (
             <Button size="lg" onClick={openLogin} className={ctaClass}>{t("hero.btn_start")}<ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" /></Button>
           )}
-          <a href="#how">
-            <Button size="lg" variant="outline" className="w-full sm:w-auto h-14 px-8 rounded-2xl text-base bg-white/[0.04] border-white/15 text-white hover:bg-white/10 hover:text-white backdrop-blur">
-              {t("landing.secondaryCta")}
-            </Button>
-          </a>
+          <Button asChild size="lg" variant="outline" className="w-full sm:w-auto h-14 px-8 rounded-2xl text-base bg-white/[0.04] border-white/15 text-white hover:bg-white/10 hover:text-white backdrop-blur">
+            <a href="#how">{t("landing.secondaryCta")}</a>
+          </Button>
         </motion.div>
 
         <motion.ul initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.05, duration: 0.8 }}

@@ -11,36 +11,44 @@ import { db } from "@/firebase/config";
 export function useRequests(uid) {
   const [incoming, setIncoming] = useState([]);
   const [outgoing, setOutgoing] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // Compte pour lequel les demandes sont chargées : « loading » est vrai tant que ce n'est pas le
+  // compte actuel (sinon, à la connexion, l'état « chargé » du rendu sans compte restait affiché
+  // un instant avec des listes vides)
+  const [readyUid, setReadyUid] = useState(undefined);
 
   useEffect(() => {
     if (!uid) {
       setIncoming([]);
       setOutgoing([]);
-      setLoading(false);
+      setReadyUid(uid ?? null);
       return;
     }
 
+    // « Chargé » seulement une fois la réponse du serveur reçue : le premier résultat peut venir du
+    // cache local (alimenté par d'autres écoutes) et être incomplet ; s'y fier faisait ignorer
+    // les liens /Messages?chat= et /Search?contact=
     let inReady = false;
     let outReady = false;
-    const markReady = () => { if (inReady && outReady) setLoading(false); };
+    const markReady = () => { if (inReady && outReady) setReadyUid(uid); };
     const toList = (snap) => snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
     const unsubIn = onSnapshot(
       query(collection(db, "requests"), where("to_uid", "==", uid)),
-      (snap) => { setIncoming(toList(snap)); inReady = true; markReady(); },
+      { includeMetadataChanges: true },
+      (snap) => { setIncoming(toList(snap)); if (!snap.metadata.fromCache) { inReady = true; markReady(); } },
       (error) => { console.error("Erreur de chargement des demandes reçues:", error); inReady = true; markReady(); }
     );
     const unsubOut = onSnapshot(
       query(collection(db, "requests"), where("from_uid", "==", uid)),
-      (snap) => { setOutgoing(toList(snap)); outReady = true; markReady(); },
+      { includeMetadataChanges: true },
+      (snap) => { setOutgoing(toList(snap)); if (!snap.metadata.fromCache) { outReady = true; markReady(); } },
       (error) => { console.error("Erreur de chargement des demandes envoyées:", error); outReady = true; markReady(); }
     );
 
     return () => { unsubIn(); unsubOut(); };
   }, [uid]);
 
-  return { incoming, outgoing, loading };
+  return { incoming, outgoing, loading: readyUid !== (uid ?? null) };
 }
 
 /**

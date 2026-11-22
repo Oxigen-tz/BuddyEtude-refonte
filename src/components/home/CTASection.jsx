@@ -19,11 +19,13 @@ export default function CTASection() {
   const radius = useTransform(scrollYProgress, [0, 1], reduce ? [40, 40] : [80, 40]);
   const logoRotate = useTransform(scrollYProgress, [0, 1], reduce ? [0, 0] : [-90, 0]);
 
-  const button = (
-    <Button size="lg" onClick={user ? undefined : openLogin} className="h-14 px-8 rounded-2xl text-base bg-white text-brand-700 hover:bg-brand-50 shadow-lift group">
-      {user ? t("cta.buttonLoggedIn") : t("cta.button")}
-      <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
-    </Button>
+  // Connecté : un lien stylé en bouton (jamais un bouton dans un lien, ignoré au toucher sur iPhone)
+  const buttonClass = "h-14 px-8 rounded-2xl text-base bg-white text-brand-700 hover:bg-brand-50 shadow-lift group";
+  const arrow = <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />;
+  const button = user ? (
+    <Button asChild size="lg" className={buttonClass}><Link to="/Dashboard">{t("cta.buttonLoggedIn")}{arrow}</Link></Button>
+  ) : (
+    <Button size="lg" onClick={openLogin} className={buttonClass}>{t("cta.button")}{arrow}</Button>
   );
 
   return (
@@ -36,7 +38,7 @@ export default function CTASection() {
           <motion.div style={{ rotate: logoRotate }} className="w-16 h-16 mx-auto mb-8"><LogoMark className="w-16 h-16 drop-shadow-xl" /></motion.div>
           <h2 className="font-display text-4xl sm:text-6xl font-extrabold tracking-tight leading-[1.02] max-w-3xl mx-auto">{t("cta.title")}</h2>
           <p className="mt-6 text-lg text-white/80 max-w-xl mx-auto">{t("cta.subtitle")}</p>
-          <div className="mt-10">{user ? <Link to="/Dashboard">{button}</Link> : button}</div>
+          <div className="mt-10">{button}</div>
         </div>
       </motion.div>
     </section>

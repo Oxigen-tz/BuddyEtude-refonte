@@ -78,17 +78,25 @@ export default function Search() {
   // Arrivée depuis le profil d'un étudiant (« Contacter ») : /Search?contact=<uid>
   const [searchParams, setSearchParams] = useSearchParams();
   const contactParam = searchParams.get("contact");
+  // Le profil est lu directement : la liste de recherche peut être encore incomplète à ce moment
+  // (premier résultat tiré du cache local, souvent vide) ou ne pas contenir cet étudiant (limite).
   useEffect(() => {
-    if (!contactParam || isLoading) return;
-    const target = profiles.find((p) => p.id === contactParam);
-    if (target && !relations.get(contactParam)) {
-      setRequestDialog({ profile: target, kind: "buddy", helpSubjects: [] });
-      setRequestSubject("");
-      setRequestMessage("");
-      setContactWarning(false);
-    }
+    if (!contactParam || !user?.uid || requests.loading) return;
+    // Pas d'annulation au nettoyage : retirer « contact » de l'adresse relance cet effet
     setSearchParams((params) => { params.delete("contact"); return params; }, { replace: true });
-  }, [contactParam, isLoading, profiles]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (contactParam === user.uid || relations.get(contactParam) || blocked.has(contactParam)) return;
+    getDoc(doc(db, "users", contactParam))
+      .then((snap) => {
+        if (!snap.exists()) return;
+        const target = { id: snap.id, ...snap.data() };
+        if (!hasUsableProfile(target)) return;
+        setRequestDialog({ profile: target, kind: "buddy", helpSubjects: [] });
+        setRequestSubject("");
+        setRequestMessage("");
+        setContactWarning(false);
+      })
+      .catch(() => {});
+  }, [contactParam, user?.uid, requests.loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Mon propre profil : sert à calculer la compatibilité avec les autres
   const [myProfile, setMyProfile] = useState(null);
