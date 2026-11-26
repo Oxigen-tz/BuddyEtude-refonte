@@ -239,6 +239,32 @@ await t("résumé du lundi : nouveaux compatibles, préférence respectée", asy
   if (digests.some((d) => to(d.fields) === "fred@test.com")) throw new Error("résumé envoyé malgré la préférence");
 });
 
+await t("aperçu public : profils éligibles seulement, aucune donnée personnelle", async () => {
+  const mk = async (email, data, priv) => {
+    const id = await createUser(email);
+    await write(`users/${id}`, { profile_complete: true, profile_visible: true, display_name: "NomSecret", city: "VilleSecrete", school: "EcoleSecrete", bio: "BioSecrete", photo_url: "https://photo.secrete/x.png", level: "Licence", subjects: [{ name: "Chimie", level: "avance" }], ...data });
+    if (priv) await write(`users/${id}/private/settings`, priv);
+    return id;
+  };
+  for (const n of [1, 2, 3]) await mk(`ok${n}@test.com`, {}, { age_bracket: "15plus" });
+  await mk("hidden@test.com", { profile_visible: false, subjects: [{ name: "Cachée" }] });
+  await mk("banned@test.com", { banned: true, subjects: [{ name: "Bannie" }] });
+  await mk("minor@test.com", { subjects: [{ name: "Mineure" }] }, { age_bracket: "under15" });
+  await sleep(1000);
+  const require = createRequire(import.meta.url);
+  await require("../../functions/index.js").refreshPublicPreview.run({});
+  const doc = await get("stats/preview");
+  const json = JSON.stringify(doc);
+  for (const secret of ["NomSecret", "VilleSecrete", "EcoleSecrete", "BioSecrete", "photo.secrete", "@test.com"]) {
+    if (json.includes(secret)) throw new Error(`donnée personnelle recopiée : ${secret}`);
+  }
+  for (const excluded of ["Cachée", "Bannie", "Mineure"]) {
+    if (json.includes(excluded)) throw new Error(`profil non éligible inclus : ${excluded}`);
+  }
+  const profiles = doc.fields?.profiles?.arrayValue?.values || [];
+  if (profiles.length < 3 || profiles.length > 6) throw new Error(`${profiles.length} profil(s) dans l'aperçu`);
+});
+
 await t("anti-abus : au-delà de 15 demandes par jour, la demande est supprimée", async () => {
   const S = await createUser("spam@test.com");
   for (let i = 0; i < 16; i++) {

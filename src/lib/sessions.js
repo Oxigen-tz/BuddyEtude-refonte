@@ -80,3 +80,29 @@ export const downloadIcs = (session, labels) => {
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
+
+// ------------------------------------------------------------------ Série de semaines
+// Nombre de semaines d'affilée (du lundi au dimanche) avec au moins une session qui a eu lieu :
+// terminée, ou prévue dont l'heure est passée (les sessions annulées ne comptent pas).
+// La semaine en cours n'interrompt pas la série tant qu'elle n'est pas finie : une série de
+// 3 semaines reste à 3 lundi matin. Renvoie aussi si la semaine en cours compte déjà.
+const mondayOf = (date) => {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return d.getTime();
+};
+const WEEK = 7 * 86400000;
+export const weeklyStreak = (sessions, now = new Date()) => {
+  const weeks = new Set();
+  for (const s of sessions || []) {
+    const start = parseSessionStart(s);
+    if (!start || start > now) continue;
+    if (s.status === "completed" || (s.status === "planned" && isSessionOver(s, now))) weeks.add(mondayOf(start));
+  }
+  const current = mondayOf(now);
+  const thisWeek = weeks.has(current);
+  let count = 0;
+  // Semaines où le passage à l'heure d'été/hiver décale d'une heure : on arrondit au lundi
+  for (let w = thisWeek ? current : current - WEEK; weeks.has(mondayOf(new Date(w + 12 * 3600000))); w -= WEEK) count++;
+  return { count, thisWeek };
+};

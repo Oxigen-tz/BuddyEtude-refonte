@@ -5,6 +5,7 @@ import HomeNavbar from "../components/home/HomeNavbar";
 import HeroSection from "../components/home/HeroSection";
 import IntentSection from "../components/home/IntentSection";
 import Testimonial from "../components/home/Testimonial";
+import ProfilePreview from "../components/home/ProfilePreview";
 import HowItWorks from "../components/home/HowItWorks";
 import FeaturesSection from "../components/home/FeaturesSection";
 import MentorSection from "../components/home/MentorSection";
@@ -37,6 +38,8 @@ export default function Home() {
         <IntentSection />
         <HowItWorks />
         <FeaturesSection />
+        {/* Aperçu anonymisé de vrais profils (masqué tant qu'il y en a moins de 3) */}
+        <ProfilePreview />
         {/* Sur téléphone, « Débloquer une matière » (IntentSection) remplace cette section */}
         <div className="hidden md:block"><MentorSection /></div>
         <SafetySection />

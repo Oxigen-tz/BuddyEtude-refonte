@@ -5,10 +5,10 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
-import { Search, UserPlus, UserRound, Calendar, Sparkles, Check, X, ArrowRight, MessageCircle } from "lucide-react";
+import { Search, UserPlus, UserRound, Calendar, Sparkles, Check, X, ArrowRight, MessageCircle, Flame } from "lucide-react";
 import { db } from "../firebase/config";
 import { collection, query, where, getDocs, getDoc, doc } from "firebase/firestore";
-import { parseSessionStart, sessionStartTime, isSessionOver } from "@/lib/sessions";
+import { parseSessionStart, sessionStartTime, isSessionOver, weeklyStreak } from "@/lib/sessions";
 import { useRequests, buildRelations } from "@/hooks/useRequests";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 
@@ -20,6 +20,8 @@ export default function Dashboard() {
   const [isProfileComplete, setIsProfileComplete] = useState(false);
   const [hasBuddy, setHasBuddy] = useState(false);
   const [upcomingSessions, setUpcomingSessions] = useState([]);
+  // Série : semaines d'affilée avec au moins une session (lib/sessions.js → weeklyStreak)
+  const [streak, setStreak] = useState({ count: 0, thisWeek: false });
 
   const [hasLaunchedSession, setHasLaunchedSession] = useState(localStorage.getItem("tuto_step3") === "true");
   const [showTutorial, setShowTutorial] = useState(localStorage.getItem("tuto_hidden") !== "true");
@@ -86,6 +88,7 @@ export default function Dashboard() {
           setHasLaunchedSession(true);
         }
         const now = new Date();
+        setStreak(weeklyStreak(allSessions, now));
         setUpcomingSessions(
           allSessions
             .filter((s) => s.status === "planned" && !isSessionOver(s, now))
@@ -200,6 +203,20 @@ export default function Dashboard() {
               </li>
             ))}
           </ul>
+        </section>
+      )}
+
+      {/* --- SÉRIE DE SEMAINES : encourageante, jamais culpabilisante (pas de « série perdue ») --- */}
+      {streak.count > 0 && (
+        <section className="rounded-2xl bg-card border border-border px-4 py-3.5 shadow-soft flex items-center gap-3">
+          <span className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-300 flex items-center justify-center shrink-0"><Flame className="w-5 h-5" /></span>
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-foreground">{t("dashboard.streak.title", { count: streak.count })}</p>
+            <p className="text-sm text-muted-foreground">{streak.thisWeek ? t("dashboard.streak.done") : t("dashboard.streak.next")}</p>
+          </div>
+          {!streak.thisWeek && (
+            <Button variant="outline" size="sm" onClick={() => navigate(createPageUrl("Sessions"))} className="rounded-xl shrink-0">{t("dashboard.streak.action")}</Button>
+          )}
         </section>
       )}
 

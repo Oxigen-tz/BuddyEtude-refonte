@@ -206,6 +206,86 @@ export const SUBJECTS = [
       ["Mes données sont-elles protégées ?", "Oui. Elles ne sont jamais vendues et sont hébergées dans l'Union européenne. Un avertissement apparaît avant d'envoyer un numéro ou un lien à quelqu'un que tu ne connais pas encore."],
     ],
   },
+  {
+    slug: "psychologie",
+    term: "psycho", // filtre pré-rempli dans la recherche (/Search?subject=…)
+    name: "Psychologie",
+    title: "Réviser la psychologie à deux : trouve ton binôme · BuddyEtude",
+    description: "Statistiques, théories, études expérimentales : trouve un étudiant en psychologie de ton niveau pour réviser à deux. Gratuit et sans pub.",
+    h1: "Réviser la psychologie à deux",
+    intro: "La licence de psychologie mélange des cours très théoriques, beaucoup de références d'auteurs et des statistiques qui surprennent souvent en première année. À deux, tu fixes mieux les notions et tu t'entraînes sur les exercices de méthodologie.",
+    methods: [
+      ["Reliez chaque théorie à une expérience", "Pour chaque auteur du cours, l'un cite l'expérience ou l'observation qui fonde la théorie, l'autre en explique les limites. C'est exactement ce qu'on attend dans une copie."],
+      ["Faites les statistiques ensemble", "Prenez le même jeu de données et faites chacun le test demandé, puis comparez vos résultats et votre interprétation. Les erreurs de raisonnement apparaissent tout de suite."],
+      ["Construisez des tableaux comparatifs", "Sur un chapitre, remplissez à deux un tableau qui compare les courants : idée principale, auteurs, méthodes, critiques. Un bon support pour les révisions de dernière minute."],
+    ],
+    tools: "Le tableau blanc partagé de BuddyEtude permet de faire vos tableaux comparatifs et vos calculs à deux, pendant l'appel vidéo.",
+    faq: [
+      ["Je suis en L1 de psychologie : avec qui vais-je réviser ?", "Avec des étudiants qui ont la psychologie dans leur profil, classés selon votre niveau, votre établissement, votre ville et vos disponibilités."],
+      ["Les statistiques me bloquent, quelqu'un peut-il m'aider ?", "Oui, avec le mode « Trouver de l'aide » : il affiche des étudiants avancés dans la matière qui acceptent d'aider ceux qui débutent."],
+      ["Peut-on réviser en groupe pour les partiels ?", "Oui, les groupes de révision réunissent jusqu'à six personnes, avec une discussion et un tableau blanc communs."],
+    ],
+  },
+  {
+    slug: "sciences-politiques",
+    term: "science", // filtre pré-rempli dans la recherche (/Search?subject=…)
+    name: "Sciences politiques",
+    title: "Réviser les sciences politiques à deux · BuddyEtude",
+    description: "Culture générale, actualité, oraux : trouve un étudiant de ton niveau pour réviser les sciences politiques à deux. Gratuit et sans publicité.",
+    h1: "Réviser les sciences politiques à deux",
+    intro: "Les sciences politiques demandent une solide culture générale, un suivi régulier de l'actualité et beaucoup d'entraînement à l'écrit comme à l'oral. Un binôme t'aide à tenir le rythme et à confronter tes arguments.",
+    methods: [
+      ["Faites une revue de presse à deux", "Chaque semaine, chacun choisit deux sujets d'actualité et les présente à l'autre en trois minutes, avec les enjeux et un lien avec le cours."],
+      ["Débattez d'un sujet", "L'un défend une position, l'autre la position contraire, puis vous changez. C'est un excellent entraînement pour les oraux et pour la discussion d'une dissertation."],
+      ["Fixez les notions clés", "Interrogez-vous sur les définitions et les auteurs du programme : régime, souveraineté, légitimité… Une notion mal définie fragilise toute une copie."],
+    ],
+    tools: "L'appel vidéo intégré de BuddyEtude sert pour vos débats et vos simulations d'oral, et la messagerie pour échanger vos fiches et vos articles.",
+    faq: [
+      ["Je prépare un concours d'IEP : BuddyEtude peut-il m'aider ?", "BuddyEtude te permet de trouver d'autres étudiants qui préparent les mêmes épreuves pour réviser ensemble. Ce n'est pas une préparation officielle et il ne fournit pas de cours."],
+      ["Peut-on réviser à distance ?", "Oui, entièrement : l'appel vidéo est intégré, sans logiciel ni compte supplémentaire."],
+      ["Combien ça coûte ?", "Rien. BuddyEtude est entièrement gratuit et sans publicité."],
+    ],
+  },
+  {
+    slug: "prepa",
+    term: "", // niveau d'études et non matière : recherche sans filtre de matière
+    name: "Classes prépa",
+    title: "Réviser en prépa à deux : trouve ton binôme · BuddyEtude",
+    description: "MPSI, PCSI, ECG, khâgne : trouve un étudiant de prépa de ton niveau pour préparer les colles et les concours à deux. Gratuit et sans pub.",
+    h1: "Réviser en prépa à deux",
+    intro: "En classe préparatoire, le rythme est intense : colles chaque semaine, devoirs surveillés, programme très dense. Travailler avec un binôme de ta filière t'aide à préparer les colles, à vérifier tes démonstrations et à garder le moral.",
+    methods: [
+      ["Préparez les colles comme le jour J", "L'un joue le colleur et pose une question de cours puis un exercice, l'autre répond au tableau en temps limité. Puis vous inversez."],
+      ["Refaites les démonstrations de cours", "Chaque semaine, listez les démonstrations à connaître et refaites-les devant l'autre, sans notes. Ce qui n'est pas su ressort immédiatement."],
+      ["Corrigez-vous mutuellement les DS", "Après un devoir, échangez vos copies et repérez les erreurs de l'autre avant de lire le corrigé. On comprend mieux une erreur quand on la cherche chez quelqu'un d'autre."],
+    ],
+    tools: "Sur BuddyEtude, le tableau blanc partagé remplace le tableau de la colle, et les sessions planifiées envoient un rappel avant chaque séance.",
+    faq: [
+      ["Ma filière est-elle prise en compte ?", "Indique ta formation et tes matières sur ton profil : la recherche te propose des étudiants qui travaillent les mêmes matières, à un niveau proche."],
+      ["BuddyEtude remplace-t-il les colles ?", "Non. Il permet de s'entraîner entre étudiants, en plus de ta prépa. Ce n'est pas un organisme de préparation."],
+      ["Peut-on réviser tard le soir ?", "Oui : tu indiques tes disponibilités sur ton profil, et vous planifiez vos sessions aux horaires qui vous conviennent."],
+    ],
+  },
+  {
+    slug: "bts",
+    term: "", // niveau d'études et non matière : recherche sans filtre de matière
+    name: "BTS",
+    title: "Réviser son BTS à deux : trouve ton binôme · BuddyEtude",
+    description: "Épreuves écrites, oraux, dossiers : trouve un étudiant de BTS pour réviser à deux et préparer tes examens. Gratuit et sans publicité.",
+    h1: "Réviser son BTS à deux",
+    intro: "En BTS, les examens mêlent épreuves générales, épreuves professionnelles et oraux sur dossier. Un binôme t'aide à répartir le travail, à t'entraîner à l'oral et à rester régulier jusqu'aux épreuves.",
+    methods: [
+      ["Entraînez-vous à présenter votre dossier", "Chacun présente son dossier ou son expérience de stage en dix minutes, l'autre pose les questions d'un jury. Puis vous échangez les rôles."],
+      ["Refaites les sujets des années précédentes", "Faites le même sujet chacun de votre côté, en temps limité, puis comparez vos réponses point par point."],
+      ["Partagez-vous les fiches", "Sur les matières générales, chacun prépare la fiche d'un chapitre et l'explique à l'autre. Vous avancez deux fois plus vite."],
+    ],
+    tools: "L'appel vidéo intégré de BuddyEtude permet de simuler les oraux à distance, et la messagerie d'échanger vos fiches et vos sujets.",
+    faq: [
+      ["Je suis en alternance, est-ce adapté ?", "Oui. Tu indiques tes disponibilités sur ton profil, et vous révisez aux horaires qui vous conviennent, en visio ou en présentiel."],
+      ["Puis-je trouver quelqu'un du même BTS ?", "La recherche tient compte de tes matières, de ton établissement et de ta ville. Indique la spécialité de ton BTS dans ton profil."],
+      ["Est-ce vraiment gratuit ?", "Oui, BuddyEtude est entièrement gratuit et sans publicité."],
+    ],
+  },
 ];
 
 export const SUBJECTS_HUB = {

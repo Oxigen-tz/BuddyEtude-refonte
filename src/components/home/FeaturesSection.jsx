@@ -60,7 +60,7 @@ const BLOCKS = [
   // shot : vraie capture de l'appli (comptes fictifs sur les émulateurs), dans public/app/
   { id: "filters", icon: Target, Art: MatchArt, glow: "bg-brand-500", shot: { src: "/app/search.webp", w: 1200, h: 566, mobile: "/app/search-mobile.webp" } },
   { id: "chat", icon: MessageCircle, Art: ChatArt, glow: "bg-sky-500", shot: { src: "/app/messages.webp", w: 900, h: 505 } },
-  { id: "whiteboard", icon: PenTool, Art: BoardArt, glow: "bg-purple-500" },
+  { id: "whiteboard", icon: PenTool, Art: BoardArt, glow: "bg-purple-500", shot: { src: "/app/whiteboard.webp", w: 1200, h: 750 } },
 ];
 const MORE = [
   { id: "schedule", icon: CalendarDays },

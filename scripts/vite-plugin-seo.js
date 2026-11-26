@@ -42,7 +42,7 @@ function subjectBody(slug) {
   <p><a href="/" style="color:#6438F5;font-weight:700;text-decoration:none">BuddyEtude</a> › <a href="/reviser" style="color:#6438F5">Réviser par matière</a> › ${esc(x.name)}</p>
   <h1 style="font-size:40px;margin:12px 0 16px">${esc(x.h1)}</h1>
   <p style="font-size:18px;color:#444">${esc(x.intro)}</p>
-  <p><a href="/Search?subject=${encodeURIComponent(x.term)}" style="display:inline-block;background:#6438F5;color:#fff;padding:12px 22px;border-radius:12px;font-weight:700;text-decoration:none">Trouver mon binôme gratuitement</a></p>
+  <p><a href="${x.term ? `/Search?subject=${encodeURIComponent(x.term)}` : "/Search"}" style="display:inline-block;background:#6438F5;color:#fff;padding:12px 22px;border-radius:12px;font-weight:700;text-decoration:none">Trouver mon binôme gratuitement</a></p>
   <h2 style="font-size:26px;margin:48px 0 12px">3 méthodes pour réviser à deux</h2>
   ${x.methods.map(([t, d]) => `<h3 style="font-size:18px;margin:20px 0 6px">${esc(t)}</h3><p style="color:#444;margin:0">${esc(d)}</p>`).join("\n  ")}
   <p style="margin-top:24px;color:#444">${esc(x.tools)}</p>

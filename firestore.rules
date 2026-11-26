@@ -307,6 +307,12 @@ service cloud.firestore {
       allow read: if true;
       allow write: if false;
     }
+    // Aperçu anonymisé de profils (niveau, matières, badge vérifié ; aucun nom ni photo),
+    // maintenu par la Cloud Function refreshPublicPreview : lecture seule ici
+    match /stats/preview {
+      allow read: if true;
+      allow write: if false;
+    }
 
     // ------------------------------------------- Tout le reste : fermé par défaut
     // (dont "mail" : file d'envoi d'e-mails, écrite uniquement par les Cloud Functions)

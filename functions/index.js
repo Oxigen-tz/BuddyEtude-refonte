@@ -361,6 +361,38 @@ exports.onProfileWrite = onDocumentWritten("users/{uid}", async (event) => {
   await db.doc("stats/public").set({ studentCount: FieldValue.increment(after ? 1 : -1) }, { merge: true });
 });
 
+// Aperçu anonymisé de profils pour l'accueil (stats/preview, lisible sans compte).
+// Toutes les 6 heures : jusqu'à 6 profils tirés au hasard parmi les profils complets, visibles,
+// non bannis, d'étudiants de 15 ans ou plus. Seuls le niveau, 3 matières au plus et le badge
+// « vérifié » sont recopiés : jamais de nom, d'initiales, de photo, de ville, d'établissement
+// ni de présentation. Moins de 3 profils éligibles : aperçu vide (rien n'est affiché).
+const PREVIEW_SIZE = 6;
+async function buildPublicPreview() {
+  const snap = await db.collection("users").where("profile_complete", "==", true).get();
+  const eligible = snap.docs.filter((d) => d.get("profile_visible") !== false && !d.get("banned"));
+  // Tirage au hasard, puis vérification de l'âge (donnée privée) seulement pour les profils retenus
+  for (let i = eligible.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [eligible[i], eligible[j]] = [eligible[j], eligible[i]]; }
+  const profiles = [];
+  for (const d of eligible) {
+    if (profiles.length >= PREVIEW_SIZE) break;
+    const priv = await db.doc(`users/${d.id}/private/settings`).get();
+    if (priv.get("age_bracket") === "under15") continue;
+    const subjects = (d.get("subjects") || [])
+      .map((s) => (typeof s === "string" ? { name: s } : { name: s?.name, level: s?.level }))
+      .filter((s) => typeof s.name === "string" && s.name.trim())
+      .slice(0, 3)
+      .map((s) => ({ name: s.name.trim().slice(0, 40), ...(typeof s.level === "string" ? { level: s.level } : {}) }));
+    if (!subjects.length) continue;
+    profiles.push({ level: typeof d.get("level") === "string" ? d.get("level").slice(0, 40) : "", subjects, verified: !!d.get("verified_domain") });
+  }
+  await db.doc("stats/preview").set({ profiles: profiles.length >= 3 ? profiles : [], updatedAt: FieldValue.serverTimestamp() });
+  return profiles.length;
+}
+exports.refreshPublicPreview = onSchedule({ schedule: "every 6 hours", timeZone: "Europe/Paris" }, async () => {
+  const n = await buildPublicPreview();
+  logger.info("Aperçu public mis à jour", { profiles: n });
+});
+
 // Changement de nom : les noms recopiés dans les demandes, sessions, groupes et blocages
 // (affichés dans la messagerie, les notifications…) et le compte de connexion sont mis à jour.
 exports.onDisplayNameChanged = onDocumentUpdated("users/{uid}", async (event) => {
