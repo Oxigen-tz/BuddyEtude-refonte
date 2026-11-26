@@ -53,7 +53,8 @@ export default function ProfilePreview() {
                 <div className="min-w-0">
                   <p className="font-semibold text-white">{t("landing.preview.student")}</p>
                   <p className="text-xs text-white/55 truncate">
-                    {[p.level, p.verified ? t("landing.preview.verified") : null].filter(Boolean).join(" · ")}
+                    {/* Niveau enregistré sous sa valeur technique (lib/catalog.js) : libellé traduit */}
+                    {[p.level ? t(`buddyCard.levels.${p.level}`, { defaultValue: p.level }) : null, p.verified ? t("landing.preview.verified") : null].filter(Boolean).join(" · ")}
                   </p>
                 </div>
               </div>
