@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 function Word({ children, progress, range, accent }) {
   const opacity = useTransform(progress, range, [0.14, 1]);
   return (
-    <motion.span style={{ opacity }} className={`inline-block ${accent ? "text-gradient" : ""}`}>
+    <motion.span style={{ opacity }} className={`inline-block ${accent ? "text-lime-300" : ""}`}>
       {children}
     </motion.span>
   );
@@ -32,7 +32,7 @@ export default function Manifesto() {
             <React.Fragment key={i}>
               {i > 0 && " "}
               {reduce ? (
-                <span className={brandIndex >= 0 && i >= brandIndex ? "text-gradient" : ""}>{w}</span>
+                <span className={brandIndex >= 0 && i >= brandIndex ? "text-lime-300" : ""}>{w}</span>
               ) : (
                 <Word progress={scrollYProgress} range={[start, start + 1 / words.length]} accent={brandIndex >= 0 && i >= brandIndex}>{w}</Word>
               )}

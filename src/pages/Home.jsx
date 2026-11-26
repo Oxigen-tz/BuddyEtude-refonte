@@ -9,6 +9,7 @@ import FeaturesSection from "../components/home/FeaturesSection";
 import MentorSection from "../components/home/MentorSection";
 import SafetySection from "../components/home/SafetySection";
 import CTASection from "../components/home/CTASection";
+import MobileStickyCta from "../components/home/MobileStickyCta";
 import FaqSection from "../components/home/FaqSection";
 import { useAuth } from "@/lib/AuthContext";
 
@@ -40,6 +41,7 @@ export default function Home() {
         <FaqSection />
         <CTASection />
       </main>
+      <MobileStickyCta />
     </div>
   );
 }

@@ -420,6 +420,9 @@ const resources = {
         nav: {
           login: "Connexion",
           signup: "Inscription",
+          stickyCta: "Trouver mon binôme",
+          stickyFree: "Gratuit",
+          hasAccount: "J'ai déjà un compte",
           dashboard: "Tableau de bord",
           switchLanguage: "Changer de langue"
         }
@@ -517,7 +520,7 @@ const resources = {
         subtitle_bold: "collabore en temps réel sur notre tableau blanc",
         subtitle_part2: ".",
         btn_dashboard: "Accéder à mon espace",
-        btn_start: "C'est parti !",
+        btn_start: "Trouver mon binôme gratuitement",
         previewAlt: "Aperçu du tableau blanc collaboratif et de la messagerie de BuddyEtude",
         social: {
           early: "Plateforme en <bold>lancement</bold> — rejoins les premiers étudiants !",
@@ -1674,6 +1677,9 @@ const resources = {
         nav: {
           login: "Login",
           signup: "Sign Up",
+          stickyCta: "Find my study buddy",
+          stickyFree: "Free",
+          hasAccount: "I already have an account",
           dashboard: "Dashboard",
           switchLanguage: "Switch language"
         }
@@ -1771,7 +1777,7 @@ const resources = {
         subtitle_bold: "collaborate in real-time on our whiteboard",
         subtitle_part2: ".",
         btn_dashboard: "Go to my dashboard",
-        btn_start: "Let's get started!",
+        btn_start: "Find my study buddy for free",
         previewAlt: "Preview of BuddyEtude's collaborative whiteboard and chat",
         social: {
           early: "Platform is <bold>launching</bold> — join the first students!",

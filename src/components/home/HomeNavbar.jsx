@@ -56,11 +56,11 @@ export default function HomeNavbar() {
               <Button
                 variant="ghost"
                 onClick={openLogin}
-                className="hidden sm:inline-flex rounded-xl text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-ink-800"
+                className="rounded-xl px-3 sm:px-4 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-ink-800"
               >
                 {t("home.nav.login")}
               </Button>
-              <Button onClick={openLogin} className="rounded-xl px-4 sm:px-5 bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 shadow-none">
+              <Button onClick={openLogin} className="hidden sm:inline-flex rounded-xl px-4 sm:px-5 bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 shadow-none">
                 {t("home.nav.signup")}
               </Button>
             </>

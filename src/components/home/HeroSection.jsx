@@ -80,7 +80,7 @@ export default function HeroSection() {
                 initial={{ opacity: 0, y: 50, filter: "blur(14px)" }}
                 animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                 transition={{ delay: 0.15 + i * 0.08, duration: 0.9, ease: EASE }}
-                className={`inline-block ${x.hl ? "text-gradient animate-shine pb-2" : ""}`}
+                className={`inline-block ${x.hl ? "hl-marker" : ""}`}
               >
                 {x.w}
               </motion.span>
@@ -109,7 +109,7 @@ export default function HeroSection() {
         </motion.div>
 
         <motion.ul initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.05, duration: 0.8 }}
-          className="mt-8 flex flex-wrap gap-x-6 gap-y-2 justify-center text-sm font-medium text-white/60">
+          className="mt-5 flex flex-wrap gap-x-6 gap-y-2 justify-center text-sm font-medium text-white/60">
           {["free", "verified", "europe"].map((k) => (
             <li key={k} className="inline-flex items-center gap-1.5">
               <span className="w-5 h-5 rounded-full bg-lime-300/15 flex items-center justify-center"><Check className="w-3 h-3 text-lime-300" strokeWidth={3} /></span>
