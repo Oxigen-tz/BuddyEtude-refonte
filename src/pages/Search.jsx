@@ -52,7 +52,8 @@ export default function Search() {
   const { t } = useTranslation();
   
   const [search, setSearch] = useState("");
-  const [subjectFilter, setSubjectFilter] = useState("");
+  // ?subject=… : arrivée depuis une page « Réviser <matière> à deux »
+  const [subjectFilter, setSubjectFilter] = useState(() => new URLSearchParams(window.location.search).get("subject") || "");
   const [cityFilter, setCityFilter] = useState("");
   const [levelFilter, setLevelFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");

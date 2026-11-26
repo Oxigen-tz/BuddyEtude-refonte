@@ -51,6 +51,7 @@ export default function Footer() {
             <ul className="space-y-3">
               <li><Link to={createPageUrl("About")} className={linkClass}>{t("footer.about")}</Link></li>
               <li><Link to={createPageUrl("Search")} className={linkClass}>{t("footer.findBuddy")}</Link></li>
+              <li><Link to="/reviser" className={linkClass}>{t("footer.subjects")}</Link></li>
               <li><Link to={createPageUrl("Etablissements")} className={linkClass}>{t("footer.schools")}</Link></li>
               <li><SupportLink className={linkClass} /></li>
             </ul>

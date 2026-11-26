@@ -13,11 +13,19 @@ export function saveIntent(id) {
   try { if (INTENT_TARGETS[id]) sessionStorage.setItem(KEY, id); } catch { /* stockage indisponible : sans effet */ }
 }
 
+const SEARCH_PATH = /^\/Search(\?|$)/;
+
+// Variante : une adresse précise de la recherche (ex. /Search?subject=droit depuis /reviser/droit)
+export function saveIntentPath(path) {
+  try { if (SEARCH_PATH.test(path)) sessionStorage.setItem(KEY, path); } catch { /* stockage indisponible */ }
+}
+
 export function takeIntentTarget() {
   try {
     const id = sessionStorage.getItem(KEY);
     if (!id) return null;
     sessionStorage.removeItem(KEY);
+    if (SEARCH_PATH.test(id)) return id;
     return INTENT_TARGETS[id] || null;
   } catch {
     return null;

@@ -17,6 +17,14 @@
       "destination": "/Etablissements/index.html"
     },
     {
+      "source": "/reviser",
+      "destination": "/reviser/index.html"
+    },
+    {
+      "source": "/reviser/:slug",
+      "destination": "/reviser/:slug/index.html"
+    },
+    {
       "source": "/((?!sitemap.xml|robots.txt|assets/).*)",
       "destination": "/index.html"
     }

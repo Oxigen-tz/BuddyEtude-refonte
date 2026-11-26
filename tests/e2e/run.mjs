@@ -206,7 +206,8 @@ async function scenario(browser) {
   await step("Alice : notification, session au tableau de bord, bouton d'appel vidéo", async () => {
     await A.getByText(/Nouvelle session/).first().waitFor({ timeout: 10000 });
     await A.goto(BASE + "/Dashboard");
-    await A.getByText("Chapitre 4").waitFor({ timeout: 10000 });
+    // .first() : la session apparaît aussi dans le bloc « À faire maintenant »
+    await A.getByText("Chapitre 4").first().waitFor({ timeout: 10000 });
     await A.goto(BASE + "/Sessions");
     await A.getByRole("link", { name: /Rejoindre l'appel vidéo/ }).waitFor({ timeout: 10000 });
   });
@@ -387,7 +388,7 @@ async function scenario(browser) {
       try {
         await Promise.race([watchdog, (async () => {
         for (const p of ["/", "/About", "/Etablissements", "/Legal", "/Privacy"]) await audit(p);
-        await auditOpenDialog("/", () => M.getByRole("button", { name: /Commencer|S'inscrire|Inscription/ }).first().click());
+        await auditOpenDialog("/", () => M.getByRole("button", { name: /Trouver mon binôme|Commencer|S'inscrire|Inscription/ }).first().click());
         await googleLogin(M, { ...U.alice, create: false });
         const bobUid = await uidOf(U.bob.name);
         const eveUid = await uidOf(U.eve.name);

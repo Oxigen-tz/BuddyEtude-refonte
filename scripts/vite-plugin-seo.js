@@ -7,10 +7,11 @@
 // dès que le JavaScript est chargé.
 import fs from "node:fs";
 import path from "node:path";
-import { SITE, PUBLIC_PAGES, FAQ, baseJsonLd, faqJsonLd } from "../src/seo/site.js";
+import { SITE, PUBLIC_PAGES, FAQ, baseJsonLd, faqJsonLd, subjectJsonLd } from "../src/seo/site.js";
+import { SUBJECTS, SUBJECTS_HUB, subjectPath } from "../src/seo/subjects.js";
 
 // Versions linguistiques de l'accueil, seule page traduite à une adresse distincte (/?lang=en)
-const HREFLANG =[["fr", "/"], ["en", "/?lang=en"], ["x-default", "/"]];
+const HREFLANG = [["fr", "/"], ["en", "/?lang=en"], ["x-default", "/"]];
 const hreflangLinks = () => HREFLANG.map(([l, p]) => `<link rel="alternate" hreflang="${l}" href="${SITE.url}${p}" />`).join("\n    ");
 const hreflangSitemap = () => HREFLANG.map(([l, p]) => `\n    <xhtml:link rel="alternate" hreflang="${l}" href="${SITE.url}${p}"/>`).join("");
 
@@ -28,11 +29,44 @@ const FEATURES = [
 
 const nav = `<nav style="margin-top:40px;display:flex;flex-wrap:wrap;gap:16px;font-size:14px">
   <a href="/" style="color:inherit">Accueil</a><a href="/About" style="color:inherit">À propos</a>
+  <a href="/reviser" style="color:inherit">Réviser par matière</a>
   <a href="/Etablissements" style="color:inherit">Pour les établissements</a>
   <a href="/Legal" style="color:inherit">Mentions légales et CGU</a><a href="/Privacy" style="color:inherit">Confidentialité</a></nav>`;
 
+// Pages matières : tout le texte de la page, lisible sans JavaScript
+const LIGHT = "min-height:100vh;font-family:'Plus Jakarta Sans',system-ui,sans-serif;padding:96px 24px 64px;color:#17172A";
+const subjectLinks = (exclude) => `<ul>${SUBJECTS.filter((x) => x.slug !== exclude).map((x) => `<li><a href="${subjectPath(x.slug)}" style="color:#6438F5">${esc(x.h1)}</a></li>`).join("")}</ul>`;
+function subjectBody(slug) {
+  const x = SUBJECTS.find((y) => y.slug === slug);
+  return `<main style="${LIGHT}"><article style="max-width:760px;margin:0 auto">
+  <p><a href="/" style="color:#6438F5;font-weight:700;text-decoration:none">BuddyEtude</a> › <a href="/reviser" style="color:#6438F5">Réviser par matière</a> › ${esc(x.name)}</p>
+  <h1 style="font-size:40px;margin:12px 0 16px">${esc(x.h1)}</h1>
+  <p style="font-size:18px;color:#444">${esc(x.intro)}</p>
+  <p><a href="/Search?subject=${encodeURIComponent(x.term)}" style="display:inline-block;background:#6438F5;color:#fff;padding:12px 22px;border-radius:12px;font-weight:700;text-decoration:none">Trouver mon binôme gratuitement</a></p>
+  <h2 style="font-size:26px;margin:48px 0 12px">3 méthodes pour réviser à deux</h2>
+  ${x.methods.map(([t, d]) => `<h3 style="font-size:18px;margin:20px 0 6px">${esc(t)}</h3><p style="color:#444;margin:0">${esc(d)}</p>`).join("\n  ")}
+  <p style="margin-top:24px;color:#444">${esc(x.tools)}</p>
+  <h2 style="font-size:26px;margin:48px 0 12px">Questions fréquentes</h2>
+  ${x.faq.map(([q, a]) => `<h3 style="font-size:18px;margin:20px 0 6px">${esc(q)}</h3><p style="color:#444;margin:0">${esc(a)}</p>`).join("\n  ")}
+  <h2 style="font-size:22px;margin:48px 0 12px">Les autres matières</h2>
+  ${subjectLinks(slug)}
+  ${nav}
+</article></main>`;
+}
+function hubBody() {
+  return `<main style="${LIGHT}"><div style="max-width:760px;margin:0 auto">
+  <p><a href="/" style="color:#6438F5;font-weight:700;text-decoration:none">BuddyEtude</a> › Réviser par matière</p>
+  <h1 style="font-size:40px;margin:12px 0 16px">${esc(SUBJECTS_HUB.h1)}</h1>
+  <p style="font-size:18px;color:#444">${esc(SUBJECTS_HUB.intro)}</p>
+  ${subjectLinks()}
+  ${nav}
+</div></main>`;
+}
+
 function bodyFor(route) {
   const fr = PUBLIC_PAGES[route].fr;
+  if (PUBLIC_PAGES[route].subject) return subjectBody(PUBLIC_PAGES[route].subject);
+  if (PUBLIC_PAGES[route].subjectHub) return hubBody();
   if (route === "/") {
     return `<main style="min-height:100vh;background:#090A13;color:#fff;font-family:'Plus Jakarta Sans',system-ui,sans-serif;padding:96px 24px 64px"><div style="max-width:880px;margin:0 auto">
   <p style="color:#BBACFF;font-weight:700">BuddyEtude</p>
@@ -69,6 +103,8 @@ function pageHtml(template, route) {
   html = setAttr(html, /<meta name="twitter:description"[^>]*>/, "content", description);
   html = setAttr(html, /<link rel="canonical"[^>]*>/, "href", url);
   if (route === "/") html = html.replace("</head>", `    ${hreflangLinks()}\n    ${jsonLd(faqJsonLd("fr"))}\n  </head>`);
+  const slug = PUBLIC_PAGES[route].subject;
+  if (slug) html = html.replace("</head>", `    ${subjectJsonLd(slug).map(jsonLd).join("\n    ")}\n  </head>`);
   return html.replace('<div id="root"></div>', `<div id="root">${bodyFor(route)}</div>`);
 }
 

@@ -57,8 +57,9 @@ function BoardArt() {
 // Trois blocs verticaux (trouver, discuter et appeler, tableau blanc), puis les autres fonctions
 // en une ligne d'icônes. Remplace l'ancienne galerie horizontale, longue et déroutante sur téléphone.
 const BLOCKS = [
-  { id: "filters", icon: Target, Art: MatchArt, glow: "bg-brand-500" },
-  { id: "chat", icon: MessageCircle, Art: ChatArt, glow: "bg-sky-500" },
+  // shot : vraie capture de l'appli (comptes fictifs sur les émulateurs), dans public/app/
+  { id: "filters", icon: Target, Art: MatchArt, glow: "bg-brand-500", shot: { src: "/app/search.webp", w: 1200, h: 566, mobile: "/app/search-mobile.webp" } },
+  { id: "chat", icon: MessageCircle, Art: ChatArt, glow: "bg-sky-500", shot: { src: "/app/messages.webp", w: 900, h: 505 } },
   { id: "whiteboard", icon: PenTool, Art: BoardArt, glow: "bg-purple-500" },
 ];
 const MORE = [
@@ -67,7 +68,7 @@ const MORE = [
   { id: "subjects", icon: BookOpen },
 ];
 
-function FeatureBlock({ id, icon: Icon, Art, glow, flip }) {
+function FeatureBlock({ id, icon: Icon, Art, glow, flip, shot }) {
   const { t } = useTranslation();
   return (
     <motion.article {...reveal()} className="relative grid md:grid-cols-2 gap-6 md:gap-12 items-center">
@@ -78,7 +79,16 @@ function FeatureBlock({ id, icon: Icon, Art, glow, flip }) {
       </div>
       <div className="relative rounded-[2rem] bg-gradient-to-b from-white/[0.09] to-white/[0.02] border border-white/10 p-6 sm:p-8 overflow-hidden" aria-hidden="true">
         <div className={`absolute -top-24 -right-24 w-64 h-64 rounded-full ${glow} opacity-25 blur-[80px]`} />
-        <div className="relative"><Art /></div>
+        {shot ? (
+          <picture>
+            {/* Téléphone : recadrage sur deux cartes, lisible sur un petit écran */}
+            {shot.mobile && <source media="(max-width: 639px)" srcSet={shot.mobile} />}
+            <img src={shot.src} width={shot.w} height={shot.h} alt="" loading="lazy" decoding="async"
+              className="relative w-full h-auto rounded-2xl shadow-lift ring-1 ring-white/10" />
+          </picture>
+        ) : (
+          <div className="relative"><Art /></div>
+        )}
       </div>
     </motion.article>
   );

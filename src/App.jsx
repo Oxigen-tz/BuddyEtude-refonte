@@ -13,6 +13,8 @@ import PublicHeader from '@/components/PublicHeader';
 import LoginRequired from '@/components/LoginRequired';
 import { initTheme } from '@/lib/theme';
 import SeoManager from '@/components/SeoManager';
+import { lazy } from 'react';
+const Reviser = lazy(() => import('./pages/Reviser'));
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -21,12 +23,16 @@ const MainPage = (mainPageKey && Pages[mainPageKey]) || (() => null);
 // Pages consultables sans compte. Toutes les autres affichent l'écran "Connexion requise"
 // aux visiteurs : avant, /Dashboard affichait "Bonjour, Étudiant" avec un bouton Déconnexion,
 // et /Profile restait bloquée sur son squelette de chargement.
-const PUBLIC_PAGES = [mainPageKey, 'About', 'Legal', 'Privacy', 'Etablissements'];
+const PUBLIC_PAGES = [mainPageKey, 'About', 'Legal', 'Privacy', 'Etablissements', 'Reviser'];
 
 const LayoutWrapper = ({ children, currentPageName }) => {
-  const { user } = useAuth();
+  const { user, isLoadingAuth } = useAuth();
   const isHome = currentPageName === mainPageKey;
   const isPublic = PUBLIC_PAGES.includes(currentPageName);
+
+  // Pages de l'application : on attend de savoir si l'utilisateur est connecté.
+  // Pages publiques : affichées tout de suite, Firebase se charge ensuite (firebase/lazy.js).
+  if (isLoadingAuth && !isPublic) return <FullScreenSpinner />;
 
   // Connecté : barre latérale sur toutes les pages sauf l'accueil (qui a sa propre navbar).
   // Le footer (pensé pour le site vitrine) n'apparaît plus sous les pages de l'application
@@ -34,6 +40,7 @@ const LayoutWrapper = ({ children, currentPageName }) => {
   // Confidentialité. Ces pages restent accessibles depuis Paramètres.
   if (user && Layout && !isHome) {
     return (
+      <Suspense fallback={<FullScreenSpinner />}>
       <Layout currentPageName={currentPageName}>
         {isPublic ? (
           <div className="flex flex-col min-h-full">
@@ -44,6 +51,7 @@ const LayoutWrapper = ({ children, currentPageName }) => {
           children
         )}
       </Layout>
+      </Suspense>
     );
   }
 
@@ -71,10 +79,11 @@ const PageSpinner = () => (
 );
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+  const { isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
 
-  // Affichage du spinner pendant le chargement
-  if (isLoadingPublicSettings || isLoadingAuth) {
+  // Le chargement de la connexion est géré page par page (LayoutWrapper) : les pages publiques
+  // n'attendent plus Firebase pour s'afficher.
+  if (isLoadingPublicSettings) {
     return <FullScreenSpinner />;
   }
 
@@ -110,6 +119,15 @@ const AuthenticatedApp = () => {
             </LayoutWrapper>
           }
         />
+      ))}
+
+      {/* Pages « Réviser <matière> à deux » (référencement) */}
+      {["/reviser", "/reviser/:slug"].map((path) => (
+        <Route key={path} path={path} element={
+          <LayoutWrapper currentPageName="Reviser">
+            <Suspense fallback={<PageSpinner />}><Reviser /></Suspense>
+          </LayoutWrapper>
+        } />
       ))}
 
       {/* Page 404 */}

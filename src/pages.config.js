@@ -10,7 +10,9 @@
  */
 import { lazy } from 'react';
 import Home from './pages/Home';
-import __Layout from './Layout.jsx';
+// Mise en page de l'application connectée (barre latérale, notifications) : chargée à la demande,
+// elle utilise Firebase et n'est jamais affichée aux visiteurs des pages publiques.
+const __Layout = lazy(() => import('./Layout.jsx'));
 
 export const PAGES = {
     "Home": Home,

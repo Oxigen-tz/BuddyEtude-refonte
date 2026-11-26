@@ -6,8 +6,7 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { useLiteMotion } from "@/hooks/useLiteMotion";
 import { Link } from "react-router-dom";
 import { useTranslation, Trans } from "react-i18next";
-import { db } from "@/firebase/config";
-import { doc, getDoc } from "firebase/firestore";
+import { loadFirebase, whenIdle, isBot } from "@/firebase/lazy";
 import AppWindowMock from "./AppWindowMock";
 
 const SOCIAL_PROOF_THRESHOLD = 20;
@@ -20,13 +19,17 @@ export default function HeroSection() {
   const [studentCount, setStudentCount] = useState(null);
 
   useEffect(() => {
+    if (isBot()) return undefined; // pas de compteur pour les robots (voir isBot)
     let cancelled = false;
     // Compteur public (stats/public.studentCount) : les règles interdisent de lister les profils
-    // sans être connecté. Incrémenté par Profile.jsx quand un profil est complété.
-    getDoc(doc(db, "stats", "public"))
-      .then((snap) => { if (!cancelled) setStudentCount(snap.exists() ? Number(snap.data().studentCount) || 0 : 0); })
-      .catch((error) => { console.warn("Compteur d'étudiants indisponible :", error); if (!cancelled) setStudentCount(0); });
-    return () => { cancelled = true; };
+    // sans être connecté. Lu une fois la page affichée (Firebase chargé en différé).
+    const cancelIdle = whenIdle(() => {
+      loadFirebase()
+        .then(({ firestore, db }) => firestore.getDoc(firestore.doc(db, "stats", "public")))
+        .then((snap) => { if (!cancelled) setStudentCount(snap.exists() ? Number(snap.data().studentCount) || 0 : 0); })
+        .catch((error) => { console.warn("Compteur d'étudiants indisponible :", error); if (!cancelled) setStudentCount(0); });
+    });
+    return () => { cancelled = true; cancelIdle(); };
   }, []);
   const showRealCount = studentCount !== null && studentCount >= SOCIAL_PROOF_THRESHOLD;
 

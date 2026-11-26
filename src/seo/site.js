@@ -2,6 +2,8 @@
 // Utilisé à la fois par l'application (components/SeoManager.jsx, section FAQ de l'accueil)
 // et à la compilation (vite.config.js : pages HTML pré-remplies, sitemap.xml).
 // ⚠️ Pas d'import ici (ni "@/…", ni React) : ce fichier est aussi lu par Node.
+//    Seule exception : ./subjects.js, lui aussi de simples données.
+import { SUBJECTS, SUBJECTS_HUB, subjectPath } from "./subjects.js";
 
 export const SITE = {
   url: "https://buddyetude.com",
@@ -54,6 +56,15 @@ export const PUBLIC_PAGES = {
   },
 };
 
+// Pages « Réviser <matière> à deux » : contenu en français uniquement (mêmes textes en anglais)
+PUBLIC_PAGES["/reviser"] = { priority: "0.8", changefreq: "monthly", subjectHub: true,
+  fr: { title: SUBJECTS_HUB.title, description: SUBJECTS_HUB.description },
+  en: { title: SUBJECTS_HUB.title, description: SUBJECTS_HUB.description } };
+for (const s of SUBJECTS) {
+  PUBLIC_PAGES[subjectPath(s.slug)] = { priority: "0.7", changefreq: "monthly", subject: s.slug,
+    fr: { title: s.title, description: s.description }, en: { title: s.title, description: s.description } };
+}
+
 // Pages de l'application (connexion requise) : jamais indexées
 export const PRIVATE_PATHS = ["/Dashboard", "/Search", "/Messages", "/Sessions", "/Settings", "/Whiteboard", "/Profile", "/Admin", "/Groups", "/Call", "/Student"];
 
@@ -88,6 +99,21 @@ export function baseJsonLd() {
       description: PUBLIC_PAGES["/"].fr.description, inLanguage: "fr",
       offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" },
     },
+  ];
+}
+
+// Page matière : questions fréquentes + fil d'Ariane (Accueil > Réviser par matière > Matière)
+export function subjectJsonLd(slug) {
+  const s = SUBJECTS.find((x) => x.slug === slug);
+  if (!s) return [];
+  return [
+    { "@context": "https://schema.org", "@type": "FAQPage",
+      mainEntity: s.faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) },
+    { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Accueil", item: `${SITE.url}/` },
+      { "@type": "ListItem", position: 2, name: "Réviser par matière", item: `${SITE.url}/reviser` },
+      { "@type": "ListItem", position: 3, name: s.name, item: SITE.url + subjectPath(s.slug) },
+    ] },
   ];
 }
 
