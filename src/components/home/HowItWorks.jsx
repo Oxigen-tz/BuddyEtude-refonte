@@ -128,9 +128,10 @@ export default function HowItWorks() {
   const Visual = VISUALS[active];
 
   const header = (
-    <div className="mb-8 lg:mb-12">
-      <span className="inline-block text-xs font-bold uppercase tracking-[0.18em] text-lime-300 mb-3">{t("landing.how.eyebrow")}</span>
+    <div className="mb-8 lg:mb-7">
       <h2 className="font-display text-3xl sm:text-5xl font-extrabold tracking-tight leading-[1.05] text-white">{t("landing.how.title")}</h2>
+      {/* Ancien manifeste (section à part), fondu ici en introduction */}
+      <p className="mt-4 text-white/60 text-base sm:text-lg lg:text-base leading-relaxed max-w-xl">{t("landing.manifesto")}</p>
     </div>
   );
 
@@ -156,24 +157,21 @@ export default function HowItWorks() {
       <div className="sticky top-0 h-[100svh] flex items-center overflow-hidden">
         <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[50vw] h-[50vw] max-w-[640px] max-h-[640px] rounded-full bg-brand-600/20 blur-[120px]" />
         <div className="relative w-full max-w-6xl mx-auto px-4 sm:px-6 grid lg:grid-cols-2 gap-6 lg:gap-16 items-center">
-          <div className="pt-16 lg:pt-0">
+          <div className="pt-16 lg:pt-14">
             {header}
             <div className="relative flex gap-5 sm:gap-7">
               {/* Barre de progression verticale */}
               <div className="relative w-1 rounded-full bg-white/10 shrink-0">
                 <motion.div style={{ height: barHeight }} className="absolute top-0 left-0 w-full rounded-full bg-gradient-to-b from-brand-400 via-purple-400 to-lime-300" />
               </div>
-              <ol className="space-y-5 sm:space-y-8">
+              <ol className="space-y-5 sm:space-y-6">
                 {STEPS.map(({ id, icon: Icon }, i) => {
                   const on = i === active;
                   return (
                     <li key={id} className={`transition-all duration-500 ${on ? "opacity-100" : "opacity-35"} ${!on ? "hidden sm:block" : ""}`}>
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors duration-500 ${on ? "bg-lime-300 text-gray-900" : "bg-white/10 text-white"}`}>
-                          <Icon className="w-5 h-5" />
-                        </span>
-                        <span className="text-xs font-bold text-white/40">0{i + 1}</span>
-                      </div>
+                      <span className={`mb-2 w-10 h-10 rounded-xl flex items-center justify-center transition-colors duration-500 ${on ? "bg-lime-300 text-gray-900" : "bg-white/10 text-white"}`}>
+                        <Icon className="w-5 h-5" />
+                      </span>
                       <h3 className="font-display text-2xl sm:text-3xl font-bold text-white">{t(`landing.how.steps.${id}.title`)}</h3>
                       <p className={`mt-2 text-white/60 leading-relaxed max-w-md transition-all duration-500 ${on ? "max-h-40" : "max-h-0 sm:max-h-40 overflow-hidden"}`}>{t(`landing.how.steps.${id}.desc`)}</p>
                     </li>

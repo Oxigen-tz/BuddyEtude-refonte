@@ -24,7 +24,7 @@ export default function MentorSection() {
 
         <div className="relative grid lg:grid-cols-2 gap-12 items-center">
           <div>
-            <SectionHeading dark align="left" eyebrow={t("landing.mentor.eyebrow")} title={t("landing.mentor.title")} subtitle={t("landing.mentor.desc")} />
+            <SectionHeading dark align="left" title={t("landing.mentor.title")} subtitle={t("landing.mentor.desc")} />
             <ul className="-mt-4 space-y-3">
               {["p1", "p2", "p3"].map((k, i) => (
                 <motion.li key={k} {...reveal(0.1 + i * 0.08)} className="flex items-center gap-3 text-white/90 font-medium">

@@ -1,13 +1,13 @@
-import React, { useLayoutEffect, useRef, useState } from "react";
-import { Target, MessageCircle, PenTool, Send, CalendarDays, BookOpen, Paperclip, ArrowRight } from "lucide-react";
-import { motion, useScroll, useTransform } from "framer-motion";
-import { useLiteMotion, isLiteDevice } from "@/hooks/useLiteMotion";
+import React from "react";
+import { Target, MessageCircle, PenTool, Send, CalendarDays, BookOpen, Paperclip } from "lucide-react";
+import { motion } from "framer-motion";
+import { isLiteDevice } from "@/hooks/useLiteMotion";
+import { reveal } from "./SectionHeading";
 const LITE = isLiteDevice();
 import { useTranslation } from "react-i18next";
 
-// Galerie horizontale : en faisant défiler la page, les cartes glissent de droite à gauche.
+// Fonctions de l’appli : trois blocs illustrés et une ligne d’icônes.
 // Les textes viennent de features.items.<id> dans i18n.js.
-const SUBJECTS = ["Mathématiques", "Droit", "Médecine", "Physique", "Économie", "Informatique", "Anglais", "Biologie", "Histoire", "Philosophie", "Chimie", "Gestion"];
 
 // Mêmes repères que sur les cartes de la recherche (buddyCard.match) : l'application n'affiche aucun pourcentage.
 function MatchArt() {
@@ -54,118 +54,56 @@ function BoardArt() {
     </svg>
   );
 }
-function CalendarArt() {
-  return (
-    <div className="grid grid-cols-7 gap-1.5">
-      {Array.from({ length: 21 }, (_, i) => (
-        <span key={i} className={`aspect-square rounded-lg text-[10px] font-bold flex items-center justify-center ${
-          i === 11 ? "bg-brand-500 text-white shadow-glow" : [4, 16].includes(i) ? "bg-lime-300 text-gray-900" : "bg-white/[0.06] text-white/40"
-        }`}>{i + 3}</span>
-      ))}
-    </div>
-  );
-}
-function RequestArt() {
-  const { t } = useTranslation();
-  return (
-    <div className="rounded-2xl bg-white/[0.06] border border-white/10 p-4">
-      <p className="text-[13px] text-white/80 leading-relaxed">« {t("landing.mock.chat1")} »</p>
-      <div className="mt-3 flex gap-2">
-        <span className="flex-1 h-9 rounded-xl bg-white text-gray-900 text-xs font-bold flex items-center justify-center">{t("landing.mentor.card.accept")}</span>
-        <span className="w-9 h-9 rounded-xl border border-white/15 text-white/50 flex items-center justify-center">×</span>
-      </div>
-    </div>
-  );
-}
-function SubjectsArt() {
-  return (
-    <div className="flex flex-wrap gap-2">
-      {SUBJECTS.map((s, i) => (
-        <span key={s} className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${
-          ["bg-brand-500/15 border-brand-400/30 text-brand-200", "bg-white/[0.06] border-white/10 text-white/80", "bg-lime-300/10 border-lime-300/30 text-lime-200", "bg-coral-500/15 border-coral-400/30 text-coral-300"][i % 4]
-        }`}>{s}</span>
-      ))}
-    </div>
-  );
-}
-
-const CARDS = [
+// Trois blocs verticaux (trouver, discuter et appeler, tableau blanc), puis les autres fonctions
+// en une ligne d'icônes. Remplace l'ancienne galerie horizontale, longue et déroutante sur téléphone.
+const BLOCKS = [
   { id: "filters", icon: Target, Art: MatchArt, glow: "bg-brand-500" },
   { id: "chat", icon: MessageCircle, Art: ChatArt, glow: "bg-sky-500" },
   { id: "whiteboard", icon: PenTool, Art: BoardArt, glow: "bg-purple-500" },
-  { id: "schedule", icon: CalendarDays, Art: CalendarArt, glow: "bg-lime-400" },
-  { id: "requests", icon: Send, Art: RequestArt, glow: "bg-coral-500" },
-  { id: "subjects", icon: BookOpen, Art: SubjectsArt, glow: "bg-brand-400" },
+];
+const MORE = [
+  { id: "schedule", icon: CalendarDays },
+  { id: "requests", icon: Send },
+  { id: "subjects", icon: BookOpen },
 ];
 
-function FeatureCard({ id, icon: Icon, Art, glow, index, fluid = false }) {
+function FeatureBlock({ id, icon: Icon, Art, glow, flip }) {
   const { t } = useTranslation();
   return (
-    <article className={`group relative ${fluid ? "w-full min-h-[420px]" : "shrink-0 w-[82vw] sm:w-[420px] h-[460px] sm:h-[500px]"} rounded-[2rem] bg-gradient-to-b from-white/[0.09] to-white/[0.02] border border-white/10 p-7 sm:p-8 overflow-hidden flex flex-col`}>
-      <div className={`absolute -top-24 -right-24 w-64 h-64 rounded-full ${glow} opacity-25 blur-[80px] transition-opacity duration-500 group-hover:opacity-50`} />
-      <div className="relative flex items-center justify-between">
-        <span className="w-12 h-12 rounded-2xl bg-white/10 border border-white/10 text-white flex items-center justify-center"><Icon className="w-5 h-5" /></span>
-        <span className="font-display text-5xl font-extrabold text-white/[0.07]">0{index + 1}</span>
+    <motion.article {...reveal()} className="relative grid md:grid-cols-2 gap-6 md:gap-12 items-center">
+      <div className={flip ? "md:order-2" : ""}>
+        <span className="w-12 h-12 rounded-2xl bg-white/10 border border-white/10 text-white flex items-center justify-center mb-5"><Icon className="w-5 h-5" /></span>
+        <h3 className="font-display text-2xl sm:text-3xl font-bold text-white">{t(`features.items.${id}.title`)}</h3>
+        <p className="mt-3 text-white/60 leading-relaxed text-[15px] sm:text-base max-w-md">{t(`features.items.${id}.desc`)}</p>
       </div>
-      <h3 className="relative mt-6 font-display text-2xl font-bold text-white">{t(`features.items.${id}.title`)}</h3>
-      <p className="relative mt-2 text-white/60 leading-relaxed text-[15px]">{t(`features.items.${id}.desc`)}</p>
-      <div className="relative mt-auto pt-6" aria-hidden="true"><Art /></div>
-    </article>
+      <div className="relative rounded-[2rem] bg-gradient-to-b from-white/[0.09] to-white/[0.02] border border-white/10 p-6 sm:p-8 overflow-hidden" aria-hidden="true">
+        <div className={`absolute -top-24 -right-24 w-64 h-64 rounded-full ${glow} opacity-25 blur-[80px]`} />
+        <div className="relative"><Art /></div>
+      </div>
+    </motion.article>
   );
 }
 
 export default function FeaturesSection() {
   const { t } = useTranslation();
-  const reduce = useLiteMotion();
-  const sectionRef = useRef(null);
-  const trackRef = useRef(null);
-  const [distance, setDistance] = useState(0);
-
-  useLayoutEffect(() => {
-    const measure = () => {
-      if (trackRef.current) setDistance(Math.max(0, trackRef.current.scrollWidth - window.innerWidth));
-    };
-    measure();
-    const ro = new ResizeObserver(measure);
-    if (trackRef.current) ro.observe(trackRef.current);
-    window.addEventListener("resize", measure);
-    return () => { ro.disconnect(); window.removeEventListener("resize", measure); };
-  }, []);
-
-  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start start", "end end"] });
-  const x = useTransform(scrollYProgress, [0, 1], [0, -distance]);
-  const progress = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
-
-  const intro = (
-    <div className="shrink-0 w-[82vw] sm:w-[400px] flex flex-col justify-center pr-4">
-      <span className="text-xs font-bold uppercase tracking-[0.18em] text-lime-300 mb-4">{t("landing.featuresEyebrow")}</span>
-      <h2 className="font-display text-4xl sm:text-5xl font-extrabold tracking-tight leading-[1.02] text-white">{t("features.title")}</h2>
-      <p className="mt-5 text-white/60 text-lg leading-relaxed">{t("features.subtitle")}</p>
-      {!reduce && <span className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-white/50">{t("landing.scrollHint")} <ArrowRight className="w-4 h-4 animate-pulse" /></span>}
-    </div>
-  );
-
-  if (reduce) {
-    return (
-      <section className="px-4 sm:px-6 py-24">
-        <div className="max-w-6xl mx-auto grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          <div className="sm:col-span-2 lg:col-span-3 [&>div]:w-full [&>div]:pr-0">{intro}</div>
-          {CARDS.map((c, i) => <FeatureCard key={c.id} {...c} index={i} fluid />)}
-        </div>
-      </section>
-    );
-  }
-
   return (
-    <section ref={sectionRef} className="relative" style={{ height: `calc(100svh + ${distance}px)` }}>
-      <div className="sticky top-0 h-[100svh] flex flex-col justify-center overflow-hidden">
-        <motion.div ref={trackRef} style={{ x }} className="flex gap-5 sm:gap-6 w-max px-[6vw] sm:px-[8vw] items-center">
-          {intro}
-          {CARDS.map((c, i) => <FeatureCard key={c.id} {...c} index={i} />)}
+    <section id="features" className="px-4 sm:px-6 py-20 sm:py-28">
+      <div className="max-w-5xl mx-auto">
+        <motion.div {...reveal()} className="max-w-2xl mb-12 sm:mb-16">
+          <h2 className="font-display text-3xl sm:text-5xl font-extrabold tracking-tight leading-[1.05] text-white">{t("features.title")}</h2>
+          <p className="mt-4 text-white/60 text-lg leading-relaxed">{t("features.subtitle")}</p>
         </motion.div>
-        <div className="mt-10 mx-auto w-48 h-1 rounded-full bg-white/10 overflow-hidden">
-          <motion.div style={{ width: progress }} className="h-full rounded-full bg-gradient-to-r from-brand-400 to-lime-300" />
+        <div className="space-y-14 sm:space-y-20">
+          {BLOCKS.map((b, i) => <FeatureBlock key={b.id} {...b} flip={i % 2 === 1} />)}
         </div>
+        <motion.ul {...reveal()} className="mt-16 sm:mt-20 grid sm:grid-cols-3 gap-3">
+          {MORE.map(({ id, icon: Icon }) => (
+            <li key={id} className="flex items-center gap-3 rounded-2xl bg-white/[0.04] border border-white/10 px-4 py-3.5">
+              <span className="shrink-0 w-10 h-10 rounded-xl bg-white/10 text-lime-300 flex items-center justify-center"><Icon className="w-5 h-5" /></span>
+              <span className="text-sm font-semibold text-white">{t(`features.items.${id}.title`)}</span>
+            </li>
+          ))}
+        </motion.ul>
       </div>
     </section>
   );

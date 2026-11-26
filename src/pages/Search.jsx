@@ -57,7 +57,8 @@ export default function Search() {
   const [levelFilter, setLevelFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   // "buddy" : trouver un binôme ; "help" : trouver quelqu'un d'« Avancé » pour m'aider (mentorat)
-  const [mode, setMode] = useState("buddy");
+  // ?mode=help : arrivée depuis « Débloquer une matière » sur l'accueil
+  const [mode, setMode] = useState(() => (new URLSearchParams(window.location.search).get("mode") === "help" ? "help" : "buddy"));
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   // Sur téléphone, ville, niveau, mode et « vérifiés » sont repliés derrière un bouton « Filtres »
   const [showFilters, setShowFilters] = useState(false); 
@@ -404,9 +405,7 @@ export default function Search() {
         </div>
       ) : filteredProfiles.length === 0 ? (
         <div className="text-center py-20 bg-white dark:bg-ink-900 rounded-2xl border border-dashed border-gray-200 dark:border-ink-700 transition-colors duration-300">
-          <div className="w-16 h-16 bg-gray-50 dark:bg-ink-950 rounded-full flex items-center justify-center mx-auto mb-4">
-            <SearchIcon className="w-6 h-6 text-gray-400 dark:text-gray-500" />
-          </div>
+          <img src="/orbi/orbi-inquiet.webp" alt="" aria-hidden="true" width="530" height="344" loading="lazy" className="w-28 h-auto mx-auto mb-4" />
           <p className="text-gray-900 dark:text-white text-lg font-bold">{t('search.noResults.title')}</p>
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-2 max-w-sm mx-auto">
             {t('search.noResults.desc')}

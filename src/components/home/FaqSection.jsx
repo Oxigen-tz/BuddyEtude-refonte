@@ -14,7 +14,7 @@ export default function FaqSection() {
   return (
     <section id="faq" className="relative px-4 sm:px-6 py-24 sm:py-32">
       <div className="max-w-3xl mx-auto">
-        <SectionHeading dark eyebrow={t("landing.faq.eyebrow")} title={t("landing.faq.title")} subtitle={t("landing.faq.subtitle")} />
+        <SectionHeading dark title={t("landing.faq.title")} subtitle={t("landing.faq.subtitle")} />
         <motion.ul {...reveal(0.1)} className="space-y-3">
           {items.map(({ q, a }, i) => {
             const isOpen = open === i;

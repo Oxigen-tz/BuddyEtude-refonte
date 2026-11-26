@@ -14,7 +14,8 @@ export default function PageNotFound() {
             <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[420px] h-[420px] rounded-full bg-brand-400/20 blur-3xl" />
             <div className="relative max-w-md w-full text-center">
                 <Link to="/" className="inline-block mb-10"><Logo /></Link>
-                <h1 className="font-display text-[8rem] leading-none font-extrabold text-gradient">404</h1>
+                <img src="/orbi/orbi-surpris.webp" alt="" aria-hidden="true" width="516" height="346" className="w-40 h-auto mx-auto -mb-4" />
+                <h1 className="font-display text-[8rem] leading-none font-extrabold text-gray-900 dark:text-white">404</h1>
                 <h2 className="mt-4 font-display text-2xl font-bold text-gray-900 dark:text-white">{t('notFound.title')}</h2>
                 <p className="mt-3 text-gray-600 dark:text-gray-400 leading-relaxed">{t('notFound.desc', { page: pageName })}</p>
                 <Link

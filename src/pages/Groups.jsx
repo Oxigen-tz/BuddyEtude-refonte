@@ -98,7 +98,7 @@ export default function Groups() {
             <div className="p-6"><Loader2 className="w-5 h-5 animate-spin text-gray-400" /></div>
           ) : groups.length === 0 ? (
             <div className="p-6 text-center my-auto">
-              <UsersRound className="w-10 h-10 mx-auto text-gray-300 dark:text-gray-600 mb-3" />
+              <img src="/orbi/orbi-surpris.webp" alt="" aria-hidden="true" width="516" height="346" loading="lazy" className="w-24 h-auto mx-auto mb-3" />
               <p className="font-semibold text-gray-900 dark:text-white">{t("groups.emptyTitle")}</p>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t("groups.emptyDesc")}</p>
               <Button onClick={() => setCreateOpen(true)} variant="outline" className="rounded-xl mt-4">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
+import { takeIntentTarget } from "@/lib/intent";
 import { db } from "./firebase/config"; 
 import { collection, query, where, onSnapshot, doc } from "firebase/firestore";
 import { createPageUrl } from "@/utils";
@@ -73,6 +74,10 @@ export default function Layout({ children, currentPageName }) {
   useEffect(() => {
     if (profileComplete === false && !["Profile", "Settings"].includes(currentPageName)) {
       navigate(createPageUrl("Profile"), { replace: true });
+    } else if (profileComplete === true) {
+      // Intention choisie sur l'accueil avant l'inscription (« Tu cherches quoi ? »), lue une seule fois
+      const target = takeIntentTarget();
+      if (target) navigate(target, { replace: true });
     }
   }, [profileComplete, currentPageName, navigate]);
   

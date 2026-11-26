@@ -6,6 +6,7 @@ import fs from "fs";
 const CR = String.fromCharCode(13), LF = String.fromCharCode(10);
 const TEST = process.argv.includes("--test");
 function edit(f, pairs) {
+  if (!fs.existsSync(f)) return; // fichier retiré depuis (ex. Manifesto.jsx, fondu dans HowItWorks)
   let s = fs.readFileSync(f, "utf8"); const crlf = s.includes(CR + LF); s = s.split(CR + LF).join(LF);
   for (const [b, a] of pairs) { if (!s.includes(a)) throw new Error(f + " absent: " + a.slice(0, 80)); s = s.replace(a, b); }
   if (!TEST) fs.writeFileSync(f, crlf ? s.split(LF).join(CR + LF) : s);

@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { motion, useScroll, useSpring } from "framer-motion";
 import HomeNavbar from "../components/home/HomeNavbar";
 import HeroSection from "../components/home/HeroSection";
-import Manifesto from "../components/home/Manifesto";
+import IntentSection from "../components/home/IntentSection";
+import Testimonial from "../components/home/Testimonial";
 import HowItWorks from "../components/home/HowItWorks";
 import FeaturesSection from "../components/home/FeaturesSection";
 import MentorSection from "../components/home/MentorSection";
@@ -33,11 +34,13 @@ export default function Home() {
       <HomeNavbar />
       <main>
         <HeroSection />
-        <Manifesto />
+        <IntentSection />
         <HowItWorks />
         <FeaturesSection />
-        <MentorSection />
+        {/* Sur téléphone, « Débloquer une matière » (IntentSection) remplace cette section */}
+        <div className="hidden md:block"><MentorSection /></div>
         <SafetySection />
+        <Testimonial />
         <FaqSection />
         <CTASection />
       </main>

@@ -482,6 +482,14 @@ const resources = {
           }
         },
         featuresEyebrow: "Tout au même endroit",
+        intent: {
+          title: "Tu cherches quoi ?",
+          items: {
+            duo: { title: "Réviser à deux", desc: "Un binôme de ton niveau, dans tes matières." },
+            help: { title: "Débloquer une matière", desc: "Un étudiant plus avancé t'explique ce qui coince." },
+            group: { title: "Réviser en groupe", desc: "Rejoins un groupe de révision ou crée le tien." }
+          }
+        },
         mentor: {
           eyebrow: "Mentorat",
           title: "Tu bloques ? Des étudiants avancés peuvent t'aider",
@@ -536,8 +544,8 @@ const resources = {
             desc: "Les profils sont classés par compatibilité : matières en commun, même niveau, même école ou même ville, créneaux communs. Filtre aussi par mode (en ligne ou présentiel)."
           },
           chat: {
-            title: "Chat intégré",
-            desc: "Messagerie avec envoi de fichiers, directement dans l'appli, sans passer par WhatsApp ou Discord."
+            title: "Discute et appelle en vidéo",
+            desc: "Messagerie avec envoi de fichiers et appel vidéo intégré, directement dans l'appli, sans passer par WhatsApp ou Discord."
           },
           whiteboard: {
             title: "Tableau blanc temps réel",
@@ -1739,6 +1747,14 @@ const resources = {
           }
         },
         featuresEyebrow: "All in one place",
+        intent: {
+          title: "What are you looking for?",
+          items: {
+            duo: { title: "Study with a buddy", desc: "Someone at your level, in your subjects." },
+            help: { title: "Get unstuck in a subject", desc: "A more advanced student explains what's blocking you." },
+            group: { title: "Study in a group", desc: "Join a study group or start your own." }
+          }
+        },
         mentor: {
           eyebrow: "Mentoring",
           title: "Stuck? Advanced students can help you",
@@ -1793,8 +1809,8 @@ const resources = {
             desc: "Profiles are ranked by compatibility: shared subjects, same level, same school or city, overlapping time slots. You can also filter by mode (online or in person)."
           },
           chat: {
-            title: "Integrated chat",
-            desc: "Messaging with file sharing, built into the app — no need for WhatsApp or Discord."
+            title: "Chat and video calls",
+            desc: "Messaging with file sharing and built-in video calls, right in the app — no need for WhatsApp or Discord."
           },
           whiteboard: {
             title: "Real-time whiteboard",

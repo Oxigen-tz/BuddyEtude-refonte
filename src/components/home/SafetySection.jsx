@@ -16,7 +16,7 @@ export default function SafetySection() {
   return (
     <section className="py-20 sm:py-28 px-4 sm:px-6">
       <div className="max-w-6xl mx-auto">
-        <SectionHeading eyebrow={t("landing.safety.eyebrow")} title={t("landing.safety.title")} subtitle={t("landing.safety.subtitle")} />
+        <SectionHeading title={t("landing.safety.title")} subtitle={t("landing.safety.subtitle")} />
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {ITEMS.map(({ id, icon: Icon, tone }, i) => (
             <motion.div key={id} {...reveal(i * 0.08)} className="rounded-3xl p-6 bg-white dark:bg-ink-900 border border-gray-200/80 dark:border-ink-700 shadow-soft hover:-translate-y-1 hover:shadow-lift transition-all duration-300">

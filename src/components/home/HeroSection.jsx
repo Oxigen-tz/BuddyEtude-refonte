@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Check, Sparkles, Users, BadgeCheck, CalendarClock, Video, ChevronDown } from "lucide-react";
+import { ArrowRight, Check, Sparkles, Users, BadgeCheck, CalendarClock, Video } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useLiteMotion } from "@/hooks/useLiteMotion";
@@ -71,6 +71,10 @@ export default function HeroSection() {
           </span>
         </motion.div>
 
+        {/* Orbi, la mascotte des vidéos (image fixe tirée du projet video/, Orbi-site-content) */}
+        <img src="/orbi/orbi-content.webp" alt="" aria-hidden="true" width="522" height="344" decoding="async"
+          className="pointer-events-none select-none absolute -right-1 -top-3 sm:top-2 sm:right-[2%] lg:right-[4%] w-16 sm:w-28 lg:w-36 rotate-[8deg] drop-shadow-[0_12px_30px_rgba(124,92,255,0.45)] animate-float" />
+
         <h1 className="mt-7 font-display text-[2.9rem] leading-[0.98] sm:text-7xl lg:text-[6.2rem] font-extrabold tracking-[-0.04em] text-white">
           {/* Vrais espaces entre les mots animés : sans eux, les moteurs lisaient le titre d'un seul bloc */}
           {words.map((x, i) => (
@@ -118,6 +122,24 @@ export default function HeroSection() {
           ))}
         </motion.ul>
 
+        {/* Téléphone : le haut d'une vraie carte de binôme dépasse sous les boutons, pour montrer le produit */}
+        <div className="sm:hidden mt-8 -mb-4 mx-auto max-w-sm rounded-2xl bg-white/[0.07] border border-white/15 p-4 text-left shadow-lift" aria-hidden="true">
+          <div className="flex items-center gap-3">
+            <span className="relative w-12 h-12 rounded-xl bg-gradient-to-br from-coral-400 to-purple-500 text-white text-sm font-bold flex items-center justify-center shrink-0">
+              LM<BadgeCheck className="absolute -bottom-1 -right-1 w-4 h-4 text-sky-400 fill-ink-900" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="font-bold text-white">{t("landing.mock.name")}</p>
+              <p className="text-xs text-white/55 truncate">{t("landing.mock.meta")}</p>
+            </div>
+            <span className="shrink-0 h-9 px-3 rounded-xl bg-white text-gray-900 text-xs font-bold flex items-center">{t("landing.mock.contact")}</span>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold border bg-lime-300/10 border-lime-300/30 text-lime-200">{t("buddyCard.match.subjects", { count: 3 })}</span>
+            <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold border bg-white/[0.06] border-white/10 text-white/75">{t("buddyCard.match.level")}</span>
+          </div>
+        </div>
+
         {studentCount !== null && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.2, duration: 0.7 }}
             className="mt-7 inline-flex items-center gap-3 rounded-2xl bg-white/[0.05] border border-white/10 backdrop-blur px-4 py-2.5">
@@ -135,12 +157,6 @@ export default function HeroSection() {
           </motion.div>
         )}
       </motion.div>
-
-      <motion.a href="#manifesto" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.6 }}
-        className="relative mt-10 mx-auto w-fit flex flex-col items-center gap-1 text-xs font-semibold uppercase tracking-[0.2em] text-white/40 hover:text-white/70">
-        {t("landing.scrollHint")}
-        <motion.span animate={{ y: [0, 6, 0] }} transition={{ duration: 1.6, repeat: Infinity }}><ChevronDown className="w-4 h-4" /></motion.span>
-      </motion.a>
 
       {/* Scène 3D */}
       <div ref={stageRef} className="relative mt-10 sm:mt-14 px-3 sm:px-6 [perspective:1400px]">

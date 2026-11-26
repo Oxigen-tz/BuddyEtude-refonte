@@ -541,9 +541,7 @@ export default function Messages() {
             )
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-gray-400 dark:text-gray-500">
-              <div className="w-20 h-20 bg-gray-50 dark:bg-ink-950 rounded-full flex items-center justify-center mb-6">
-                <MessageSquare className="w-10 h-10 opacity-50" />
-              </div>
+              <img src="/orbi/orbi-content.webp" alt="" aria-hidden="true" width="522" height="344" loading="lazy" className="w-32 h-auto mb-5" />
               <p className="text-lg font-medium text-gray-900 dark:text-gray-100">{t('messages.emptyState.title')}</p>
               <p className="text-sm mt-1 px-6 text-center">{t('messages.emptyState.desc')}</p>
             </div>
