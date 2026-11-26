@@ -1,5 +1,5 @@
 // Référencement à la compilation (vite build) :
-//  - données structurées (JSON-LD) et liens hreflang dans index.html ;
+//  - données structurées (JSON-LD) dans index.html ; liens hreflang sur l'accueil seulement ;
 //  - une page HTML pré-remplie par page publique (dist/About/index.html…) : titre, description,
 //    adresse canonique et texte lisibles sans JavaScript (moteurs, aperçus de liens) ;
 //  - dist/sitemap.xml.
@@ -8,6 +8,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import { SITE, PUBLIC_PAGES, FAQ, baseJsonLd, faqJsonLd } from "../src/seo/site.js";
+
+// Versions linguistiques de l'accueil, seule page traduite à une adresse distincte (/?lang=en)
+const HREFLANG =[["fr", "/"], ["en", "/?lang=en"], ["x-default", "/"]];
+const hreflangLinks = () => HREFLANG.map(([l, p]) => `<link rel="alternate" hreflang="${l}" href="${SITE.url}${p}" />`).join("\n    ");
+const hreflangSitemap = () => HREFLANG.map(([l, p]) => `\n    <xhtml:link rel="alternate" hreflang="${l}" href="${SITE.url}${p}"/>`).join("");
 
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const jsonLd = (data) => `<script type="application/ld+json">${JSON.stringify(data).replace(/</g, "\\u003c")}</script>`;
@@ -63,19 +68,18 @@ function pageHtml(template, route) {
   html = setAttr(html, /<meta name="twitter:title"[^>]*>/, "content", title);
   html = setAttr(html, /<meta name="twitter:description"[^>]*>/, "content", description);
   html = setAttr(html, /<link rel="canonical"[^>]*>/, "href", url);
-  if (route === "/") html = html.replace("</head>", `    ${jsonLd(faqJsonLd("fr"))}\n  </head>`);
+  if (route === "/") html = html.replace("</head>", `    ${hreflangLinks()}\n    ${jsonLd(faqJsonLd("fr"))}\n  </head>`);
   return html.replace('<div id="root"></div>', `<div id="root">${bodyFor(route)}</div>`);
 }
 
 function sitemap() {
   const today = new Date().toISOString().slice(0, 10);
-  const urls = Object.entries(PUBLIC_PAGES).map(([route, p]) => {
-    const loc = SITE.url + (route === "/" ? "/" : route);
-    const alt = route === "/"
-      ? `\n    <xhtml:link rel="alternate" hreflang="fr" href="${SITE.url}/"/>\n    <xhtml:link rel="alternate" hreflang="en" href="${SITE.url}/?lang=en"/>\n    <xhtml:link rel="alternate" hreflang="x-default" href="${SITE.url}/"/>`
-      : "";
-    return `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>${p.changefreq}</changefreq>\n    <priority>${p.priority}</priority>${alt}\n  </url>`;
-  });
+  const entry = (loc, p, alt = "") =>
+    `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>${p.changefreq}</changefreq>\n    <priority>${p.priority}</priority>${alt}\n  </url>`;
+  // L'accueil et sa version anglaise sont listés tous les deux, avec les mêmes liens réciproques
+  const urls = Object.entries(PUBLIC_PAGES).flatMap(([route, p]) => route === "/"
+    ? [entry(`${SITE.url}/`, p, hreflangSitemap()), entry(`${SITE.url}/?lang=en`, p, hreflangSitemap())]
+    : [entry(SITE.url + route, p)]);
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${urls.join("\n")}\n</urlset>\n`;
 }
 
@@ -84,14 +88,10 @@ export default function seoPlugin() {
   return {
     name: "buddyetude-seo",
     configResolved(config) { outDir = path.resolve(config.root, config.build.outDir); },
-    // Dev et build : données structurées + versions linguistiques dans <head>
+    // Dev et build : données structurées dans <head>. Les hreflang ne vont que sur l'accueil
+    // (pageHtml) : avant, /About, /Legal… portaient ceux de l'accueil.
     transformIndexHtml(html) {
-      const head = [
-        `<link rel="alternate" hreflang="fr" href="${SITE.url}/" />`,
-        `<link rel="alternate" hreflang="en" href="${SITE.url}/?lang=en" />`,
-        `<link rel="alternate" hreflang="x-default" href="${SITE.url}/" />`,
-        ...baseJsonLd().map(jsonLd),
-      ].join("\n    ");
+      const head = baseJsonLd().map(jsonLd).join("\n    ");
       return html.replace("</head>", `    ${head}\n  </head>`);
     },
     // Build : pages pré-remplies et sitemap

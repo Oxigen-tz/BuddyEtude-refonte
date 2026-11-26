@@ -24,7 +24,7 @@ export default defineConfig({
         manualChunks: {
           react: ["react", "react-dom", "react-router-dom"],
           firebase: ["firebase/app", "firebase/auth", "firebase/firestore", "firebase/storage", "firebase/functions", "firebase/app-check"],
-          i18n: ["i18next", "react-i18next", "i18next-browser-languagedetector"],
+          i18n: ["i18next", "react-i18next"],
         },
       },
     },

@@ -1,6 +1,5 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
-import LanguageDetector from 'i18next-browser-languagedetector';
 
 const resources = {
   fr: {
@@ -2535,35 +2534,40 @@ const resources = {
   }
 };
 
-// Langue au démarrage :
-//  - ?lang=en / ?lang=fr dans l'adresse (version anglaise indexable : https://buddyetude.com/?lang=en) ;
-//  - robots des moteurs et des aperçus de liens : français, la langue principale du site
-//    (Googlebot annonce un navigateur en anglais américain, il indexait donc la version anglaise) ;
-//  - sinon : choix enregistré, puis langue du navigateur (détecteur).
+// Langue au démarrage : le français par défaut, pour tout le monde (robots compris).
+// L'anglais seulement si :
+//  - l'adresse contient ?lang=en (version anglaise indexable : https://buddyetude.com/?lang=en) ;
+//  - ou l'utilisateur l'a choisi avec le bouton de langue (mémorisé sous be_lang).
+// Plus de détection par la langue du navigateur : Googlebot annonce un navigateur en anglais
+// et indexait la version anglaise de l'accueil. L'ancienne clé « i18nextLng » est ignorée :
+// le détecteur l'écrivait tout seul, sans choix de l'utilisateur.
+const LANG_KEY = 'be_lang';
+const readLang = (v) => (v === 'fr' || v === 'en' ? v : null);
 const initialLanguage = (() => {
-  if (typeof window === 'undefined') return undefined;
-  const fromUrl = new URLSearchParams(window.location.search).get('lang');
-  if (fromUrl === 'fr' || fromUrl === 'en') {
-    try { localStorage.setItem('i18nextLng', fromUrl); } catch { /* stockage indisponible */ }
-    return fromUrl;
-  }
-  if (/bot|crawl|spider|slurp|bingpreview|facebookexternalhit|linkedinbot|whatsapp|discordbot|twitterbot|telegrambot|embedly|quora|pinterest|vkshare|applebot|yandex|duckduck|baidu|lighthouse/i.test(navigator.userAgent)) return 'fr';
-  return undefined;
+  if (typeof window === 'undefined') return 'fr';
+  const fromUrl = readLang(new URLSearchParams(window.location.search).get('lang'));
+  if (fromUrl) return fromUrl;
+  try { return readLang(localStorage.getItem(LANG_KEY)) || 'fr'; } catch { return 'fr'; }
 })();
 
 i18n
-  .use(LanguageDetector)
   .use(initReactI18next)
   .init({
     resources,
     lng: initialLanguage,
     supportedLngs: ['fr', 'en'],
     nonExplicitSupportedLngs: true,
-    fallbackLng: 'en',
+    fallbackLng: 'fr',
     interpolation: {
-      escapeValue: false 
+      escapeValue: false
     }
   });
+
+// Choix explicite de l'utilisateur (boutons de langue, Paramètres) : appliqué et mémorisé.
+export const chooseLanguage = (lng) => {
+  try { localStorage.setItem(LANG_KEY, lng); } catch { /* stockage indisponible */ }
+  return i18n.changeLanguage(lng);
+};
 
 // Garde l'attribut <html lang> aligné sur la langue affichée (lecteurs d'écran, correcteur, SEO)
 const syncHtmlLang = (lng) => {

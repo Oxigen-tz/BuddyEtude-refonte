@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
 import { takeIntentTarget } from "@/lib/intent";
+import { chooseLanguage } from "@/i18n";
 import { db } from "./firebase/config"; 
 import { collection, query, where, onSnapshot, doc } from "firebase/firestore";
 import { createPageUrl } from "@/utils";
@@ -103,7 +104,7 @@ export default function Layout({ children, currentPageName }) {
   // 🌐 Bascule de langue
   const toggleLanguage = () => {
     const newLang = i18n.language.startsWith('fr') ? 'en' : 'fr';
-    i18n.changeLanguage(newLang);
+    chooseLanguage(newLang);
   };
 
   useEffect(() => {

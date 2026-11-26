@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Globe } from "lucide-react";
 import Logo from "@/components/Logo";
+import { chooseLanguage } from "@/i18n";
 
 // En-tête des pages vues sans être connecté (À propos, Mentions légales, Connexion requise…),
 // à la place de la barre latérale réservée aux comptes.
@@ -17,7 +18,7 @@ export default function PublicHeader() {
           <Logo markClassName="w-8 h-8" />
         </Link>
         <button
-          onClick={() => i18n.changeLanguage(isFr ? "en" : "fr")}
+          onClick={() => chooseLanguage(isFr ? "en" : "fr")}
           aria-label={t("home.nav.switchLanguage")}
           className="flex items-center gap-1.5 px-3 h-10 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-ink-800 transition-colors"
         >

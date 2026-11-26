@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useTranslation } from "react-i18next";
 import Logo from "@/components/Logo";
+import { chooseLanguage } from "@/i18n";
 
 // Barre flottante en « pilule » : transparente en haut de page, vitrée dès qu'on défile.
 export default function HomeNavbar() {
@@ -36,7 +37,7 @@ export default function HomeNavbar() {
 
         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           <button
-            onClick={() => i18n.changeLanguage(isFr ? "en" : "fr")}
+            onClick={() => chooseLanguage(isFr ? "en" : "fr")}
             aria-label={t("home.nav.switchLanguage")}
             className="flex items-center gap-1.5 px-2.5 sm:px-3 h-10 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-ink-800 transition-colors"
           >

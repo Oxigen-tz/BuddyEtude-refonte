@@ -33,6 +33,7 @@ const deleteInBatches = async (refs) => {
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { chooseLanguage } from "@/i18n";
 
 export default function Settings() {
   const { user } = useAuth();
@@ -81,7 +82,7 @@ export default function Settings() {
   const isFr = i18n.language?.startsWith("fr");
   const setLanguage = (lng) => {
     if ((lng === "fr") === isFr) return;
-    i18n.changeLanguage(lng).then(() => toast.success(i18n.t('settingsUi.appearance.languageToast')));
+    chooseLanguage(lng).then(() => toast.success(i18n.t('settingsUi.appearance.languageToast')));
   };
 
   // 🛠️ CORRIGÉ : ce réglage n'était relié à rien (Switch defaultChecked, aucune écriture).
