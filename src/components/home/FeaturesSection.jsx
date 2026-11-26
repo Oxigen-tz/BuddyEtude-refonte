@@ -9,17 +9,26 @@ import { useTranslation } from "react-i18next";
 // Les textes viennent de features.items.<id> dans i18n.js.
 const SUBJECTS = ["Mathématiques", "Droit", "Médecine", "Physique", "Économie", "Informatique", "Anglais", "Biologie", "Histoire", "Philosophie", "Chimie", "Gestion"];
 
+// Mêmes repères que sur les cartes de la recherche (buddyCard.match) : l'application n'affiche aucun pourcentage.
 function MatchArt() {
+  const { t } = useTranslation();
+  const rows = [
+    ["LM", "from-coral-400 to-purple-500", [t("buddyCard.match.subjects", { count: 3 }), t("buddyCard.match.level")]],
+    ["YB", "from-brand-400 to-brand-700", [t("buddyCard.match.subjects", { count: 2 }), t("buddyCard.match.school")]],
+    ["SA", "from-lime-300 to-lime-500", [t("buddyCard.match.subjects", { count: 1 }), t("buddyCard.match.city")]],
+  ];
   return (
     <div className="space-y-2.5">
-      {[["LM", 94, "from-coral-400 to-purple-500"], ["YB", 81, "from-brand-400 to-brand-700"], ["SA", 67, "from-lime-300 to-lime-500"]].map(([ini, s, g], i) => (
-        <div key={ini} className="flex items-center gap-3 rounded-xl bg-white/[0.06] border border-white/10 p-2.5">
-          <span className={`w-8 h-8 rounded-lg bg-gradient-to-br ${g} text-white text-[11px] font-bold flex items-center justify-center`}>{ini}</span>
-          <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
-            <motion.div initial={LITE ? false : { width: 0 }} whileInView={{ width: `${s}%` }} animate={LITE ? { width: `${s}%` } : undefined} viewport={{ once: true }} transition={{ duration: 1, delay: i * 0.15 }} className="h-full rounded-full bg-gradient-to-r from-brand-400 to-lime-300" />
+      {rows.map(([ini, g, badges], i) => (
+        <motion.div key={ini} initial={LITE ? false : { opacity: 0, x: 16 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: i * 0.12, ease: [0.16, 1, 0.3, 1] }}
+          className="flex items-center gap-3 rounded-xl bg-white/[0.06] border border-white/10 p-2.5">
+          <span className={`shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br ${g} text-white text-[11px] font-bold flex items-center justify-center`}>{ini}</span>
+          <div className="flex flex-wrap gap-1.5 min-w-0">
+            {badges.map((b, j) => (
+              <span key={b} className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border ${j === 0 ? "bg-lime-300/10 border-lime-300/30 text-lime-200" : "bg-white/[0.06] border-white/10 text-white/75"}`}>{b}</span>
+            ))}
           </div>
-          <span className="text-sm font-bold text-white w-10 text-right">{s}%</span>
-        </div>
+        </motion.div>
       ))}
     </div>
   );

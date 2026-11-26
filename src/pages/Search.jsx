@@ -5,7 +5,7 @@ import { collection, query, where, onSnapshot, setDoc, doc, getDoc, limit, serve
 import { useAuth } from "@/lib/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search as SearchIcon, Filter, Users, Loader2, MapPin, Monitor, BookOpen, Lock, HandHelping, BadgeCheck, AlertTriangle } from "lucide-react";
+import { Search as SearchIcon, Filter, Users, Loader2, MapPin, Monitor, BookOpen, Lock, HandHelping, BadgeCheck, AlertTriangle, SlidersHorizontal, ChevronDown } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import BuddyCard from "@/components/search/BuddyCard";
@@ -58,7 +58,9 @@ export default function Search() {
   const [typeFilter, setTypeFilter] = useState("all");
   // "buddy" : trouver un binôme ; "help" : trouver quelqu'un d'« Avancé » pour m'aider (mentorat)
   const [mode, setMode] = useState("buddy");
-  const [verifiedOnly, setVerifiedOnly] = useState(false); 
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
+  // Sur téléphone, ville, niveau, mode et « vérifiés » sont repliés derrière un bouton « Filtres »
+  const [showFilters, setShowFilters] = useState(false); 
 
   const [requestDialog, setRequestDialog] = useState(null);   // { profile, kind, helpSubjects }
   const [requestMessage, setRequestMessage] = useState("");
@@ -265,13 +267,15 @@ export default function Search() {
     setVerifiedOnly(false);
   };
 
+  const activeFilterCount = [cityFilter, levelFilter !== "all", typeFilter !== "all", verifiedOnly].filter(Boolean).length;
+
   const needsHelpSomewhere = (myProfile?.subjects || []).some((s) => s.level === "debutant" || s.level === "intermediaire");
 
   return (
     <div className="max-w-6xl mx-auto animate-in fade-in duration-500">
       
       {/* --- EN-TÊTE --- */}
-      <div className="flex items-center gap-3 mb-8">
+      <div className="flex items-center gap-3 mb-5 md:mb-8">
         <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-500/10 rounded-xl flex items-center justify-center shadow-sm border border-indigo-100 dark:border-indigo-500/20">
           <Users className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
         </div>
@@ -297,10 +301,10 @@ export default function Search() {
       )}
 
       {/* --- PANNEAU DE FILTRES MULTIPLES --- */}
-      <div className="bg-white dark:bg-ink-900 p-5 rounded-2xl border border-gray-100 dark:border-ink-700 shadow-sm mb-8 space-y-4 transition-colors duration-300">
+      <div className="bg-white dark:bg-ink-900 p-4 md:p-5 rounded-2xl border border-gray-100 dark:border-ink-700 shadow-sm mb-6 md:mb-8 space-y-3 md:space-y-4 transition-colors duration-300">
         
         {/* Ligne 1 : Recherche générale & Matière avec Autocomplétion dynamique */}
-        <div className="flex flex-col md:flex-row gap-4">
+        <div className="flex flex-col md:flex-row gap-3 md:gap-4">
           <div className="relative flex-1">
             <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
             <Input
@@ -324,8 +328,25 @@ export default function Search() {
           </div>
         </div>
 
+        {/* Bouton « Filtres » : téléphone uniquement */}
+        <button
+          type="button"
+          onClick={() => setShowFilters((v) => !v)}
+          aria-expanded={showFilters}
+          aria-controls="search-more-filters"
+          className="md:hidden w-full h-11 flex items-center gap-2 px-4 rounded-xl border border-gray-200 dark:border-ink-700 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-ink-800 transition-colors"
+        >
+          <SlidersHorizontal className="w-4 h-4 text-indigo-500" />
+          {showFilters ? t('search.filtersHide') : t('search.filters')}
+          {activeFilterCount > 0 && (
+            <span className="min-w-5 h-5 px-1.5 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center">{activeFilterCount}</span>
+          )}
+          <ChevronDown className={`ml-auto w-4 h-4 transition-transform ${showFilters ? "rotate-180" : ""}`} />
+        </button>
+
+        <div id="search-more-filters" className={`${showFilters ? "block" : "hidden"} md:block space-y-3 md:space-y-4`}>
         {/* Ligne 2 : Ville (API infinie) & Menus déroulants */}
-        <div className="flex flex-col md:flex-row gap-4">
+        <div className="flex flex-col md:flex-row gap-3 md:gap-4">
           <div className="flex-1">
             <Autocomplete
               ariaLabel={t('search.cityPlaceholder')}
@@ -371,6 +392,7 @@ export default function Search() {
           <Switch checked={verifiedOnly} onCheckedChange={setVerifiedOnly} aria-label={t('search.verifiedOnly')} />
           <BadgeCheck className="w-4 h-4 text-sky-500" /> {t('search.verifiedOnly')}
         </label>
+        </div>
       </div>
 
       {/* --- RÉSULTATS --- */}

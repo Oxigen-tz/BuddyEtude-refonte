@@ -10,6 +10,12 @@ export const SITE = {
   email: "contact@buddyetude.com",
 };
 
+// Comptes officiels : affichés dans le pied de page et déclarés aux moteurs (sameAs)
+export const SOCIAL = [
+  { id: "tiktok", label: "TikTok", url: "https://www.tiktok.com/@buddyetude7" },
+  { id: "instagram", label: "Instagram", url: "https://www.instagram.com/buddyetude_/" },
+];
+
 // Autres façons d'écrire le nom (recherches « buddy etude », « buddy étude »…)
 export const ALT_NAMES = ["Buddy Etude", "Buddy Étude", "BuddyÉtude"];
 
@@ -74,7 +80,7 @@ export const FAQ = {
 // Données structurées communes (Organisation, site, application)
 export function baseJsonLd() {
   return [
-    { "@context": "https://schema.org", "@type": "Organization", name: SITE.name, alternateName: ALT_NAMES, url: SITE.url, logo: `${SITE.url}/icon-512.png`, email: SITE.email },
+    { "@context": "https://schema.org", "@type": "Organization", name: SITE.name, alternateName: ALT_NAMES, url: SITE.url, logo: `${SITE.url}/icon-512.png`, email: SITE.email, sameAs: SOCIAL.map((s) => s.url) },
     { "@context": "https://schema.org", "@type": "WebSite", name: SITE.name, alternateName: ALT_NAMES, url: SITE.url, inLanguage: ["fr", "en"] },
     {
       "@context": "https://schema.org", "@type": "WebApplication", name: SITE.name, url: SITE.url,

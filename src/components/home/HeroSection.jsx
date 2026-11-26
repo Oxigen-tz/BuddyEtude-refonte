@@ -161,11 +161,12 @@ export default function HeroSection() {
                 <p className="text-sm font-bold text-white">{t("landing.mock.name")}</p>
                 <p className="text-[11px] text-white/55 truncate">{t("landing.mock.meta")}</p>
               </div>
-              <span className="ml-auto font-display text-xl font-extrabold text-lime-300">94%</span>
             </div>
-            <div className="mt-3 h-1.5 rounded-full bg-white/10 overflow-hidden">
-              <motion.div initial={{ width: 0 }} animate={{ width: "94%" }} transition={{ delay: 1.6, duration: 1.2, ease: EASE }} className="h-full rounded-full bg-gradient-to-r from-brand-400 to-lime-300" />
-            </div>
+            {/* Mêmes repères que les cartes de la recherche : l'application n'affiche aucun pourcentage */}
+            <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.6, duration: 0.6, ease: EASE }} className="mt-3 flex flex-wrap gap-1.5">
+              <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold border bg-lime-300/10 border-lime-300/30 text-lime-200">{t("buddyCard.match.subjects", { count: 3 })}</span>
+              <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold border bg-white/[0.06] border-white/10 text-white/75">{t("buddyCard.match.level")}</span>
+            </motion.div>
           </motion.div>
 
           <motion.div style={{ y: slowY }} className="absolute -right-2 sm:-right-6 lg:-right-14 bottom-[12%] w-[210px] sm:w-[270px] origin-bottom-right scale-[0.8] sm:scale-100 rounded-2xl bg-white text-gray-900 p-3.5 shadow-lift flex items-center gap-3" aria-hidden="true">

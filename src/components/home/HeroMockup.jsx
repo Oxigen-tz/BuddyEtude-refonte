@@ -10,26 +10,6 @@ const float = (delay = 0, distance = 8, duration = 6) => ({
   transition: { duration, delay, repeat: Infinity, ease: "easeInOut" },
 });
 
-function MatchRing({ value }) {
-  const r = 22;
-  const c = 2 * Math.PI * r;
-  return (
-    <div className="relative w-14 h-14 shrink-0">
-      <svg viewBox="0 0 56 56" className="w-14 h-14 -rotate-90">
-        <circle cx="28" cy="28" r={r} fill="none" strokeWidth="5" className="stroke-brand-100 dark:stroke-ink-700" />
-        <circle cx="28" cy="28" r={r} fill="none" strokeWidth="5" strokeLinecap="round" stroke="url(#ring)" strokeDasharray={c} strokeDashoffset={c * (1 - value / 100)} />
-        <defs>
-          <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor="#7A55FF" />
-            <stop offset="1" stopColor="#FF6B42" />
-          </linearGradient>
-        </defs>
-      </svg>
-      <span className="absolute inset-0 flex items-center justify-center text-[13px] font-extrabold text-gray-900 dark:text-white">{value}%</span>
-    </div>
-  );
-}
-
 export default function HeroMockup() {
   const { t } = useTranslation();
   const subjects = t("landing.mock.subjects", { returnObjects: true });
@@ -96,7 +76,10 @@ export default function HeroMockup() {
               <p className="font-display font-bold text-gray-900 dark:text-white leading-tight">{t("landing.mock.name")}</p>
               <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{t("landing.mock.meta")}</p>
             </div>
-            <MatchRing value={94} />
+          </div>
+          <div className="flex flex-wrap gap-1.5 mt-3">
+            <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">{t("buddyCard.match.subjects", { count: 3 })}</span>
+            <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-200">{t("buddyCard.match.level")}</span>
           </div>
           <div className="flex flex-wrap gap-1.5 mt-4">
             {Array.isArray(subjects) && subjects.map((s, i) => (

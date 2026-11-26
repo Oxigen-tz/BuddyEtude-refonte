@@ -52,14 +52,15 @@ function ProfileVisual() {
 function MatchVisual() {
   const { t } = useTranslation();
   const people = [
-    ["LM", "Léa M.", "L2 Maths · Lyon", 94, "from-coral-400 to-purple-500", true],
-    ["YB", "Yanis B.", "Prépa MPSI · Lyon", 86, "from-brand-400 to-brand-700", false],
-    ["SA", "Sarah A.", "L1 Éco · En ligne", 71, "from-lime-300 to-lime-500", true],
+    // [initiales, nom, infos, matières en commun, repère secondaire, dégradé, vérifié] : mêmes badges que la recherche
+    ["LM", "Léa M.", "L2 Maths · Lyon", 3, "level", "from-coral-400 to-purple-500", true],
+    ["YB", "Yanis B.", "Prépa MPSI · Lyon", 2, "city", "from-brand-400 to-brand-700", false],
+    ["SA", "Sarah A.", "L1 Éco · En ligne", 1, "level", "from-lime-300 to-lime-500", true],
   ];
   return (
     <div className="w-full max-w-md space-y-3">
       <p className="text-xs font-bold uppercase tracking-[0.14em] text-white/40 mb-1">{t("landing.story.results")}</p>
-      {people.map(([ini, name, meta, score, grad, verified], i) => (
+      {people.map(([ini, name, meta, common, other, grad, verified], i) => (
         <motion.div key={ini} initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.12, ease: EASE }}
           className={`flex items-center gap-3.5 rounded-2xl border backdrop-blur-xl p-4 ${i === 0 ? "bg-white/[0.1] border-brand-400/50 shadow-glow" : "bg-white/[0.05] border-white/10"}`}>
           <span className={`relative w-12 h-12 rounded-xl bg-gradient-to-br ${grad} text-white text-sm font-bold flex items-center justify-center shrink-0`}>
@@ -68,11 +69,11 @@ function MatchVisual() {
           <div className="flex-1 min-w-0">
             <p className="font-bold text-white">{name}</p>
             <p className="text-xs text-white/50 truncate">{meta}</p>
-            <div className="mt-2 h-1.5 rounded-full bg-white/10 overflow-hidden">
-              <motion.div initial={{ width: 0 }} animate={{ width: `${score}%` }} transition={{ delay: 0.3 + i * 0.12, duration: 0.9, ease: EASE }} className="h-full rounded-full bg-gradient-to-r from-brand-400 to-lime-300" />
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold border bg-lime-300/10 border-lime-300/30 text-lime-200">{t("buddyCard.match.subjects", { count: common })}</span>
+              <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold border bg-white/[0.06] border-white/10 text-white/75">{t(`buddyCard.match.${other}`)}</span>
             </div>
           </div>
-          <span className="font-display text-2xl font-extrabold text-white">{score}%</span>
         </motion.div>
       ))}
     </div>

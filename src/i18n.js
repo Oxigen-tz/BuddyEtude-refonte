@@ -136,11 +136,11 @@ const resources = {
         },
         mission: {
           title: "Notre Mission",
-          text: "Notre objectif est simple : faire en sorte qu'aucun étudiant ne se retrouve bloqué seul devant ses cours. Que vous soyez au lycée, en prépa ou à l'université, BuddyEtude vous connecte avec les profils qui complètent vos compétences pour réussir ensemble."
+          text: "Notre objectif est simple : faire en sorte qu'aucun étudiant ne se retrouve bloqué seul devant ses cours. Que tu sois au lycée, en prépa ou à l'université, BuddyEtude te connecte avec les profils qui complètent tes compétences pour réussir ensemble."
         },
         join: {
-          title: "Rejoignez l'aventure",
-          text: "BuddyEtude grandit chaque jour grâce à sa communauté. Si vous avez des suggestions, des idées d'amélioration, ou si vous souhaitez participer au projet, n'hésitez pas à nous contacter !",
+          title: "Rejoins l'aventure",
+          text: "BuddyEtude grandit chaque jour grâce à sa communauté. Si tu as des suggestions, des idées d'amélioration, ou si tu souhaites participer au projet, n'hésite pas à nous contacter !",
           button: "Nous écrire"
         }
       },
@@ -277,14 +277,14 @@ const resources = {
           markAllRead: "Tout marquer comme lu",
           empty: "Aucune nouvelle notification.",
           acceptedTitle: "Demande acceptée 🎉",
-          acceptedBody: "{{name}} a accepté votre demande de binôme !",
+          acceptedBody: "{{name}} a accepté ta demande de binôme !",
           acceptedToast: "🎉 Bonne nouvelle !",
           inviteTitle: "Nouvelle invitation 👋",
-          inviteBody: "{{name}} souhaite réviser avec vous !",
+          inviteBody: "{{name}} souhaite réviser avec toi !",
           inviteToast: "Nouvelle demande de {{name}} !",
           view: "Voir",
           sessionTitle: "Nouvelle session 📅",
-          sessionBody: "{{name}} a planifié « {{title}} » avec vous.",
+          sessionBody: "{{name}} a planifié « {{title}} » avec toi.",
           sessionToast: "Nouvelle session planifiée !"
         },
         language: "Français",
@@ -294,66 +294,77 @@ const resources = {
       },
       dashboard: {
         greeting: "Bonjour, {{name}}",
-        subtitle: "Prêt à booster vos révisions aujourd'hui ?",
+        subtitle: "Prêt à booster tes révisions aujourd'hui ?",
         findBuddy: "Trouver un binôme",
+        todo: {
+          title: "À faire maintenant",
+          request: "{{name}} veut réviser avec toi",
+          requestHelp: "{{name}} te demande de l'aide",
+          requestAction: "Répondre",
+          unread_one: "1 nouveau message de {{name}}",
+          unread_other: "{{count}} nouveaux messages de {{name}}",
+          unreadAction: "Lire",
+          session: "Prochaine session : {{title}}",
+          sessionAction: "Voir"
+        },
         progress: "{{done}} sur {{total}} étapes",
         tutorial: {
           close: "Masquer le tutoriel",
-          title_ready: "Félicitations, vous êtes prêt !",
-          title_welcome: "Bienvenue sur votre espace !",
-          desc_ready: "Vous avez accompli toutes les étapes de base. Vous pouvez maintenant fermer ce tutoriel et profiter pleinement de BuddyEtude !",
-          desc_welcome: "Suivez ces 3 étapes simples pour débloquer tout le potentiel de BuddyEtude et commencer à réviser à plusieurs.",
+          title_ready: "Félicitations, tu es prêt !",
+          title_welcome: "Bienvenue sur ton espace !",
+          desc_ready: "Tu as accompli toutes les étapes de base. Tu peux maintenant fermer ce tutoriel et profiter pleinement de BuddyEtude !",
+          desc_welcome: "Suis ces 3 étapes simples pour débloquer tout le potentiel de BuddyEtude et commencer à réviser à plusieurs.",
           step1: "Compléter mon profil",
           step1_done: "Profil validé et visible.",
-          step1_todo: "Ajoutez vos matières et votre niveau.",
+          step1_todo: "Ajoute tes matières et ton niveau.",
           step2: "Trouver un binôme",
-          step2_done: "Vous avez des partenaires d'étude.",
-          step2_todo: "Cherchez des étudiants compatibles.",
+          step2_done: "Tu as des partenaires d'étude.",
+          step2_todo: "Cherche des étudiants compatibles.",
           step3: "Lancer une session",
           step3_done: "Première session planifiée !",
-          step3_ready: "Organisez votre premier tableau blanc !",
-          step3_todo: "Disponible une fois votre binôme trouvé."
+          step3_ready: "Organise ton premier tableau blanc !",
+          step3_todo: "Disponible une fois ton binôme trouvé."
         },
         contacts: {
           title: "Nouveaux contacts",
-          subtitle: "Faites le premier pas !",
-          desc: "Découvrez les étudiants qui partagent vos matières et proposez-leur de travailler.",
+          subtitle: "Fais le premier pas !",
+          desc: "Découvre les étudiants qui partagent tes matières et propose-leur de travailler.",
           button: "Explorer les profils"
         },
         sessions: {
           title: "Prochaines sessions",
-          subtitle: "Votre agenda est vide",
-          desc: "Il est temps d'organiser votre prochaine session de révision au tableau blanc.",
+          subtitle: "Ton agenda est vide",
+          desc: "Il est temps d'organiser ta prochaine session de révision au tableau blanc.",
           button: "Planifier une session"
         }
       },
       // --- LANDING : barre de navigation ---
       groups: {
         title: "Groupes de révision",
-        subtitle: "Révisez à plusieurs (jusqu'à 6) avec vos binômes : discussion et tableau blanc communs.",
+        subtitle: "Révise à plusieurs (jusqu'à 6) avec tes binômes : discussion et tableau blanc communs.",
         create: "Nouveau groupe",
         createTitle: "Créer un groupe",
-        createDesc: "Vous pourrez ensuite y ajouter vos binômes, un par un.",
+        createDesc: "Tu pourras ensuite y ajouter tes binômes, un par un.",
         name: "Nom du groupe",
         namePlaceholder: "Ex. : Partiels de L2 maths",
         subject: "Matière (facultatif)",
         subjectPlaceholder: "Ex. : Analyse",
         createButton: "Créer le groupe",
         emptyTitle: "Aucun groupe pour l'instant",
-        emptyDesc: "Créez un groupe et ajoutez-y vos binômes pour réviser à plusieurs.",
-        pick: "Choisissez un groupe pour afficher sa discussion.",
+        emptyDesc: "Crée un groupe et ajoutes-y tes binômes pour réviser à plusieurs.",
+        pick: "Choisis un groupe pour afficher sa discussion.",
         memberCount_one: "{{count}} membre",
         memberCount_other: "{{count}} membres",
         whiteboard: "Tableau blanc",
         delete: "Supprimer le groupe",
         leave: "Quitter le groupe",
         owner: "Créateur du groupe",
-        you: "Vous",
+        you: "Toi",
         remove: "Retirer {{name}}",
         add: "Ajouter",
         addPlaceholder: "Ajouter un binôme…",
-        noBuddyToAdd: "Tous vos binômes sont déjà dans le groupe (ou vous n'en avez pas encore).",
-        noMessages: "Aucun message. Lancez la discussion !",
+        noBuddyToAdd: "Tous tes binômes sont déjà dans le groupe (ou tu n'en as pas encore).",
+        noMessages: "Aucun message. Lance la discussion !",
         inputPlaceholder: "Écrire au groupe…",
         send: "Envoyer",
         back: "Retour aux groupes",
@@ -363,9 +374,9 @@ const resources = {
           created: "Groupe créé.",
           added: "{{name}} a rejoint le groupe.",
           removed: "{{name}} a été retiré(e) du groupe.",
-          left: "Vous avez quitté le groupe.",
+          left: "Tu as quitté le groupe.",
           deleted: "Groupe supprimé.",
-          error: "Action impossible. Réessayez."
+          error: "Action impossible. Réessaie."
         }
       },
       verification: {
@@ -464,7 +475,7 @@ const resources = {
           steps: {
             profile: { title: "Crée ton profil", desc: "Tes matières, ton niveau dans chacune, ton école et tes disponibilités." },
             match: { title: "Trouve ton binôme", desc: "Les profils les plus compatibles apparaissent en premier. Envoie une demande avec un petit mot." },
-            study: { title: "Révisez ensemble", desc: "Discutez, planifiez une session avec appel vidéo et travaillez sur le même tableau blanc." }
+            study: { title: "Révise à deux", desc: "Discute, planifie une session avec appel vidéo et travaille sur le même tableau blanc que ton binôme." }
           }
         },
         featuresEyebrow: "Tout au même endroit",
@@ -499,11 +510,11 @@ const resources = {
       },
       hero: {
         badge: "Tableau blanc collaboratif intégré",
-        title1: "Trouvez votre",
+        title1: "Trouve ton",
         title_highlight: "binôme d'études",
         title2: "idéal",
-        subtitle_part1: "Ne révisez plus seul. Trouvez des étudiants de votre niveau, lancez une session et ",
-        subtitle_bold: "collaborez en temps réel sur notre tableau blanc",
+        subtitle_part1: "Ne révise plus seul. Trouve des étudiants de ton niveau, lance une session et ",
+        subtitle_bold: "collabore en temps réel sur notre tableau blanc",
         subtitle_part2: ".",
         btn_dashboard: "Accéder à mon espace",
         btn_start: "C'est parti !",
@@ -519,7 +530,7 @@ const resources = {
         items: {
           filters: {
             title: "Binômes compatibles",
-            desc: "Les profils sont classés par compatibilité : matières en commun, même niveau, même école ou même ville, créneaux communs. Filtrez aussi par mode (en ligne ou présentiel)."
+            desc: "Les profils sont classés par compatibilité : matières en commun, même niveau, même école ou même ville, créneaux communs. Filtre aussi par mode (en ligne ou présentiel)."
           },
           chat: {
             title: "Chat intégré",
@@ -527,25 +538,25 @@ const resources = {
           },
           whiteboard: {
             title: "Tableau blanc temps réel",
-            desc: "Dessinez, écrivez et résolvez des problèmes ensemble sur un espace de travail collaboratif fluide."
+            desc: "Dessine, écris et résous des problèmes à plusieurs sur un espace de travail collaboratif fluide."
           },
           requests: {
             title: "Une demande, un message",
-            desc: "Présentez-vous en quelques mots. Si l'autre accepte, la discussion s'ouvre et vous pouvez planifier une session."
+            desc: "Présente-toi en quelques mots. Si l'autre accepte, la discussion s'ouvre et vous pouvez planifier une session."
           },
           schedule: {
             title: "Sessions planifiées",
-            desc: "Date, heure, en ligne ou en présentiel : un lien d'appel vidéo se crée en un clic, la session s'ajoute à votre agenda et un rappel arrive par e-mail la veille et une heure avant."
+            desc: "Date, heure, en ligne ou en présentiel : un lien d'appel vidéo se crée en un clic, la session s'ajoute à ton agenda et un rappel arrive par e-mail la veille et une heure avant."
           },
           subjects: {
             title: "Toutes les matières",
-            desc: "Mathématiques, droit, médecine, langues… La matière est libre : indiquez la vôtre et voyez qui la partage."
+            desc: "Mathématiques, droit, médecine, langues… La matière est libre : indique la tienne et vois qui la partage."
           }
         }
       },
       cta: {
-        title: "Prêt à trouver votre binôme ?",
-        subtitle: "Inscrivez-vous avec Google ou votre adresse e-mail, complétez votre profil et envoyez votre première demande de binôme. C'est gratuit.",
+        title: "Prêt à trouver ton binôme ?",
+        subtitle: "Inscris-toi avec Google ou ton adresse e-mail, complète ton profil et envoie ta première demande de binôme. C'est gratuit.",
         button: "Créer mon compte",
         buttonLoggedIn: "Accéder à mon tableau de bord"
       },
@@ -563,9 +574,11 @@ const resources = {
       // --- NOUVEAU : PAGE "TROUVER UN BINÔME" ---
       search: {
         title: "Trouver un binôme",
-        subtitle: "Filtrez les profils pour trouver le partenaire d'étude idéal",
+        subtitle: "Filtre les profils pour trouver le partenaire d'étude idéal",
         searchPlaceholder: "Rechercher par nom ou école...",
-        subjectPlaceholder: "Filtrer par matière (ex: Droit, Cinéma...)",
+        subjectPlaceholder: "Matière (ex : droit, maths)",
+        filters: "Filtres",
+        filtersHide: "Masquer les filtres",
         cityPlaceholder: "Filtrer par ville...",
         defaultSubject: "Général",
         defaultStudent: "Étudiant",
@@ -596,12 +609,12 @@ const resources = {
         },
         noResults: {
           title: "Aucun profil ne correspond",
-          desc: "Essayez d'élargir votre recherche en retirant certains filtres ou en modifiant vos mots-clés.",
+          desc: "Essaie d'élargir ta recherche en retirant certains filtres ou en modifiant tes mots-clés.",
           reset: "Réinitialiser les filtres"
         },
         requestDialog: {
           title: "Proposer une session",
-          desc: "Envoyez un petit mot à <bold>{{name}}</bold> pour vous présenter et proposer d'étudier ensemble.",
+          desc: "Envoie un petit mot à <bold>{{name}}</bold> pour te présenter et proposer d'étudier ensemble.",
           placeholder: "Bonjour ! J'ai vu que tu préparais aussi les mêmes examens...",
           cancel: "Annuler",
           send: "Envoyer ma demande"
@@ -638,7 +651,7 @@ const resources = {
         requestSent: "Demande envoyée",
         openChat: "Ouvrir la conversation",
         block: "Bloquer",
-        blocked: "{{name}} est bloqué(e) : vous ne verrez plus son profil.",
+        blocked: "{{name}} est bloqué(e) : tu ne verras plus son profil.",
         blockError: "Impossible de bloquer cette personne.",
         verified: "Étudiant vérifié ({{domain}})",
         canHelp: "Peut t'aider en {{subjects}}",
@@ -679,10 +692,10 @@ const resources = {
             other: "Autre"
           },
           detailsLabel: "Détails (Optionnel)",
-          detailsPlaceholder: "Expliquez-nous brièvement le problème...",
+          detailsPlaceholder: "Explique-nous brièvement le problème...",
           cancel: "Annuler",
           confirm: "Confirmer",
-          missingReason: "Veuillez choisir un motif",
+          missingReason: "Choisis un motif",
           success: "Signalement envoyé. Nous allons étudier le profil.",
           error: "Erreur lors du signalement"
         }
@@ -704,8 +717,8 @@ const resources = {
         cancelEdit: "Annuler la modification",
         unreadCount: "{{count}} message(s) non lu(s)",
         removeModal: {
-          title: "Retirer {{name}} de vos binômes ?",
-          desc: "La conversation disparaîtra de votre liste et vous ne pourrez plus planifier de session ensemble. Vous pourrez renvoyer une demande plus tard.",
+          title: "Retirer {{name}} de tes binômes ?",
+          desc: "La conversation disparaîtra de ta liste et vous ne pourrez plus planifier de session ensemble. Tu pourras renvoyer une demande plus tard.",
           cancel: "Annuler",
           confirm: "Retirer"
         },
@@ -716,16 +729,16 @@ const resources = {
         fileDefaultName: "Document",
         pendingRequest: {
           title: "Nouvelle demande",
-          desc: "<bold>{{name}}</bold> souhaite réviser avec vous. Acceptez pour lancer la messagerie.",
+          desc: "<bold>{{name}}</bold> souhaite réviser avec toi. Accepte pour lancer la messagerie.",
           helpTitle: "Demande d'aide en {{subject}}",
           helpDesc: "<bold>{{name}}</bold> débute en {{subject}} et aimerait ton aide. Accepte pour lancer la discussion.",
-          contactWarning: "Ce message contient des coordonnées ou un lien : restez sur BuddyEtude tant que vous ne vous connaissez pas.",
+          contactWarning: "Ce message contient des coordonnées ou un lien : reste sur BuddyEtude tant que vous ne vous connaissez pas.",
           accept: "Accepter",
           reject: "Refuser"
         },
         emptyState: {
-          title: "Vos messages",
-          desc: "Sélectionnez un contact pour afficher la discussion."
+          title: "Tes messages",
+          desc: "Sélectionne un contact pour afficher la discussion."
         },
         toast: {
           accepted: "Demande acceptée ! Vous pouvez maintenant discuter.",
@@ -739,18 +752,18 @@ const resources = {
           editError: "Impossible de modifier le message",
           fileNotAllowed: "Ce type de fichier n'est pas autorisé.",
           fileTooLarge: "Fichier trop volumineux (10 Mo maximum).",
-          buddyRemoved: "{{name}} a été retiré(e) de vos binômes.",
+          buddyRemoved: "{{name}} a été retiré(e) de tes binômes.",
           buddyRemoveError: "Impossible de retirer ce binôme."
         },
         rejectModal: {
           title: "Refuser la demande ?",
-          desc: "Cette action est définitive. Vous ne pourrez plus discuter avec cette personne à moins qu'une nouvelle demande ne soit envoyée.",
+          desc: "Cette action est définitive. Tu ne pourras plus discuter avec cette personne à moins qu'une nouvelle demande ne soit envoyée.",
           cancel: "Annuler",
           confirm: "Oui, refuser"
         },
         deleteModal: {
           title: "Supprimer ce message ?",
-          desc: "Êtes-vous sûr de vouloir supprimer ce message ? Il sera effacé pour vous et pour votre interlocuteur de manière irréversible.",
+          desc: "Tu veux vraiment supprimer ce message ? Il sera effacé pour toi et pour ton interlocuteur de manière irréversible.",
           cancel: "Annuler",
           confirm: "Supprimer"
         }
@@ -758,7 +771,7 @@ const resources = {
       // --- NOUVEAU : PAGE SESSIONS ---
       sessions: {
         title: "Sessions d'étude",
-        subtitle: "Planifiez et suivez vos sessions",
+        subtitle: "Planifie et suis tes sessions",
         newSession: "Nouvelle session",
         upcoming: "Prochaines sessions",
         noUpcoming: "Aucune session prévue",
@@ -779,7 +792,7 @@ const resources = {
           error: "Avis non enregistré (déjà donné pour cette session ?).",
           give: "Donner mon avis"
         },
-        toCloseDesc: "Ces sessions sont passées : indiquez si elles ont eu lieu.",
+        toCloseDesc: "Ces sessions sont passées : indique si elles ont eu lieu.",
         history: "Historique",
         with: "Avec {{name}}",
         joinWhiteboard: "Rejoindre le tableau blanc",
@@ -788,8 +801,8 @@ const resources = {
         defaultOrganizer: "Moi",
         defaultBuddy: "Binôme",
         noBuddyAlert: {
-          title: "Vous n'avez pas encore de binôme accepté.",
-          desc: "Allez dans l'onglet Recherche pour trouver un partenaire !"
+          title: "Tu n'as pas encore de binôme accepté.",
+          desc: "Va dans l'onglet Recherche pour trouver un partenaire !"
         },
         status: {
           upcoming: "À venir",
@@ -805,7 +818,7 @@ const resources = {
           titleLabel: "Titre de la session",
           titlePlaceholder: "Ex: Révision Algèbre",
           buddyLabel: "Choisir un binôme",
-          buddyPlaceholder: "Sélectionnez un binôme",
+          buddyPlaceholder: "Sélectionne un binôme",
           dateLabel: "Date",
           timeLabel: "Heure",
           durationLabel: "Durée (min)",
@@ -817,7 +830,7 @@ const resources = {
           meetingLabel: "Lien externe (facultatif)",
           callIncluded: "Appel vidéo inclus : un bouton « Rejoindre l'appel vidéo » apparaîtra sur la session, pour vous deux, directement dans BuddyEtude.",
           generateLink: "Créer un lien",
-          meetingHint: "Seulement si vous préférez un autre outil (Zoom, Teams, Google Meet…).",
+          meetingHint: "Seulement si tu préfères un autre outil (Zoom, Teams, Google Meet…).",
           cancel: "Annuler",
           submit: "Planifier la session"
         },
@@ -833,7 +846,7 @@ const resources = {
       // --- NOUVEAU : PAGE PROFIL (vue affichage) ---
       profile: {
         title: "Mon profil",
-        subtitle: "Gérez vos informations et vos préférences",
+        subtitle: "Gère tes informations et tes préférences",
         public: "Profil public",
         defaultStudent: "Étudiant",
         edit: "Modifier",
@@ -852,7 +865,7 @@ const resources = {
         },
         toast: {
           saved: "Profil enregistré avec succès ! 🎉",
-          savedDesc: "Redirection vers votre tableau de bord...",
+          savedDesc: "Redirection vers ton tableau de bord...",
           error: "Erreur lors de l'enregistrement"
         }
       },
@@ -869,11 +882,11 @@ const resources = {
         city: "Ville",
         cityPlaceholder: "Ex: Nantes, Paris...",
         bio: "Bio",
-        bioPlaceholder: "Présentez-vous en quelques mots...",
+        bioPlaceholder: "Présente-toi en quelques mots...",
         school: "Établissement",
         schoolPlaceholder: "Ex: CESI, Université...",
         level: "Niveau d'études",
-        levelPlaceholder: "Sélectionnez",
+        levelPlaceholder: "Sélectionne",
         subjectPlaceholder: "Ex: Mathématiques, Management...",
         add: "Ajouter",
         quickSuggestions: "Suggestions rapides (ajoutées en \"Intermédiaire\") :",
@@ -895,7 +908,7 @@ const resources = {
         sessionsInPerson: "Sessions en présentiel",
         save: "Enregistrer mon profil",
         validation: {
-          incomplete: "Ajoutez un nom affiché, au moins une matière, et votre niveau d'études ou votre établissement."
+          incomplete: "Ajoute un nom affiché, au moins une matière, et ton niveau d'études ou ton établissement."
         },
         mentor: "J'aide les débutants",
         mentorDesc: "Les étudiants « Débutant » ou « Intermédiaire » pourront te demander de l'aide dans tes matières « Avancé ».",
@@ -1165,11 +1178,11 @@ const resources = {
           email: "Adresse Email",
           fullName: "Nom complet",
           defaultStudent: "Étudiant",
-          syncNotice: "Ces informations sont synchronisées avec votre compte Google"
+          syncNotice: "Ces informations sont synchronisées avec ton compte Google"
         },
         appearance: {
           title: "Thème de l'application",
-          subtitle: "Choisissez l'ambiance visuelle qui vous convient le mieux.",
+          subtitle: "Choisis l'ambiance visuelle qui te convient le mieux.",
           light: "Mode Clair",
           lightDesc: "Luminosité maximale pour une concentration diurne.",
           dark: "Mode Sombre",
@@ -1215,8 +1228,8 @@ const resources = {
         closePicker: "Fermer le sélecteur de couleur",
         saveColor: "Enregistrer cette couleur",
         ink: "Encre (noir / blanc selon le thème)",
-        textPlaceholder: "Écrivez ici...",
-        clearConfirm: "Voulez-vous vraiment tout effacer ?",
+        textPlaceholder: "Écris ici...",
+        clearConfirm: "Tu veux vraiment tout effacer ?",
         clearPageConfirm: "Effacer tous les dessins de cette page ?",
         pageOf: "{{page}} / {{count}}",
         prevPage: "Page précédente",
@@ -1226,15 +1239,15 @@ const resources = {
         pdf: {
           import: "Importer un PDF",
           progress: "Import {{done}}/{{total}}",
-          notPdf: "Choisissez un fichier PDF.",
+          notPdf: "Choisis un fichier PDF.",
           tooBig: "PDF trop lourd (30 Mo maximum).",
-          done_one: "{{count}} page importée : annotez-la !",
-          done_other: "{{count}} pages importées : annotez-les !",
+          done_one: "{{count}} page importée : annote-la !",
+          done_other: "{{count}} pages importées : annote-les !",
           truncated: "Seules les {{count}} premières pages ont été importées.",
           error: "Le PDF n'a pas pu être importé."
         },
-        saveError: "Synchronisation impossible : vos derniers tracés n'ont pas été enregistrés.",
-        tooLarge: "Le tableau est trop chargé pour être synchronisé. Exportez-le puis effacez-le pour continuer.",
+        saveError: "Synchronisation impossible : tes derniers tracés n'ont pas été enregistrés.",
+        tooLarge: "Le tableau est trop chargé pour être synchronisé. Exporte-le puis efface-le pour continuer.",
         tools: {
           pen: "Stylo",
           text: "Texte",
@@ -1537,6 +1550,17 @@ const resources = {
         greeting: "Hello, {{name}}",
         subtitle: "Ready to boost your studies today?",
         findBuddy: "Find a buddy",
+        todo: {
+          title: "To do now",
+          request: "{{name}} wants to study with you",
+          requestHelp: "{{name}} is asking for your help",
+          requestAction: "Reply",
+          unread_one: "1 new message from {{name}}",
+          unread_other: "{{count}} new messages from {{name}}",
+          unreadAction: "Read",
+          session: "Next session: {{title}}",
+          sessionAction: "View"
+        },
         progress: "{{done}} of {{total}} steps",
         tutorial: {
           close: "Hide tutorial",
@@ -1806,7 +1830,9 @@ const resources = {
         title: "Find a buddy",
         subtitle: "Filter profiles to find the ideal study partner",
         searchPlaceholder: "Search by name or school...",
-        subjectPlaceholder: "Filter by subject (e.g. Law, Cinema...)",
+        subjectPlaceholder: "Subject (e.g. law, maths)",
+        filters: "Filters",
+        filtersHide: "Hide filters",
         cityPlaceholder: "Filter by city...",
         defaultSubject: "General",
         defaultStudent: "Student",
