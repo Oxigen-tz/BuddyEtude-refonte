@@ -23,7 +23,7 @@ const AVAILABILITIES = [["Matin", Sunrise], ["Après-midi", Sun], ["Soir", Moon]
 // Couleur du niveau sélectionné (1 = débutant, 2 = intermédiaire, 3 = avancé)
 const LEVEL_PILL = { debutant: "bg-amber-400 text-white", intermediaire: "bg-brand-500 text-white", avance: "bg-lime-400 text-gray-900" };
 
-export default function ProfileForm({ profile, onSave, saving }) {
+export default function ProfileForm({ profile, onSave, saving, bioLocked = false }) {
   const { t } = useTranslation();
   const [form, setForm] = useState({
     display_name: "", bio: "", school: "", level: "",
@@ -162,8 +162,8 @@ export default function ProfileForm({ profile, onSave, saving }) {
             <Label htmlFor="profile-bio">{t('profileForm.bio')}</Label>
             <span className="text-xs text-gray-400 tabular-nums">{(form.bio || "").length}/400</span>
           </div>
-          <Textarea id="profile-bio" value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} maxLength={400}
-            className={`${fieldClass} h-28 py-3`} placeholder={t('profileForm.bioPlaceholder')} />
+          <Textarea id="profile-bio" value={bioLocked ? "" : form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} maxLength={400}
+            disabled={bioLocked} className={`${fieldClass} h-28 py-3`} placeholder={bioLocked ? t('moderationNotice.bioLockedField') : t('profileForm.bioPlaceholder')} />
         </div>
       </Step>
 

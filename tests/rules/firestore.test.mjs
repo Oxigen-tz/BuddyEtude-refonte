@@ -191,4 +191,35 @@ export async function firestoreTests(env, t) {
   await t("demande : faux nom d'expéditeur refusé", assertFails(setDoc(doc(p, "requests", pr.join("_")), { ...reqPR, from_name: "Équipe BuddyEtude" })));
   await t("demande : avec son vrai nom acceptée", assertSucceeds(setDoc(doc(p, "requests", pr.join("_")), { ...reqPR, from_name: "Paul" })));
   await t("session : lien d'appel « javascript: » refusé", assertFails(addDoc(collection(p, "sessions"), { organizer_uid: P, participants: pq, status: "planned", title: "x", meeting_url: "javascript:alert(1)" })));
+
+  // ------------------------------------------------------------ Modération des profils
+  const M = "uidMarc", N = "uidNina";
+  const mk = as(M);
+  await seed(async (db) => {
+    await setDoc(doc(db, "users", M), { display_name: "Marc", profile_complete: true, profile_visible: true, bio: "Achetez mes cours !", photo_url: "https://lh3.googleusercontent.com/a/x" });
+    await setDoc(doc(db, "users", N), { display_name: "Nina", profile_complete: true, profile_visible: true });
+  });
+  await t("modération : retirer photo et présentation (admin)", assertSucceeds((async () => {
+    const batch = writeBatch(admin);
+    batch.update(doc(admin, "users", M), { bio: "", photo_url: "" });
+    batch.set(doc(admin, "moderation", M), { bio_locked: true, photo_locked: true, notice: { action: "bio", reason: "spam", at: 1 } }, { merge: true });
+    await batch.commit();
+  })()));
+  await t("modération : l'admin ne modifie pas le reste du profil", assertFails(updateDoc(doc(admin, "users", M), { city: "Paris" })));
+  await t("modération : l'étudiant lit ses propres mesures", assertSucceeds(getDoc(doc(mk, "moderation", M))));
+  await t("modération : un autre ne lit pas les mesures", assertFails(getDoc(doc(b, "moderation", M))));
+  await t("modération : l'étudiant ne lève pas ses mesures", assertFails(setDoc(doc(mk, "moderation", M), { bio_locked: false }, { merge: true })));
+  await t("modération : présentation bloquée, réécriture refusée", assertFails(setDoc(doc(mk, "users", M), { bio: "Achetez mes cours !" }, { merge: true })));
+  await t("modération : photo bloquée, nouvelle photo refusée", assertFails(setDoc(doc(mk, "users", M), { photo_url: "https://lh3.googleusercontent.com/a/y" }, { merge: true })));
+  await t("modération : le reste du profil reste modifiable", assertSucceeds(setDoc(doc(mk, "users", M), { city: "Lyon" }, { merge: true })));
+  await t("modération : recréer son profil ne lève pas le blocage", assertFails((async () => {
+    await deleteDoc(doc(mk, "users", M));
+    await setDoc(doc(mk, "users", M), { display_name: "Marc", bio: "Achetez mes cours !" });
+  })()));
+  await t("modération : restreindre (admin)", assertSucceeds(setDoc(doc(admin, "moderation", M), { restricted: true }, { merge: true })));
+  await t("modération : restreint, se rendre visible refusé", assertFails(setDoc(doc(mk, "users", M), { display_name: "Marc", profile_visible: true }, { merge: true })));
+  const mn = [M, N].sort();
+  await seed((db) => setDoc(doc(db, "users", M), { display_name: "Marc", profile_complete: true, profile_visible: false }));
+  await t("modération : restreint, nouvelle demande refusée", assertFails(setDoc(doc(mk, "requests", mn.join("_")), { from_uid: M, to_uid: N, participants: mn, status: "pending", from_name: "Marc" })));
+  await t("modération : un étudiant ne peut pas restreindre", assertFails(setDoc(doc(b, "moderation", N), { restricted: true })));
 }

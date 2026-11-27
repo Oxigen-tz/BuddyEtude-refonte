@@ -51,11 +51,14 @@ export const storage = getStorage(app);
 // Fonctions appelables (page Modération), même région que les Cloud Functions
 export const functions = getFunctions(app, "europe-west1");
 
+// Ports des émulateurs : ceux de firebase.json par défaut, modifiables (VITE_EMULATOR_*_PORT)
+// pour lancer une seconde série d'émulateurs à côté d'une première.
 if (useEmulators) {
-  connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
-  connectFirestoreEmulator(db, "127.0.0.1", 8080);
-  connectStorageEmulator(storage, "127.0.0.1", 9199);
-  connectFunctionsEmulator(functions, "127.0.0.1", 5001);
+  const port = (name, fallback) => Number(env[`VITE_EMULATOR_${name}_PORT`]) || fallback;
+  connectAuthEmulator(auth, `http://127.0.0.1:${port("AUTH", 9099)}`, { disableWarnings: true });
+  connectFirestoreEmulator(db, "127.0.0.1", port("FIRESTORE", 8080));
+  connectStorageEmulator(storage, "127.0.0.1", port("STORAGE", 9199));
+  connectFunctionsEmulator(functions, "127.0.0.1", port("FUNCTIONS", 5001));
 }
 
 // Pas de Google Analytics : il dépose des cookies de mesure d'audience qui exigent un

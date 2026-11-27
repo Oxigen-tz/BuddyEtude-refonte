@@ -6,7 +6,46 @@ export default {
         desc: "The page \"{{page}}\" does not exist.",
         home: "Back to home"
       },
+      moderationNotice: {
+        photo: "Moderators removed your profile photo (reason: {{reason}}). You can't add a new one for now.",
+        bio: "Moderators removed your bio (reason: {{reason}}). You can't write a new one for now.",
+        hide: "Moderators hid your profile from search (reason: {{reason}}).",
+        restrict: "Your account has been restricted by moderators (reason: {{reason}}): your profile no longer appears in search and you can't send new requests. You can still message your study buddies.",
+        ban: "Your account has been suspended by moderators (reason: {{reason}}).",
+        contact: "A question or a mistake? Write to us at {{email}}.",
+        close: "Close message",
+        bioLockedField: "Bio removed by moderators",
+        reasons: {
+          offtopic: "off-topic content",
+          inappropriate: "inappropriate content",
+          photo: "non-compliant photo",
+          impersonation: "impersonation",
+          spam: "advertising or spam",
+          other: "breach of the terms of use"
+        }
+      },
       admin: {
+        profiles: {
+          title: "Profiles",
+          subtitle: "Remove an off-topic photo or bio, hide, restrict or ban an account. The student sees a message explaining the action and its reason.",
+          searchPlaceholder: "Search by name, school, city or uid",
+          none: "No profile found.",
+          open: "View profile",
+          reason: "Reason",
+          noPhoto: "No photo",
+          noName: "No name",
+          noBio: "No bio",
+          showRestricted: "Lift the restriction first to make this profile visible.",
+          flags: { banned: "Banned", restricted: "Restricted", hidden: "Hidden", bioLocked: "Bio locked", photoLocked: "Photo locked" },
+          actions: {
+            photo: "Remove photo", bio: "Remove bio", unlockPhoto: "Allow a new photo", unlockBio: "Allow a bio",
+            hide: "Hide", show: "Make visible", restrict: "Restrict", unrestrict: "Lift restriction", ban: "Ban", unban: "Unban"
+          },
+          done: {
+            photo: "{{name}}'s photo removed", bio: "{{name}}'s bio removed", unlockPhoto: "{{name}} can add a photo again", unlockBio: "{{name}} can write a bio again",
+            hide: "{{name}}'s profile hidden", show: "{{name}}'s profile visible", restrict: "{{name}} is restricted", unrestrict: "{{name}}'s restriction lifted", ban: "{{name}} is banned", unban: "{{name}} is unbanned"
+          }
+        },
         title: "Moderation",
         subtitle: "Statistics, reports and negative feedback after sessions.",
         forbidden: "This page is reserved for moderation.",

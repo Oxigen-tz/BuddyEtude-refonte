@@ -2,13 +2,14 @@ import React, { useEffect, useState } from "react";
 import { collection, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc, where, writeBatch } from "firebase/firestore";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { ShieldAlert, Ban, CheckCircle2, Star, Loader2 } from "lucide-react";
+import { ShieldAlert, Ban, CheckCircle2, Star, Loader2, UserSearch } from "lucide-react";
 import { db } from "../firebase/config";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import AdminStats from "@/components/admin/AdminStats";
 import LegacyCleanup from "@/components/admin/LegacyCleanup";
+import ProfileModeration from "@/components/admin/ProfileModeration";
 
 // Modération : signalements en attente et avis négatifs après les sessions.
 // Accès : comptes listés dans la collection "admins" (document admins/<uid> créé à la main dans
@@ -20,6 +21,12 @@ export default function Admin() {
   const [feedback, setFeedback] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState(null);
+  // Profil ouvert dans la section « Profils » depuis un signalement
+  const [focusUid, setFocusUid] = useState(null);
+  const openProfile = (uid) => {
+    setFocusUid(uid);
+    requestAnimationFrame(() => document.getElementById("profile-moderation")?.scrollIntoView({ behavior: "smooth" }));
+  };
 
   useEffect(() => {
     if (!isAdmin) { setLoading(false); return; }
@@ -118,6 +125,9 @@ export default function Admin() {
                   <Button size="sm" disabled={busyId === r.id} onClick={() => ban(r)} className="rounded-xl bg-red-600 hover:bg-red-700 text-white">
                     <Ban className="w-4 h-4 mr-1.5" /> {t('admin.ban')}
                   </Button>
+                  <Button size="sm" variant="outline" onClick={() => openProfile(r.reported_uid)} className="rounded-xl">
+                    <UserSearch className="w-4 h-4 mr-1.5" /> {t('admin.profiles.open')}
+                  </Button>
                   <Button size="sm" variant="outline" disabled={busyId === r.id} onClick={() => dismiss(r)} className="rounded-xl">
                     <CheckCircle2 className="w-4 h-4 mr-1.5" /> {t('admin.dismiss')}
                   </Button>
@@ -127,6 +137,8 @@ export default function Admin() {
           </ul>
         )}
       </section>
+
+      <ProfileModeration focusUid={focusUid} />
 
       <section>
         <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{t('admin.feedback')} ({feedback.length})</h2>

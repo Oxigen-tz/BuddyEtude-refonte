@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useTranslation } from "react-i18next";
+import { useModeration } from "@/components/ModerationNotice";
 
 
 export default function Profile() {
@@ -50,6 +51,8 @@ export default function Profile() {
   // Nom proposé à la création du profil : displayName n'existait pas dans AuthContext,
   // d'où un champ "Nom affiché" vide pour les nouveaux comptes.
   const defaultName = user?.displayName || user?.full_name || "";
+  // Mesures de modération sur ce profil (photo / présentation bloquées, restriction)
+  const moderation = useModeration();
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -105,6 +108,10 @@ export default function Profile() {
       const dataToSave = { 
         ...publicData, 
         photo_url: formData.photo_url || profile?.photo_url || user.photoURL || "",
+        // Mesures de modération (moderation/<uid>) : les règles refusent sinon l'enregistrement
+        ...(moderation?.photo_locked ? { photo_url: "" } : {}),
+        ...(moderation?.bio_locked ? { bio: "" } : {}),
+        ...(moderation?.restricted ? { profile_visible: false } : {}),
         profile_complete: true,
         // Toujours présent : la recherche (et les règles Firestore) filtrent sur ce champ
         profile_visible: profile?.profile_visible !== false,
@@ -164,7 +171,7 @@ export default function Profile() {
             )}
           </div>
         </div>
-        <ProfileForm profile={profile} onSave={handleSave} saving={isSaving} />
+        <ProfileForm profile={profile} onSave={handleSave} saving={isSaving} bioLocked={moderation?.bio_locked === true} />
       </div>
     );
   }
@@ -200,9 +207,9 @@ export default function Profile() {
         <div className="px-5 sm:px-8 pb-6">
           <div className="flex flex-col md:flex-row md:items-end gap-4 md:gap-6">
             <div className="-mt-12 sm:-mt-12 relative shrink-0 w-fit">
-              <AvatarEditor uid={user.uid} currentUrl={profile.photo_url} fallbackUrl={user.photoURL || ""}
+              <AvatarEditor uid={user.uid} currentUrl={profile.photo_url} fallbackUrl={user.photoURL || ""} disabled={moderation?.photo_locked === true}
                 onChange={(url) => { setPhotoFailed(false); setProfile((prev) => ({ ...prev, photo_url: url })); }}>
-              {profile.photo_url && !photoFailed ? (
+              {profile.photo_url && !photoFailed && !moderation?.photo_locked ? (
                 // Les photos Google refusent souvent de se charger avec un Referer
                 <img src={profile.photo_url} alt={profile.display_name} referrerPolicy="no-referrer" onError={() => setPhotoFailed(true)}
                   className="w-28 h-28 sm:w-32 sm:h-32 rounded-[1.75rem] object-cover ring-[6px] ring-white dark:ring-ink-900 shadow-lift" />

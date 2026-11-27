@@ -19,7 +19,8 @@ const MAX_INPUT = 20 * 1024 * 1024;
 // Une photo déjà envoyée par l'utilisateur (et non sa photo Google) ?
 export const isUploadedAvatar = (url) => typeof url === "string" && url.includes("avatars%2F");
 
-export default function AvatarEditor({ uid, currentUrl, fallbackUrl, onChange, children }) {
+// disabled : photo bloquée par la modération (moderation/<uid>.photo_locked)
+export default function AvatarEditor({ uid, currentUrl, fallbackUrl, onChange, children, disabled = false }) {
   const { t } = useTranslation();
   const inputRef = useRef(null);
   const [open, setOpen] = useState(false);
@@ -117,6 +118,8 @@ export default function AvatarEditor({ uid, currentUrl, fallbackUrl, onChange, c
   };
 
   const openEditor = () => { setImg(null); setOpen(true); };
+
+  if (disabled) return <div className="relative w-fit">{children}</div>;
 
   return (
     <>

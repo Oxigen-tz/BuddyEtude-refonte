@@ -6,7 +6,46 @@ export default {
         desc: "La page « {{page}} » n'existe pas.",
         home: "Retour à l'accueil"
       },
+      moderationNotice: {
+        photo: "La modération a retiré ta photo de profil (motif : {{reason}}). Tu ne peux pas en remettre une pour le moment.",
+        bio: "La modération a retiré ta présentation (motif : {{reason}}). Tu ne peux pas en écrire une nouvelle pour le moment.",
+        hide: "La modération a masqué ton profil de la recherche (motif : {{reason}}).",
+        restrict: "Ton compte est restreint par la modération (motif : {{reason}}) : ton profil n'apparaît plus dans la recherche et tu ne peux plus envoyer de nouvelles demandes. Tu peux toujours écrire à tes binômes.",
+        ban: "Ton compte a été suspendu par la modération (motif : {{reason}}).",
+        contact: "Une question ou une erreur ? Écris-nous à {{email}}.",
+        close: "Fermer le message",
+        bioLockedField: "Présentation retirée par la modération",
+        reasons: {
+          offtopic: "contenu hors sujet",
+          inappropriate: "contenu inapproprié",
+          photo: "photo non conforme",
+          impersonation: "usurpation d'identité",
+          spam: "publicité ou spam",
+          other: "non-respect des règles d'utilisation"
+        }
+      },
       admin: {
+        profiles: {
+          title: "Profils",
+          subtitle: "Retire une photo ou une présentation hors sujet, masque, restreins ou bannis un compte. L'étudiant voit un message qui explique la mesure et son motif.",
+          searchPlaceholder: "Chercher par nom, établissement, ville ou uid",
+          none: "Aucun profil trouvé.",
+          open: "Voir le profil",
+          reason: "Motif",
+          noPhoto: "Pas de photo",
+          noName: "Sans nom",
+          noBio: "Pas de présentation",
+          showRestricted: "Lève d'abord la restriction pour rendre ce profil visible.",
+          flags: { banned: "Banni", restricted: "Restreint", hidden: "Masqué", bioLocked: "Présentation bloquée", photoLocked: "Photo bloquée" },
+          actions: {
+            photo: "Retirer la photo", bio: "Retirer la présentation", unlockPhoto: "Autoriser une nouvelle photo", unlockBio: "Autoriser une présentation",
+            hide: "Masquer", show: "Rendre visible", restrict: "Restreindre", unrestrict: "Lever la restriction", ban: "Bannir", unban: "Débannir"
+          },
+          done: {
+            photo: "Photo de {{name}} retirée", bio: "Présentation de {{name}} retirée", unlockPhoto: "{{name}} peut remettre une photo", unlockBio: "{{name}} peut réécrire une présentation",
+            hide: "Profil de {{name}} masqué", show: "Profil de {{name}} visible", restrict: "{{name}} est restreint", unrestrict: "Restriction de {{name}} levée", ban: "{{name}} est banni", unban: "{{name}} est débanni"
+          }
+        },
         title: "Modération",
         subtitle: "Statistiques, signalements et avis négatifs après les sessions.",
         forbidden: "Cette page est réservée à la modération.",

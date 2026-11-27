@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
 import { takeIntentTarget } from "@/lib/intent";
+import ModerationNotice from "@/components/ModerationNotice";
 import { chooseLanguage } from "@/i18n";
 import { db } from "./firebase/config"; 
 import { collection, query, where, onSnapshot, doc } from "firebase/firestore";
@@ -460,6 +461,8 @@ export default function Layout({ children, currentPageName }) {
               </div>
             </div>
           )}
+          {/* Mesure de modération sur son profil (photo retirée, compte restreint…) : explication */}
+          {currentPageName !== "Whiteboard" && <ModerationNotice />}
           {currentPageName === "Whiteboard" ? children : (
             // Transition à chaque changement de page (l'opacité seule ne crée pas de bloc
             // conteneur, donc les fenêtres « fixed » des pages restent bien placées)
