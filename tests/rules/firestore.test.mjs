@@ -260,4 +260,12 @@ export async function firestoreTests(env, t) {
   await seed((db) => setDoc(doc(db, "moderation", Q), { fix_required: [], review_pending: true }, { merge: true }));
   await t("correction faite : écrire à nouveau accepté", assertSucceeds(addDoc(collection(qq, "messages"), { chatId: pqId, participants: pq, senderUid: Q, text: "me revoilà", unreadBy: [P] })));
   await t("correction faite : toujours masqué avant validation", assertFails(setDoc(doc(qq, "users", Q), { profile_visible: true }, { merge: true })));
+
+  // Filtre de mots : résultats réservés à la modération
+  await seed((db) => setDoc(doc(db, "screening", Q), { hits: { name: [{ category: "insult", term: "con" }], bio: [] }, reviewed: false }));
+  await t("filtre : l'étudiant ne lit pas sa fiche", assertFails(getDoc(doc(qq, "screening", Q))));
+  await t("filtre : l'étudiant ne la supprime pas", assertFails(deleteDoc(doc(qq, "screening", Q))));
+  await t("filtre : la modération la lit", assertSucceeds(getDoc(doc(admin, "screening", Q))));
+  await t("filtre : la modération l'ignore", assertSucceeds(updateDoc(doc(admin, "screening", Q), { reviewed: true })));
+  await t("filtre : la modération ne réécrit pas les mots repérés", assertFails(updateDoc(doc(admin, "screening", Q), { hits: {} })));
 }

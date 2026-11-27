@@ -439,6 +439,31 @@ exports.onProfileFixed = onDocumentWritten("users/{uid}", async (event) => {
   });
 });
 
+// Filtre de mots (functions/screening.js) : à chaque nouveau nom ou nouvelle présentation, les mots
+// repérés (insulte, haine, sexuel, drogue, publicité ou coordonnées) sont notés dans screening/<uid>,
+// lisible par la modération seule. Aucune sanction automatique : le profil remonte en tête de la
+// page Modération. Plus rien de repéré : la fiche est retirée.
+const { screenProfile } = require("./screening");
+exports.onProfileScreened = onDocumentWritten("users/{uid}", async (event) => {
+  if (!event.data?.after.exists) return;
+  const before = event.data.before.exists ? event.data.before.data() : {};
+  const after = event.data.after.data();
+  if (event.data.before.exists && before.display_name === after.display_name && before.bio === after.bio) return;
+  const ref = db.doc(`screening/${event.params.uid}`);
+  const result = screenProfile({ display_name: after.display_name, bio: after.bio });
+  if (!result) {
+    await ref.delete().catch(() => {});
+    return;
+  }
+  await ref.set({
+    hits: result,
+    name: String(after.display_name || "").slice(0, 60),
+    bio: String(after.bio || "").slice(0, 400),
+    at: FieldValue.serverTimestamp(),
+    reviewed: false,
+  });
+});
+
 exports.onBanChanged = onDocumentWritten("users/{uid}", async (event) => {
   const before = event.data?.before.exists ? event.data.before.get("banned") === true : false;
   const afterExists = event.data?.after.exists;

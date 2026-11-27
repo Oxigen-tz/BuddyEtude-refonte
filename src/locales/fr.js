@@ -44,6 +44,14 @@ export default {
           noBio: "Pas de présentation",
           showRestricted: "Lève d'abord la restriction pour rendre ce profil visible.",
           fields: { name: "nom", photo: "photo", bio: "présentation" },
+          screening: {
+            title: "Repéré par le filtre de mots",
+            count_one: "{{count}} profil repéré par le filtre de mots, à vérifier",
+            count_other: "{{count}} profils repérés par le filtre de mots, à vérifier",
+            dismiss: "Ignorer (rien d'anormal)",
+            dismissed: "Signalement du filtre ignoré",
+            categories: { insult: "insulte", hate: "propos haineux", sexual: "contenu sexuel", drugs: "drogue", contact: "publicité ou coordonnées" }
+          },
           flags: { fix: "À corriger : {{fields}}", review: "En attente de validation", banned: "Banni", restricted: "Restreint", hidden: "Masqué", bioLocked: "Présentation bloquée", photoLocked: "Photo bloquée" },
           actions: {
             fixName: "Faire corriger le nom", fixPhoto: "Faire corriger la photo", fixBio: "Faire corriger la présentation", validate: "Valider le profil",

@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { arrayUnion, collection, doc, getDocs, limit, query, writeBatch } from "firebase/firestore";
+import { arrayUnion, collection, doc, getDocs, limit, query, updateDoc, writeBatch } from "firebase/firestore";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Search, ImageOff, FileX, EyeOff, Eye, Lock, Unlock, Ban, Loader2, RotateCcw, PenLine, BadgeCheck } from "lucide-react";
+import { Search, ImageOff, FileX, EyeOff, Eye, Lock, Unlock, Ban, Loader2, RotateCcw, PenLine, BadgeCheck, ScanSearch } from "lucide-react";
 import { db } from "@/firebase/config";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -24,14 +24,18 @@ export default function ProfileModeration({ focusUid }) {
   const [search, setSearch] = useState("");
   const [busy, setBusy] = useState(null);
   const [reasons, setReasons] = useState({});
+  // Filtre de mots (Cloud Function onProfileScreened) : screening/<uid>
+  const [screening, setScreening] = useState({});
 
   const load = async () => {
-    const [u, m] = await Promise.all([
+    const [u, m, s] = await Promise.all([
       getDocs(query(collection(db, "users"), limit(1000))),
       getDocs(collection(db, "moderation")),
+      getDocs(collection(db, "screening")).catch(() => ({ docs: [] })),
     ]);
     setProfiles(u.docs.map((d) => ({ id: d.id, ...d.data() })));
     setMods(Object.fromEntries(m.docs.map((d) => [d.id, d.data()])));
+    setScreening(Object.fromEntries(s.docs.map((d) => [d.id, d.data()])));
   };
   useEffect(() => { load().catch((e) => { console.error(e); setProfiles([]); }); }, []);
   useEffect(() => { if (focusUid) setSearch(focusUid); }, [focusUid]);
@@ -39,11 +43,25 @@ export default function ProfileModeration({ focusUid }) {
   const results = useMemo(() => {
     if (!profiles) return [];
     const q = search.trim().toLowerCase();
+    const flagged = (p) => Boolean(screening[p.id] && !screening[p.id].reviewed);
     const list = q
       ? profiles.filter((p) => p.id === search.trim() || [p.display_name, p.full_name, p.school, p.city].some((v) => String(v || "").toLowerCase().includes(q)))
-      : profiles.filter((p) => p.profile_complete);
-    return list.slice(0, 30);
-  }, [profiles, search]);
+      : profiles.filter((p) => p.profile_complete || flagged(p));
+    // Profils repérés par le filtre de mots en premier
+    return [...list].sort((a, b) => Number(flagged(b)) - Number(flagged(a))).slice(0, 30);
+  }, [profiles, search, screening]);
+  const flaggedCount = Object.values(screening).filter((s) => !s.reviewed).length;
+
+  const dismissScreening = async (p) => {
+    try {
+      await updateDoc(doc(db, "screening", p.id), { reviewed: true });
+      setScreening((all) => ({ ...all, [p.id]: { ...all[p.id], reviewed: true } }));
+      toast.success(t("admin.profiles.screening.dismissed"));
+    } catch (error) {
+      console.error(error);
+      toast.error(t("admin.toast.error"));
+    }
+  };
 
   // Une mesure = mise à jour du profil + mesure durable + historique, en une seule écriture
   const act = async (p, action) => {
@@ -123,6 +141,11 @@ export default function ProfileModeration({ focusUid }) {
     <section id="profile-moderation" className="mb-12 scroll-mt-6">
       <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{t("admin.profiles.title")}</h2>
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{t("admin.profiles.subtitle")}</p>
+      {flaggedCount > 0 && (
+        <p className="mb-4 inline-flex items-center gap-2 rounded-xl bg-orange-50 dark:bg-orange-500/10 text-orange-800 dark:text-orange-200 text-sm font-semibold px-3 py-2">
+          <ScanSearch className="w-4 h-4" /> {t("admin.profiles.screening.count", { count: flaggedCount })}
+        </p>
+      )}
       <div className="relative mb-4">
         <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
         <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("admin.profiles.searchPlaceholder")}
@@ -164,6 +187,22 @@ export default function ProfileModeration({ focusUid }) {
                     </p>
                   </div>
                 </div>
+
+                {screening[p.id] && !screening[p.id].reviewed && (
+                  <div className="mt-4 rounded-xl border border-orange-200 dark:border-orange-500/30 bg-orange-50 dark:bg-orange-500/10 p-3 text-sm">
+                    <p className="font-semibold text-orange-800 dark:text-orange-200 flex items-center gap-1.5"><ScanSearch className="w-4 h-4" /> {t("admin.profiles.screening.title")}</p>
+                    <ul className="mt-1.5 space-y-0.5 text-orange-900 dark:text-orange-100">
+                      {["name", "bio"].flatMap((field) => (screening[p.id].hits?.[field] || []).map((h, i) => (
+                        <li key={`${field}-${i}`}>
+                          {t(`admin.profiles.fields.${field}`)} · {t(`admin.profiles.screening.categories.${h.category}`)} : « {h.excerpt || h.term} »
+                        </li>
+                      )))}
+                    </ul>
+                    <button type="button" onClick={() => dismissScreening(p)} className="mt-2 text-xs font-semibold text-orange-700 dark:text-orange-300 underline">
+                      {t("admin.profiles.screening.dismiss")}
+                    </button>
+                  </div>
+                )}
 
                 <div className="mt-4 flex flex-wrap items-center gap-2">
                   <label className="text-xs font-semibold text-gray-500 dark:text-gray-400" htmlFor={`reason-${p.id}`}>{t("admin.profiles.reason")}</label>

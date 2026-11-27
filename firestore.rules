@@ -390,6 +390,14 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ------------------------------------------- Filtre de mots (Cloud Function onProfileScreened)
+    // Mots repérés dans les noms et présentations : modération seule (lecture, « Ignorer »)
+    match /screening/{uid} {
+      allow read, delete: if isAdmin();
+      allow update: if isAdmin() && onlyChanges(['reviewed']);
+      allow create: if false;
+    }
+
     // ---------------------------------------------- Mesures de modération par profil
     // L'étudiant lit les siennes (bandeau d'explication) ; seule la modération les écrit
     match /moderation/{uid} {

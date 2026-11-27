@@ -44,6 +44,14 @@ export default {
           noBio: "No bio",
           showRestricted: "Lift the restriction first to make this profile visible.",
           fields: { name: "name", photo: "photo", bio: "bio" },
+          screening: {
+            title: "Flagged by the word filter",
+            count_one: "{{count}} profile flagged by the word filter, to review",
+            count_other: "{{count}} profiles flagged by the word filter, to review",
+            dismiss: "Dismiss (nothing wrong)",
+            dismissed: "Filter flag dismissed",
+            categories: { insult: "insult", hate: "hate speech", sexual: "sexual content", drugs: "drugs", contact: "advertising or contact details" }
+          },
           flags: { fix: "To correct: {{fields}}", review: "Awaiting approval", banned: "Banned", restricted: "Restricted", hidden: "Hidden", bioLocked: "Bio locked", photoLocked: "Photo locked" },
           actions: {
             fixName: "Ask to fix name", fixPhoto: "Ask to change photo", fixBio: "Ask to fix bio", validate: "Approve profile",
