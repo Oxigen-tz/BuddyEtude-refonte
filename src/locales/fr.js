@@ -9,14 +9,13 @@ export default {
       moderationNotice: {
         photo: "La modération a retiré ta photo de profil (motif : {{reason}}). Tu ne peux pas en remettre une pour le moment.",
         bio: "La modération a retiré ta présentation (motif : {{reason}}). Tu ne peux pas en écrire une nouvelle pour le moment.",
-        hide: "La modération a masqué ton profil de la recherche (motif : {{reason}}).",
+        hide: "La modération a masqué ton profil de la recherche (motif : {{reason}}). Il le restera jusqu'à nouvelle vérification.",
         restrict: "Ton compte est restreint par la modération (motif : {{reason}}) : ton profil n'apparaît plus dans la recherche et tu ne peux plus envoyer de nouvelles demandes. Tu peux toujours écrire à tes binômes.",
         ban: "Ton compte a été suspendu par la modération (motif : {{reason}}).",
         contact: "Une question ou une erreur ? Écris-nous à {{email}}.",
         close: "Fermer le message",
         bioLockedField: "Présentation retirée par la modération",
-        nameLockedField: "Nom remplacé par la modération",
-        name: "La modération a remplacé ton nom par « Étudiant·e » (motif : {{reason}}). Tu ne peux pas le changer pour le moment.",
+        hideName: "Ton profil est masqué de la recherche à cause de ton nom. Choisis un autre nom dans ton profil, puis écris-nous : nous le rendrons visible après vérification.",
         reasons: {
           offtopic: "contenu hors sujet",
           inappropriate: "contenu inapproprié",
@@ -39,14 +38,12 @@ export default {
           noName: "Sans nom",
           noBio: "Pas de présentation",
           showRestricted: "Lève d'abord la restriction pour rendre ce profil visible.",
-          flags: { banned: "Banni", restricted: "Restreint", hidden: "Masqué", bioLocked: "Présentation bloquée", photoLocked: "Photo bloquée", nameLocked: "Nom bloqué" },
+          flags: { banned: "Banni", restricted: "Restreint", hidden: "Masqué", bioLocked: "Présentation bloquée", photoLocked: "Photo bloquée" },
           actions: {
-            name: "Réinitialiser le nom", unlockName: "Autoriser un nouveau nom",
             photo: "Retirer la photo", bio: "Retirer la présentation", unlockPhoto: "Autoriser une nouvelle photo", unlockBio: "Autoriser une présentation",
             hide: "Masquer", show: "Rendre visible", restrict: "Restreindre", unrestrict: "Lever la restriction", ban: "Bannir", unban: "Débannir"
           },
           done: {
-            name: "Nom de {{name}} remplacé par « Étudiant·e »", unlockName: "{{name}} peut choisir un nouveau nom",
             photo: "Photo de {{name}} retirée", bio: "Présentation de {{name}} retirée", unlockPhoto: "{{name}} peut remettre une photo", unlockBio: "{{name}} peut réécrire une présentation",
             hide: "Profil de {{name}} masqué", show: "Profil de {{name}} visible", restrict: "{{name}} est restreint", unrestrict: "Restriction de {{name}} levée", ban: "{{name}} est banni", unban: "{{name}} est débanni"
           }

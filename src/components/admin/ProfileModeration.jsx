@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { arrayUnion, collection, doc, getDocs, limit, query, writeBatch } from "firebase/firestore";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Search, ImageOff, FileX, EyeOff, Eye, Lock, Unlock, Ban, Loader2, RotateCcw, UserX } from "lucide-react";
+import { Search, ImageOff, FileX, EyeOff, Eye, Lock, Unlock, Ban, Loader2, RotateCcw } from "lucide-react";
 import { db } from "@/firebase/config";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -13,8 +13,6 @@ import { Badge } from "@/components/ui/badge";
 // Firestore : l'étudiant ne peut ni les lire chez les autres, ni les modifier, ni s'en défaire en
 // recréant son profil). L'étudiant voit un bandeau qui explique la mesure (ModerationNotice).
 export const MODERATION_REASONS = ["offtopic", "inappropriate", "name", "photo", "impersonation", "spam", "other"];
-// Nom mis à la place d'un nom inapproprié (même valeur dans firestore.rules)
-export const PLACEHOLDER_NAME = "Étudiant·e";
 
 export default function ProfileModeration({ focusUid }) {
   const { t } = useTranslation();
@@ -57,11 +55,10 @@ export default function ProfileModeration({ focusUid }) {
       case "bio": userPatch.bio = ""; modPatch.bio_locked = true; break;
       case "unlockPhoto": modPatch.photo_locked = false; notice = null; break;
       case "unlockBio": modPatch.bio_locked = false; notice = null; break;
-      // Le nouveau nom est recopié partout (demandes, groupes…) par la Cloud Function onDisplayNameChanged
-      case "name": userPatch.display_name = PLACEHOLDER_NAME; userPatch.full_name = PLACEHOLDER_NAME; modPatch.name_locked = true; break;
-      case "unlockName": modPatch.name_locked = false; notice = null; break;
-      case "hide": userPatch.profile_visible = false; break;
-      case "show": userPatch.profile_visible = true; notice = null; break;
+      // Masqué jusqu'à « Rendre visible » : l'étudiant ne peut pas se réafficher lui-même
+      // (motif « nom inapproprié » : il change son nom, puis écrit à la modération)
+      case "hide": userPatch.profile_visible = false; modPatch.hidden = true; break;
+      case "show": userPatch.profile_visible = true; modPatch.hidden = false; notice = null; break;
       case "restrict": userPatch.profile_visible = false; modPatch.restricted = true; break;
       case "unrestrict": modPatch.restricted = false; notice = null; break;
       case "ban": userPatch.banned = true; userPatch.profile_visible = false; break;
@@ -130,7 +127,6 @@ export default function ProfileModeration({ focusUid }) {
                       {m.restricted && <Badge className="border-0 bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">{t("admin.profiles.flags.restricted")}</Badge>}
                       {p.profile_visible === false && <Badge className="border-0 bg-gray-100 text-gray-600 dark:bg-ink-800 dark:text-gray-300">{t("admin.profiles.flags.hidden")}</Badge>}
                       {m.bio_locked && <Badge className="border-0 bg-gray-100 text-gray-600 dark:bg-ink-800 dark:text-gray-300">{t("admin.profiles.flags.bioLocked")}</Badge>}
-                      {m.name_locked && <Badge className="border-0 bg-gray-100 text-gray-600 dark:bg-ink-800 dark:text-gray-300">{t("admin.profiles.flags.nameLocked")}</Badge>}
                       {m.photo_locked && <Badge className="border-0 bg-gray-100 text-gray-600 dark:bg-ink-800 dark:text-gray-300">{t("admin.profiles.flags.photoLocked")}</Badge>}
                     </div>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 break-all">
@@ -150,7 +146,6 @@ export default function ProfileModeration({ focusUid }) {
                   </select>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {m.name_locked ? btn(p, "unlockName", Unlock) : btn(p, "name", UserX)}
                   {m.photo_locked ? btn(p, "unlockPhoto", Unlock) : (p.photo_url ? btn(p, "photo", ImageOff) : null)}
                   {m.bio_locked ? btn(p, "unlockBio", Unlock) : (p.bio ? btn(p, "bio", FileX) : null)}
                   {p.profile_visible === false ? (!m.restricted && !p.banned ? btn(p, "show", Eye) : null) : btn(p, "hide", EyeOff)}

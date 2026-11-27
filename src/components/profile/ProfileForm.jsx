@@ -23,7 +23,7 @@ const AVAILABILITIES = [["Matin", Sunrise], ["Après-midi", Sun], ["Soir", Moon]
 // Couleur du niveau sélectionné (1 = débutant, 2 = intermédiaire, 3 = avancé)
 const LEVEL_PILL = { debutant: "bg-amber-400 text-white", intermediaire: "bg-brand-500 text-white", avance: "bg-lime-400 text-gray-900" };
 
-export default function ProfileForm({ profile, onSave, saving, bioLocked = false, nameLocked = false }) {
+export default function ProfileForm({ profile, onSave, saving, bioLocked = false }) {
   const { t } = useTranslation();
   const [form, setForm] = useState({
     display_name: "", bio: "", school: "", level: "",
@@ -129,7 +129,6 @@ export default function ProfileForm({ profile, onSave, saving, bioLocked = false
           <div className="space-y-2">
             <Label htmlFor="profile-name">{t('profileForm.displayName')}</Label>
             <Input id="profile-name" value={form.display_name} onChange={(e) => setForm({ ...form, display_name: e.target.value })}
-              disabled={nameLocked} title={nameLocked ? t('moderationNotice.nameLockedField') : undefined}
               placeholder={t('profileForm.displayNamePlaceholder')} maxLength={40} className={fieldClass} />
           </div>
           <div className="space-y-2">

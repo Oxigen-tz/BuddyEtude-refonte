@@ -31,7 +31,7 @@ service cloud.firestore {
     // Mesures de modération sur un profil (moderation/<uid>), écrites par la modération seule.
     // Comme bans/, elles survivent à la suppression puis recréation du profil.
     //  - bio_locked / photo_locked : présentation / photo retirées, pas de nouvelle pour l'instant
-    //  - name_locked : nom inapproprié remplacé par « Étudiant·e », pas d'autre nom pour l'instant
+    //  - hidden : profil masqué de la recherche (ex. nom inapproprié), jusqu'à « Rendre visible »
     //  - restricted : profil hors de la recherche, plus de nouvelles demandes (les binômes restent)
     function modOf(uid) {
       let path = /databases/$(database)/documents/moderation/$(uid);
@@ -42,8 +42,7 @@ service cloud.firestore {
       let m = modOf(uid);
       return (m.get('bio_locked', false) != true || d.get('bio', '') == '')
         && (m.get('photo_locked', false) != true || d.get('photo_url', '') == '')
-        && (m.get('restricted', false) != true || d.get('profile_visible', false) != true)
-        && (m.get('name_locked', false) != true || d.get('display_name', '') == 'Étudiant·e');
+        && ((m.get('restricted', false) != true && m.get('hidden', false) != true) || d.get('profile_visible', false) != true);
     }
 
     // Texte facultatif d'au plus max caractères
@@ -138,8 +137,8 @@ service cloud.firestore {
             || isPhotoUrl(request.resource.data.get('photo_url', null)));
       allow delete: if signedIn() && me() == userId;
 
-      // Modération : bannir, masquer, retirer la présentation, la photo ou un nom inapproprié
-      allow update: if isAdmin() && onlyChanges(['banned', 'profile_visible', 'bio', 'photo_url', 'display_name', 'full_name']);
+      // Modération : bannir, masquer, retirer la présentation ou la photo d'un profil
+      allow update: if isAdmin() && onlyChanges(['banned', 'profile_visible', 'bio', 'photo_url']);
 
       // Données privées (préférences de notification, âge…) : propriétaire seulement
       // (sauf les documents tenus par le serveur : quota de demandes, code de vérification

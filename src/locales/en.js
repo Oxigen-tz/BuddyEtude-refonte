@@ -9,14 +9,13 @@ export default {
       moderationNotice: {
         photo: "Moderators removed your profile photo (reason: {{reason}}). You can't add a new one for now.",
         bio: "Moderators removed your bio (reason: {{reason}}). You can't write a new one for now.",
-        hide: "Moderators hid your profile from search (reason: {{reason}}).",
+        hide: "Moderators hid your profile from search (reason: {{reason}}). It will stay hidden until it is reviewed again.",
         restrict: "Your account has been restricted by moderators (reason: {{reason}}): your profile no longer appears in search and you can't send new requests. You can still message your study buddies.",
         ban: "Your account has been suspended by moderators (reason: {{reason}}).",
         contact: "A question or a mistake? Write to us at {{email}}.",
         close: "Close message",
         bioLockedField: "Bio removed by moderators",
-        nameLockedField: "Name replaced by moderators",
-        name: "Moderators replaced your name with “Étudiant·e” (reason: {{reason}}). You can't change it for now.",
+        hideName: "Your profile is hidden from search because of your name. Choose another name in your profile, then write to us: we'll make it visible again after checking.",
         reasons: {
           offtopic: "off-topic content",
           inappropriate: "inappropriate content",
@@ -39,14 +38,12 @@ export default {
           noName: "No name",
           noBio: "No bio",
           showRestricted: "Lift the restriction first to make this profile visible.",
-          flags: { banned: "Banned", restricted: "Restricted", hidden: "Hidden", bioLocked: "Bio locked", photoLocked: "Photo locked", nameLocked: "Name locked" },
+          flags: { banned: "Banned", restricted: "Restricted", hidden: "Hidden", bioLocked: "Bio locked", photoLocked: "Photo locked" },
           actions: {
-            name: "Reset name", unlockName: "Allow a new name",
             photo: "Remove photo", bio: "Remove bio", unlockPhoto: "Allow a new photo", unlockBio: "Allow a bio",
             hide: "Hide", show: "Make visible", restrict: "Restrict", unrestrict: "Lift restriction", ban: "Ban", unban: "Unban"
           },
           done: {
-            name: "{{name}}'s name replaced with “Étudiant·e”", unlockName: "{{name}} can choose a new name",
             photo: "{{name}}'s photo removed", bio: "{{name}}'s bio removed", unlockPhoto: "{{name}} can add a photo again", unlockBio: "{{name}} can write a bio again",
             hide: "{{name}}'s profile hidden", show: "{{name}}'s profile visible", restrict: "{{name}} is restricted", unrestrict: "{{name}}'s restriction lifted", ban: "{{name}} is banned", unban: "{{name}} is unbanned"
           }

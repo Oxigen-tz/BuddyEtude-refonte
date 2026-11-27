@@ -223,22 +223,23 @@ export async function firestoreTests(env, t) {
   await t("modération : restreint, nouvelle demande refusée", assertFails(setDoc(doc(mk, "requests", mn.join("_")), { from_uid: M, to_uid: N, participants: mn, status: "pending", from_name: "Marc" })));
   await t("modération : un étudiant ne peut pas restreindre", assertFails(setDoc(doc(b, "moderation", N), { restricted: true })));
 
-  // Nom inapproprié remplacé par « Étudiant·e » puis bloqué
+  // Profil masqué (ex. nom inapproprié) : l'étudiant ne se réaffiche pas lui-même
   const nn = as(N);
-  await t("modération : remplacer un nom inapproprié (admin)", assertSucceeds((async () => {
+  await t("modération : masquer un profil (admin)", assertSucceeds((async () => {
     const batch = writeBatch(admin);
-    batch.update(doc(admin, "users", N), { display_name: "Étudiant·e", full_name: "Étudiant·e" });
-    batch.set(doc(admin, "moderation", N), { name_locked: true }, { merge: true });
+    batch.update(doc(admin, "users", N), { profile_visible: false });
+    batch.set(doc(admin, "moderation", N), { hidden: true, notice: { action: "hide", reason: "name", at: 2 } }, { merge: true });
     await batch.commit();
   })()));
-  await t("modération : nom bloqué, en remettre un autre refusé", assertFails(setDoc(doc(nn, "users", N), { display_name: "Nina la vraie" }, { merge: true })));
-  await t("modération : nom bloqué, le reste du profil reste modifiable", assertSucceeds(setDoc(doc(nn, "users", N), { city: "Nantes" }, { merge: true })));
-  await t("modération : nom bloqué, recréer son profil avec un autre nom refusé", assertFails((async () => {
+  await t("modération : l'admin ne change pas le nom", assertFails(updateDoc(doc(admin, "users", N), { display_name: "Étudiant·e" })));
+  await t("modération : masqué, se réafficher soi-même refusé", assertFails(setDoc(doc(nn, "users", N), { profile_visible: true }, { merge: true })));
+  await t("modération : masqué, changer son nom accepté", assertSucceeds(setDoc(doc(nn, "users", N), { display_name: "Nina" }, { merge: true })));
+  await t("modération : masqué, recréer son profil visible refusé", assertFails((async () => {
     await deleteDoc(doc(nn, "users", N));
-    await setDoc(doc(nn, "users", N), { display_name: "Nina la vraie" });
+    await setDoc(doc(nn, "users", N), { display_name: "Nina", profile_visible: true });
   })()));
-  await t("modération : nom débloqué, nouveau nom accepté", assertSucceeds((async () => {
-    await setDoc(doc(admin, "moderation", N), { name_locked: false }, { merge: true });
-    await setDoc(doc(nn, "users", N), { display_name: "Nina" }, { merge: true });
+  await t("modération : rendu visible par l'admin, l'étudiant gère à nouveau sa visibilité", assertSucceeds((async () => {
+    await setDoc(doc(admin, "moderation", N), { hidden: false }, { merge: true });
+    await setDoc(doc(nn, "users", N), { display_name: "Nina", profile_visible: true }, { merge: true });
   })()));
 }
