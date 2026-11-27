@@ -220,15 +220,24 @@ exports.onGroupDeleted = onDocumentDeleted("groups/{groupId}", async (event) => 
 });
 
 // Discussion de groupe : notification push aux autres membres (pas d'e-mail)
+// Nom affiché d'un étudiant, lu dans son profil : les noms recopiés dans les documents
+// (senderName, organizer_name…) sont écrits par le client et pourraient être falsifiés.
+async function displayNameOf(uid, fallback) {
+  if (!uid) return fallback;
+  const name = await db.doc(`users/${uid}`).get().then((s) => s.get("display_name")).catch(() => null);
+  return (typeof name === "string" && name.trim()) ? name.trim().slice(0, 60) : fallback;
+}
+
 exports.onGroupMessageCreated = onDocumentCreated("groups/{groupId}/messages/{messageId}", async (event) => {
   const m = event.data?.data();
   if (!m) return;
   const group = await db.doc(`groups/${event.params.groupId}`).get();
   if (!group.exists) return;
+  const senderName = await displayNameOf(m.senderUid, "Nouveau message");
   for (const uid of group.get("members") || []) {
     if (uid === m.senderUid) continue;
     await sendPush(uid, {
-      title: `${group.get("name")} · ${m.senderName || "Nouveau message"}`,
+      title: `${group.get("name")} · ${senderName}`,
       body: String(m.text || "").slice(0, 200),
       link: `/Groups?id=${event.params.groupId}`,
       tag: `group-${event.params.groupId}`,
@@ -251,7 +260,8 @@ exports.onSessionCreated = onDocumentCreated("sessions/{sessionId}", async (even
   if (!s || s.status !== "planned") return;
   const otherUid = (s.participants || []).find((p) => p !== s.organizer_uid);
   const to = await recipientEmail(otherUid);
-  const lines = [`${s.organizer_name || "Ton binôme"} a planifié « ${s.title} » avec toi.`, `Quand : ${formatStart(s.start_at) || `${s.date} ${s.time}`}`];
+  const organizer = await displayNameOf(s.organizer_uid, "Ton binôme");
+  const lines = [`${organizer} a planifié « ${s.title} » avec toi.`, `Quand : ${formatStart(s.start_at) || `${s.date} ${s.time}`}`];
   if (s.mode === "presentiel" && s.location) lines.push(`Où : ${s.location}`);
   const link = callLinkOf(s, event.params.sessionId);
   if (link) lines.push(`Appel vidéo : ${link}`);
@@ -391,6 +401,19 @@ async function buildPublicPreview() {
 exports.refreshPublicPreview = onSchedule({ schedule: "every 6 hours", timeZone: "Europe/Paris" }, async () => {
   const n = await buildPublicPreview();
   logger.info("Aperçu public mis à jour", { profiles: n });
+});
+
+// Bannissement : la modération pose users/<uid>.banned ; le serveur tient en parallèle bans/<uid>,
+// que l'utilisateur ne peut ni lire ni supprimer. Les règles s'appuient sur bans/ : supprimer puis
+// recréer son profil ne lève plus le bannissement. Débannir (banned: false) retire l'entrée.
+exports.onBanChanged = onDocumentWritten("users/{uid}", async (event) => {
+  const before = event.data?.before.exists ? event.data.before.get("banned") === true : false;
+  const afterExists = event.data?.after.exists;
+  const after = afterExists ? event.data.after.get("banned") === true : false;
+  const ref = db.doc(`bans/${event.params.uid}`);
+  if (after && !before) await ref.set({ since: FieldValue.serverTimestamp() });
+  // Profil supprimé : on garde l'entrée (sinon le banni recréerait un profil vierge)
+  else if (before && !after && afterExists) await ref.delete();
 });
 
 // Changement de nom : les noms recopiés dans les demandes, sessions, groupes et blocages
@@ -698,6 +721,9 @@ async function runPurge(now = Date.now()) {
 
 exports.dailyPurge = onSchedule({ schedule: "every day 04:00", timeZone: "Europe/Paris" }, async () => {
   logger.info("Purge quotidienne", await runPurge());
+  // Comptes bannis avant l'ajout de bans/ (27/11/2026) : entrée créée une fois
+  const banned = await db.collection("users").where("banned", "==", true).get();
+  await Promise.all(banned.docs.map((d) => db.doc(`bans/${d.id}`).set({ since: FieldValue.serverTimestamp() }, { merge: true })));
 });
 
 // ------------------------------------------------------------------ Résumé hebdomadaire

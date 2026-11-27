@@ -162,4 +162,33 @@ export async function firestoreTests(env, t) {
   await t("compteur : écriture client refusée", assertFails(setDoc(doc(a, "stats", "public"), { studentCount: 9999 })));
   await t("file d'e-mails : inaccessible aux clients", assertFails(addDoc(collection(a, "mail"), { to: "x@test.com", message: { subject: "spam" } })));
   await t("collection inconnue refusée", assertFails(getDoc(doc(a, "secrets", "x"))));
+
+  // ------------------------------------------------------------ Audit de sécurité (27/11/2026)
+  const P = "uidPaul", Q = "uidQuentin", RB = "uidRebanni";
+  const p = as(P), rb = as(RB);
+  const pq = [P, Q].sort(), pqId = pq.join("_");
+  await seed(async (db) => {
+    await setDoc(doc(db, "users", P), { display_name: "Paul", profile_complete: true, profile_visible: true });
+    await setDoc(doc(db, "users", Q), { display_name: "Quentin", profile_complete: true, profile_visible: true });
+    await setDoc(doc(db, "requests", pqId), { from_uid: Q, to_uid: P, participants: pq, status: "accepted" });
+    await setDoc(doc(db, "users", RB), { display_name: "Rebanni", banned: true });
+    await setDoc(doc(db, "bans", RB), { since: "test" });
+  });
+  const fileMsg = (fileUrl) => ({ chatId: pqId, participants: pq, senderUid: P, text: "", unreadBy: [Q], fileUrl, fileType: "application/pdf", fileName: "cours.pdf" });
+  await t("pièce jointe : lien « javascript: » refusé", assertFails(addDoc(collection(p, "messages"), fileMsg("javascript:alert(1)"))));
+  await t("pièce jointe : lien vers un site tiers refusé", assertFails(addDoc(collection(p, "messages"), fileMsg("https://evil.example/cours.pdf"))));
+  await t("pièce jointe : fichier de notre stockage accepté", assertSucceeds(addDoc(collection(p, "messages"), fileMsg("https://firebasestorage.googleapis.com/v0/b/x/o/chat_files%2Fa.pdf?alt=media"))));
+  await t("bannissement : profil supprimé puis recréé refusé", assertFails(setDoc(doc(rb, "users", RB), { display_name: "Rebanni" })));
+  await t("bannissement : bans/ illisible et non modifiable", assertFails(deleteDoc(doc(rb, "bans", RB))));
+  await t("profil : présentation géante refusée", assertFails(setDoc(doc(p, "users", P), { bio: "x".repeat(5000) }, { merge: true })));
+  await t("profil : photo hébergée sur un site tiers refusée", assertFails(setDoc(doc(p, "users", P), { photo_url: "https://pisteur.example/x.png" }, { merge: true })));
+  await t("profil : photo du compte Google acceptée", assertSucceeds(setDoc(doc(p, "users", P), { photo_url: "https://lh3.googleusercontent.com/a/abc" }, { merge: true })));
+  await t("profil : nom « Modération BuddyEtude » refusé", assertFails(setDoc(doc(p, "users", P), { display_name: "Modération BuddyEtude" }, { merge: true })));
+  const R = "uidRita";
+  await seed((db) => setDoc(doc(db, "users", R), { display_name: "Rita", profile_complete: true, profile_visible: true }));
+  const pr = [P, R].sort();
+  const reqPR = { from_uid: P, to_uid: R, participants: pr, status: "pending", to_name: "Rita", message: "On révise ?" };
+  await t("demande : faux nom d'expéditeur refusé", assertFails(setDoc(doc(p, "requests", pr.join("_")), { ...reqPR, from_name: "Équipe BuddyEtude" })));
+  await t("demande : avec son vrai nom acceptée", assertSucceeds(setDoc(doc(p, "requests", pr.join("_")), { ...reqPR, from_name: "Paul" })));
+  await t("session : lien d'appel « javascript: » refusé", assertFails(addDoc(collection(p, "sessions"), { organizer_uid: P, participants: pq, status: "planned", title: "x", meeting_url: "javascript:alert(1)" })));
 }

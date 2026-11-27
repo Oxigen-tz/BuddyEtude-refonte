@@ -25,6 +25,18 @@ export const isSessionOver = (session, now = new Date()) => {
   return end !== null && end < now;
 };
 
+// Pièce jointe : uniquement un fichier de notre stockage Firebase (ou de l'émulateur local).
+// Un lien « javascript: » écrit à la main dans un message exécutait du code au clic.
+export const isSafeFileUrl = (url) => {
+  try {
+    const u = new URL(url);
+    return (u.protocol === "https:" && u.hostname === "firebasestorage.googleapis.com")
+      || (import.meta.env?.DEV && u.protocol === "http:" && u.hostname === "127.0.0.1");
+  } catch {
+    return false;
+  }
+};
+
 // Lien d'appel accepté : https uniquement (pas de javascript:, data:…)
 export const isSafeMeetingUrl = (url) => {
   try {

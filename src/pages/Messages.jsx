@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import { isSafeFileUrl } from "@/lib/sessions";
 import { db, storage } from "../firebase/config";
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, arrayRemove, orderBy, limit } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
@@ -474,11 +475,11 @@ export default function Messages() {
 
                         <div className={`flex flex-col max-w-[80%] md:max-w-[65%] ${isMe ? "items-end" : "items-start"}`}>
                         <div className={`max-w-full rounded-2xl px-4 sm:px-5 py-3 text-base flex flex-col gap-2 break-words ${isMe ? "bg-indigo-600 dark:bg-indigo-500 text-white rounded-tr-sm shadow-sm" : "bg-white dark:bg-ink-800 border border-gray-100 dark:border-ink-700 text-gray-800 dark:text-gray-100 rounded-tl-sm shadow-sm"}`}>
-                          {msg.fileUrl && (
+                          {msg.fileUrl && isSafeFileUrl(msg.fileUrl) && (
                             msg.fileType?.includes("image") ? (
-                              <img src={msg.fileUrl} alt="Fichier" className="rounded-xl max-h-60 object-cover cursor-pointer" onClick={() => window.open(msg.fileUrl)} />
+                              <img src={msg.fileUrl} alt="Fichier" className="rounded-xl max-h-60 object-cover cursor-pointer" onClick={() => window.open(msg.fileUrl, "_blank", "noopener")} />
                             ) : (
-                              <a href={msg.fileUrl} target="_blank" rel="noreferrer" className={`flex items-center gap-3 p-3 rounded-xl ${isMe ? "bg-indigo-700/50 text-white" : "bg-gray-100 dark:bg-ink-900 text-gray-700 dark:text-gray-300"}`}>
+                              <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-3 p-3 rounded-xl ${isMe ? "bg-indigo-700/50 text-white" : "bg-gray-100 dark:bg-ink-900 text-gray-700 dark:text-gray-300"}`}>
                                 <FileText className="w-5 h-5" />
                                 <span className="truncate max-w-[200px] font-medium">{msg.fileName || t('messages.fileDefaultName')}</span>
                               </a>

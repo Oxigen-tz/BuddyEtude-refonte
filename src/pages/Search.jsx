@@ -208,12 +208,18 @@ export default function Search() {
         subject = typeof target.subjects[0] === "string" ? target.subjects[0] : target.subjects[0].name;
       }
 
+      // Les règles exigent que from_name soit exactement le nom du profil (anti-usurpation) :
+      // relu si le profil n'est pas encore chargé
+      const myName = myProfile?.display_name
+        ?? (await getDoc(doc(db, "users", user.uid))).data()?.display_name
+        ?? "";
+
       // Une seule demande par paire : son id est la paire de uids (voir firestore.rules)
       await setDoc(doc(db, "requests", pairId(user.uid, target.id)), {
         from_uid: user.uid,
-        from_name: myProfile?.display_name || user.displayName || user.full_name || t('search.defaultStudent'),
+        from_name: myName,
         to_uid: target.id,
-        to_name: target.display_name || target.full_name,
+        to_name: String(target.display_name || target.full_name || "").slice(0, 60),
         participants: [user.uid, target.id].sort(),
         message: requestMessage,
         status: "pending",

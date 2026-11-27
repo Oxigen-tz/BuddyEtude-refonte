@@ -18,10 +18,54 @@ service cloud.firestore {
       return signedIn() && exists(/databases/$(database)/documents/admins/$(me()));
     }
 
-    // Compte banni par la modération : plus aucune création possible
+    // Compte banni par la modération : plus aucune création possible.
+    // bans/<uid> est tenu par le serveur (Cloud Function onBanChanged) : supprimer puis recréer
+    // son profil ne lève donc plus le bannissement (faille corrigée le 27/11/2026).
+    function isBannedUid(uid) { return exists(/databases/$(database)/documents/bans/$(uid)); }
     function notBanned() {
       let profile = /databases/$(database)/documents/users/$(me());
-      return !exists(profile) || get(profile).data.get('banned', false) != true;
+      return !isBannedUid(me())
+        && (!exists(profile) || get(profile).data.get('banned', false) != true);
+    }
+
+    // Texte facultatif d'au plus max caractères
+    function shortText(d, field, max) {
+      return !(field in d) || d[field] == null || (d[field] is string && d[field].size() <= max);
+    }
+
+    // Lien de fichier hébergé chez nous (Firebase Storage), ou émulateur local en test.
+    // Empêche les liens « javascript: » (exécution de code au clic) ou vers des sites tiers.
+    function isStorageUrl(url) {
+      return url is string && url.size() <= 2000
+        && (url.matches('https://firebasestorage[.]googleapis[.]com/.*')
+            || url.matches('http://127[.]0[.]0[.]1:9199/.*'));
+    }
+
+    // Photo de profil : Firebase Storage, photo du compte Google, ou aucune
+    function isPhotoUrl(url) {
+      return url == null || url == ''
+        || isStorageUrl(url)
+        || (url is string && url.size() <= 2000 && url.matches('https://lh[0-9][.]googleusercontent[.]com/.*'));
+    }
+
+    // Noms réservés : pas de faux « BuddyEtude », « Modération », « Modérateur » ni « Administrateur »
+    function isAllowedName(name) {
+      return name is string && name.size() <= 60
+        && !name.lower().matches('.*(buddy ?[eé]tude|mod[eé]ration|mod[eé]rat(eur|rice)|administrat(eur|rice)).*');
+    }
+
+    // Profil : tailles maximales (un profil géant ralentissait la recherche de tout le monde)
+    function validProfile(d) {
+      return (!('display_name' in d) || isAllowedName(d.display_name))
+        && shortText(d, 'full_name', 60)
+        && shortText(d, 'bio', 1000)
+        && shortText(d, 'city', 80)
+        && shortText(d, 'school', 120)
+        && shortText(d, 'level', 40)
+        && shortText(d, 'study_style', 40)
+        && (!('subjects' in d) || (d.subjects is list && d.subjects.size() <= 30))
+        && (!('availability' in d) || (d.availability is list && d.availability.size() <= 20))
+        && (!('goals' in d) || (d.goals is list && d.goals.size() <= 20));
     }
 
     function canWrite() { return signedIn() && notBanned(); }
@@ -60,11 +104,18 @@ service cloud.firestore {
       // banned (modération) et verified_* (badge « étudiant vérifié », posé par le serveur)
       // ne sont jamais écrits par l'utilisateur lui-même
       allow create: if signedIn() && me() == userId
+        && !isBannedUid(me())
         && !('email' in request.resource.data)
-        && !request.resource.data.keys().hasAny(['banned', 'verified_domain', 'verified_at']);
+        && !request.resource.data.keys().hasAny(['banned', 'verified_domain', 'verified_at'])
+        && validProfile(request.resource.data)
+        && isPhotoUrl(request.resource.data.get('photo_url', null));
       allow update: if signedIn() && me() == userId
         && !('email' in request.resource.data)
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['banned', 'verified_domain', 'verified_at']);
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['banned', 'verified_domain', 'verified_at'])
+        && validProfile(request.resource.data)
+        // Photo vérifiée seulement quand elle change (les anciennes restent modifiables)
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['photo_url'])
+            || isPhotoUrl(request.resource.data.get('photo_url', null)));
       allow delete: if signedIn() && me() == userId;
 
       // Modération : bannir / masquer un profil
@@ -91,7 +142,12 @@ service cloud.firestore {
         && pairId == pairOf(me(), request.resource.data.to_uid)
         && isPairList(request.resource.data.participants, pairId)
         && request.resource.data.status == 'pending'
-        && !blockedBy(request.resource.data.to_uid);
+        && !blockedBy(request.resource.data.to_uid)
+        // Le nom d'expéditeur est celui du profil (sinon : faux « Équipe BuddyEtude » dans les e-mails)
+        && request.resource.data.get('from_name', '') == get(/databases/$(database)/documents/users/$(me())).data.get('display_name', '')
+        && shortText(request.resource.data, 'to_name', 60)
+        && shortText(request.resource.data, 'message', 1000)
+        && shortText(request.resource.data, 'subject', 80);
 
       // Seul le destinataire accepte, et seulement le statut
       allow update: if signedIn()
@@ -130,7 +186,11 @@ service cloud.firestore {
         && request.resource.data.get('unreadBy', []).toSet()
              .difference(request.resource.data.participants.toSet().difference([me()].toSet()))
              .size() == 0
-        && request.resource.data.get('text', '').size() <= 4000;
+        && request.resource.data.get('text', '').size() <= 4000
+        // Pièce jointe : uniquement un fichier de notre stockage (pas de lien « javascript: »)
+        && (request.resource.data.get('fileUrl', null) == null || isStorageUrl(request.resource.data.fileUrl))
+        && shortText(request.resource.data, 'fileName', 200)
+        && shortText(request.resource.data, 'fileType', 100);
 
       // L'auteur modifie son texte
       allow update: if signedIn()
@@ -157,7 +217,13 @@ service cloud.firestore {
         && request.resource.data.participants.size() == 2
         && me() in request.resource.data.participants
         && areBuddies(pairOf(request.resource.data.participants[0], request.resource.data.participants[1]))
-        && request.resource.data.status == 'planned';
+        && request.resource.data.status == 'planned'
+        && shortText(request.resource.data, 'title', 120)
+        && shortText(request.resource.data, 'notes', 2000)
+        && shortText(request.resource.data, 'organizer_name', 60)
+        && shortText(request.resource.data, 'buddy_name', 60)
+        && shortText(request.resource.data, 'meeting_url', 500)
+        && (request.resource.data.get('meeting_url', '') == '' || request.resource.data.meeting_url.matches('https://.*'));
 
       // Terminer ou annuler : l'un ou l'autre participant, statut uniquement
       allow update: if signedIn()
@@ -176,7 +242,8 @@ service cloud.firestore {
         && feedbackId == request.resource.data.sessionId + '_' + me()
         && me() in get(/databases/$(database)/documents/sessions/$(request.resource.data.sessionId)).data.participants
         && request.resource.data.rating is int
-        && request.resource.data.rating >= 1 && request.resource.data.rating <= 5;
+        && request.resource.data.rating >= 1 && request.resource.data.rating <= 5
+        && shortText(request.resource.data, 'comment', 2000);
       allow read: if isAdmin();
       allow update, delete: if false;
     }
@@ -287,7 +354,9 @@ service cloud.firestore {
       allow create: if canWrite()
         && request.resource.data.reporter_uid == me()
         && request.resource.data.reported_uid != me()
-        && request.resource.data.status == 'pending';
+        && request.resource.data.status == 'pending'
+        && shortText(request.resource.data, 'reason', 200)
+        && shortText(request.resource.data, 'details', 2000);
       // Modération
       allow read: if isAdmin();
       allow update: if isAdmin() && onlyChanges(['status', 'handledAt', 'handledBy']);
