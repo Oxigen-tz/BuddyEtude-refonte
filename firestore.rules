@@ -22,9 +22,12 @@ service cloud.firestore {
     // bans/<uid> est tenu par le serveur (Cloud Function onBanChanged) : supprimer puis recréer
     // son profil ne lève donc plus le bannissement (faille corrigée le 27/11/2026).
     function isBannedUid(uid) { return exists(/databases/$(database)/documents/bans/$(uid)); }
+    // Banni, ou profil à corriger (correction demandée par la modération, voir moderation/) :
+    // plus aucune action sur le site, sauf modifier son profil, ses réglages, ou supprimer son compte
     function notBanned() {
       let profile = /databases/$(database)/documents/users/$(me());
       return !isBannedUid(me())
+        && !mustFix(me())
         && (!exists(profile) || get(profile).data.get('banned', false) != true);
     }
 
@@ -32,12 +35,15 @@ service cloud.firestore {
     // Comme bans/, elles survivent à la suppression puis recréation du profil.
     //  - bio_locked / photo_locked : présentation / photo retirées, pas de nouvelle pour l'instant
     //  - hidden : profil masqué de la recherche (ex. nom inapproprié), jusqu'à « Rendre visible »
+    //  - fix_required : champs à corriger (name, photo, bio) ; tant qu'il en reste, le site est
+    //    bloqué (notBanned). La Cloud Function onProfileFixed les retire quand ils changent.
     //  - restricted : profil hors de la recherche, plus de nouvelles demandes (les binômes restent)
     function modOf(uid) {
       let path = /databases/$(database)/documents/moderation/$(uid);
       return exists(path) ? get(path).data : {};
     }
     function isRestrictedUid(uid) { return modOf(uid).get('restricted', false) == true; }
+    function mustFix(uid) { return modOf(uid).get('fix_required', []).size() > 0; }
     function respectsModeration(uid, d) {
       let m = modOf(uid);
       return (m.get('bio_locked', false) != true || d.get('bio', '') == '')
@@ -171,7 +177,7 @@ service cloud.firestore {
         && shortText(request.resource.data, 'subject', 80);
 
       // Seul le destinataire accepte, et seulement le statut
-      allow update: if signedIn()
+      allow update: if signedIn() && notBanned()
         && resource.data.to_uid == me()
         && onlyChanges(['status'])
         && request.resource.data.status == 'accepted';

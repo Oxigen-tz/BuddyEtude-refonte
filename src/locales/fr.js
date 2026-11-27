@@ -15,6 +15,11 @@ export default {
         contact: "Une question ou une erreur ? Écris-nous à {{email}}.",
         close: "Fermer le message",
         bioLockedField: "Présentation retirée par la modération",
+        fixRequired: "Ton profil doit être corrigé avant que tu puisses utiliser BuddyEtude (motif : {{reason}}). À modifier : {{fields}}.",
+        fixHint: "Modifie ce qui est signalé en rouge ci-dessous, puis enregistre : l'accès au site revient tout de suite.",
+        fixField: "À corriger, à la demande de la modération",
+        reviewPending: "Merci pour ta correction ! Tu as de nouveau accès à BuddyEtude. Ton profil réapparaîtra dans la recherche après vérification par la modération.",
+        fields: { name: "ton nom", photo: "ta photo de profil", bio: "ta présentation" },
         hideName: "Ton profil est masqué de la recherche à cause de ton nom. Choisis un autre nom dans ton profil, puis écris-nous : nous le rendrons visible après vérification.",
         reasons: {
           offtopic: "contenu hors sujet",
@@ -38,12 +43,15 @@ export default {
           noName: "Sans nom",
           noBio: "Pas de présentation",
           showRestricted: "Lève d'abord la restriction pour rendre ce profil visible.",
-          flags: { banned: "Banni", restricted: "Restreint", hidden: "Masqué", bioLocked: "Présentation bloquée", photoLocked: "Photo bloquée" },
+          fields: { name: "nom", photo: "photo", bio: "présentation" },
+          flags: { fix: "À corriger : {{fields}}", review: "En attente de validation", banned: "Banni", restricted: "Restreint", hidden: "Masqué", bioLocked: "Présentation bloquée", photoLocked: "Photo bloquée" },
           actions: {
+            fixName: "Faire corriger le nom", fixPhoto: "Faire corriger la photo", fixBio: "Faire corriger la présentation", validate: "Valider le profil",
             photo: "Retirer la photo", bio: "Retirer la présentation", unlockPhoto: "Autoriser une nouvelle photo", unlockBio: "Autoriser une présentation",
             hide: "Masquer", show: "Rendre visible", restrict: "Restreindre", unrestrict: "Lever la restriction", ban: "Bannir", unban: "Débannir"
           },
           done: {
+            fixName: "{{name}} doit corriger son nom", fixPhoto: "{{name}} doit changer sa photo", fixBio: "{{name}} doit corriger sa présentation", validate: "Profil de {{name}} validé et visible",
             photo: "Photo de {{name}} retirée", bio: "Présentation de {{name}} retirée", unlockPhoto: "{{name}} peut remettre une photo", unlockBio: "{{name}} peut réécrire une présentation",
             hide: "Profil de {{name}} masqué", show: "Profil de {{name}} visible", restrict: "{{name}} est restreint", unrestrict: "Restriction de {{name}} levée", ban: "{{name}} est banni", unban: "{{name}} est débanni"
           }

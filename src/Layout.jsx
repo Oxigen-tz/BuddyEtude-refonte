@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
 import { takeIntentTarget } from "@/lib/intent";
-import ModerationNotice from "@/components/ModerationNotice";
+import ModerationNotice, { useModeration } from "@/components/ModerationNotice";
 import { chooseLanguage } from "@/i18n";
 import { db } from "./firebase/config"; 
 import { collection, query, where, onSnapshot, doc } from "firebase/firestore";
@@ -83,6 +83,16 @@ export default function Layout({ children, currentPageName }) {
     }
   }, [profileComplete, currentPageName, navigate]);
   
+  // Correction demandée par la modération : seuls le profil, les réglages (suppression du compte)
+  // et les pages légales restent accessibles. Les règles Firestore bloquent aussi tout le reste.
+  const moderation = useModeration();
+  const mustFix = (moderation?.fix_required || []).length > 0;
+  useEffect(() => {
+    if (mustFix && !["Profile", "Settings", "Legal", "Privacy"].includes(currentPageName)) {
+      navigate(createPageUrl("Profile"), { replace: true });
+    }
+  }, [mustFix, currentPageName, navigate]);
+
   // 🔔 États pour gérer les notifications
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);

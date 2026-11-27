@@ -406,6 +406,39 @@ exports.refreshPublicPreview = onSchedule({ schedule: "every 6 hours", timeZone:
 // Bannissement : la modération pose users/<uid>.banned ; le serveur tient en parallèle bans/<uid>,
 // que l'utilisateur ne peut ni lire ni supprimer. Les règles s'appuient sur bans/ : supprimer puis
 // recréer son profil ne lève plus le bannissement. Débannir (banned: false) retire l'entrée.
+// Correction demandée par la modération (moderation/<uid>.fix_required = ["name", "photo", "bio"]) :
+// la modération a noté la valeur fautive (fix_values). Dès que l'étudiant modifie un champ, il est
+// retiré de la liste ; quand il n'en reste plus, l'accès au site revient (règles : mustFix) mais le
+// profil reste masqué jusqu'à la validation par la modération (review_pending).
+const FIX_FIELDS = { name: "display_name", photo: "photo_url", bio: "bio" };
+exports.onProfileFixed = onDocumentWritten("users/{uid}", async (event) => {
+  if (!event.data?.after.exists) return;
+  const ref = db.doc(`moderation/${event.params.uid}`);
+  const userRef = db.doc(`users/${event.params.uid}`);
+  // Le profil est relu au moment du traitement (et non pris dans l'événement) : un ancien
+  // événement traité en retard, après la demande de correction, faisait sinon croire à une
+  // correction (ex. présentation vide enregistrée juste avant la demande).
+  await db.runTransaction(async (tx) => {
+    const [mod, userSnap] = await Promise.all([tx.get(ref), tx.get(userRef)]);
+    const required = mod.exists ? mod.get("fix_required") || [] : [];
+    if (!required.length || !userSnap.exists) return;
+    const old = mod.get("fix_values") || {};
+    const now = userSnap.data();
+    const isFixed = (field) => {
+      const value = String(now[FIX_FIELDS[field]] ?? "").trim();
+      const before = String(old[field] ?? "").trim();
+      // Nom : un autre nom, non vide. Photo et présentation : changées ou retirées.
+      return field === "name" ? value !== "" && value !== before : value !== before;
+    };
+    const remaining = required.filter((f) => !isFixed(f));
+    if (remaining.length === required.length) return;
+    tx.set(ref, {
+      fix_required: remaining,
+      ...(remaining.length === 0 ? { review_pending: true, fixed_at: Date.now() } : {}),
+    }, { merge: true });
+  });
+});
+
 exports.onBanChanged = onDocumentWritten("users/{uid}", async (event) => {
   const before = event.data?.before.exists ? event.data.before.get("banned") === true : false;
   const afterExists = event.data?.after.exists;

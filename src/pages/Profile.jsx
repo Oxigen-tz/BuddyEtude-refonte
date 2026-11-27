@@ -53,6 +53,10 @@ export default function Profile() {
   const defaultName = user?.displayName || user?.full_name || "";
   // Mesures de modération sur ce profil (photo / présentation bloquées, restriction)
   const moderation = useModeration();
+  // Nom ou présentation à corriger : le formulaire s'ouvre directement
+  const fixFields = moderation?.fix_required || [];
+  const fixInForm = fixFields.includes("name") || fixFields.includes("bio");
+  useEffect(() => { if (fixInForm) setIsEditing(true); }, [fixInForm]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -171,7 +175,7 @@ export default function Profile() {
             )}
           </div>
         </div>
-        <ProfileForm profile={profile} onSave={handleSave} saving={isSaving} bioLocked={moderation?.bio_locked === true} />
+        <ProfileForm profile={profile} onSave={handleSave} saving={isSaving} bioLocked={moderation?.bio_locked === true} fixFields={moderation?.fix_required || []} />
       </div>
     );
   }
@@ -206,7 +210,7 @@ export default function Profile() {
 
         <div className="px-5 sm:px-8 pb-6">
           <div className="flex flex-col md:flex-row md:items-end gap-4 md:gap-6">
-            <div className="-mt-12 sm:-mt-12 relative shrink-0 w-fit">
+            <div className={`-mt-12 sm:-mt-12 relative shrink-0 w-fit ${fixFields.includes("photo") ? "rounded-[1.9rem] ring-4 ring-red-500" : ""}`}>
               <AvatarEditor uid={user.uid} currentUrl={profile.photo_url} fallbackUrl={user.photoURL || ""} disabled={moderation?.photo_locked === true}
                 onChange={(url) => { setPhotoFailed(false); setProfile((prev) => ({ ...prev, photo_url: url })); }}>
               {profile.photo_url && !photoFailed && !moderation?.photo_locked ? (

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { arrayUnion, collection, doc, getDocs, limit, query, writeBatch } from "firebase/firestore";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Search, ImageOff, FileX, EyeOff, Eye, Lock, Unlock, Ban, Loader2, RotateCcw } from "lucide-react";
+import { Search, ImageOff, FileX, EyeOff, Eye, Lock, Unlock, Ban, Loader2, RotateCcw, PenLine, BadgeCheck } from "lucide-react";
 import { db } from "@/firebase/config";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 // Firestore : l'étudiant ne peut ni les lire chez les autres, ni les modifier, ni s'en défaire en
 // recréant son profil). L'étudiant voit un bandeau qui explique la mesure (ModerationNotice).
 export const MODERATION_REASONS = ["offtopic", "inappropriate", "name", "photo", "impersonation", "spam", "other"];
+// Champ du profil concerné par chaque demande de correction
+const FIX_ACTIONS = { fixName: ["name", "display_name"], fixPhoto: ["photo", "photo_url"], fixBio: ["bio", "bio"] };
 
 export default function ProfileModeration({ focusUid }) {
   const { t } = useTranslation();
@@ -63,6 +65,24 @@ export default function ProfileModeration({ focusUid }) {
       case "unrestrict": modPatch.restricted = false; notice = null; break;
       case "ban": userPatch.banned = true; userPatch.profile_visible = false; break;
       case "unban": userPatch.banned = false; notice = null; break;
+      // Correction obligatoire : site bloqué (sauf profil et réglages) jusqu'à la modification du
+      // champ, puis profil masqué jusqu'à « Valider le profil ». La valeur fautive est notée pour
+      // que la Cloud Function onProfileFixed détecte la correction.
+      case "fixName": case "fixPhoto": case "fixBio": {
+        const [field, key] = FIX_ACTIONS[action];
+        modPatch.fix_required = arrayUnion(field);
+        modPatch.fix_values = { [field]: p[key] || "" };
+        modPatch.hidden = true;
+        modPatch.review_pending = false;
+        userPatch.profile_visible = false;
+        notice = { action: "fix", reason, at: Date.now() };
+        break;
+      }
+      case "validate":
+        modPatch.fix_required = []; modPatch.review_pending = false; modPatch.hidden = false;
+        if (!m.restricted && !p.banned) userPatch.profile_visible = true;
+        notice = null;
+        break;
       default: return;
     }
     if (action === "show" && m.restricted) { toast.error(t("admin.profiles.showRestricted")); return; }
@@ -77,7 +97,12 @@ export default function ProfileModeration({ focusUid }) {
       }, { merge: true });
       await batch.commit();
       setProfiles((list) => list.map((x) => (x.id === p.id ? { ...x, ...userPatch } : x)));
-      setMods((all) => ({ ...all, [p.id]: { ...m, ...modPatch, notice } }));
+      const local = { ...modPatch };
+      if (FIX_ACTIONS[action]) {
+        local.fix_required = [...new Set([...(m.fix_required || []), FIX_ACTIONS[action][0]])];
+        local.fix_values = { ...(m.fix_values || {}), ...modPatch.fix_values };
+      }
+      setMods((all) => ({ ...all, [p.id]: { ...m, ...local, notice } }));
       toast.success(t(`admin.profiles.done.${action}`, { name: p.display_name || p.id }));
     } catch (error) {
       console.error(error);
@@ -124,6 +149,8 @@ export default function ProfileModeration({ focusUid }) {
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-semibold text-gray-900 dark:text-white">{p.display_name || t("admin.profiles.noName")}</span>
                       {p.banned && <Badge className="border-0 bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400">{t("admin.profiles.flags.banned")}</Badge>}
+                      {(m.fix_required || []).length > 0 && <Badge className="border-0 bg-orange-50 text-orange-700 dark:bg-orange-500/10 dark:text-orange-300">{t("admin.profiles.flags.fix", { fields: m.fix_required.map((f) => t(`admin.profiles.fields.${f}`)).join(", ") })}</Badge>}
+                      {m.review_pending && <Badge className="border-0 bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">{t("admin.profiles.flags.review")}</Badge>}
                       {m.restricted && <Badge className="border-0 bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">{t("admin.profiles.flags.restricted")}</Badge>}
                       {p.profile_visible === false && <Badge className="border-0 bg-gray-100 text-gray-600 dark:bg-ink-800 dark:text-gray-300">{t("admin.profiles.flags.hidden")}</Badge>}
                       {m.bio_locked && <Badge className="border-0 bg-gray-100 text-gray-600 dark:bg-ink-800 dark:text-gray-300">{t("admin.profiles.flags.bioLocked")}</Badge>}
@@ -145,7 +172,14 @@ export default function ProfileModeration({ focusUid }) {
                     {MODERATION_REASONS.map((r) => <option key={r} value={r}>{t(`moderationNotice.reasons.${r}`)}</option>)}
                   </select>
                 </div>
+                {/* Corrections obligatoires (bloquent le site jusqu'à la correction) */}
                 <div className="mt-3 flex flex-wrap gap-2">
+                  {!(m.fix_required || []).includes("name") && btn(p, "fixName", PenLine, "outline", "border-orange-300 text-orange-700 dark:text-orange-300")}
+                  {p.photo_url && !(m.fix_required || []).includes("photo") && btn(p, "fixPhoto", PenLine, "outline", "border-orange-300 text-orange-700 dark:text-orange-300")}
+                  {p.bio && !(m.fix_required || []).includes("bio") && btn(p, "fixBio", PenLine, "outline", "border-orange-300 text-orange-700 dark:text-orange-300")}
+                  {((m.fix_required || []).length > 0 || m.review_pending) && btn(p, "validate", BadgeCheck, "default", "bg-emerald-600 hover:bg-emerald-700 text-white")}
+                </div>
+                <div className="mt-2 flex flex-wrap gap-2">
                   {m.photo_locked ? btn(p, "unlockPhoto", Unlock) : (p.photo_url ? btn(p, "photo", ImageOff) : null)}
                   {m.bio_locked ? btn(p, "unlockBio", Unlock) : (p.bio ? btn(p, "bio", FileX) : null)}
                   {p.profile_visible === false ? (!m.restricted && !p.banned ? btn(p, "show", Eye) : null) : btn(p, "hide", EyeOff)}

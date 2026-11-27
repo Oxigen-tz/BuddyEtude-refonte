@@ -242,4 +242,22 @@ export async function firestoreTests(env, t) {
     await setDoc(doc(admin, "moderation", N), { hidden: false }, { merge: true });
     await setDoc(doc(nn, "users", N), { display_name: "Nina", profile_visible: true }, { merge: true });
   })()));
+
+  // Correction obligatoire : tout est bloqué sauf son profil et ses réglages
+  const qq = as(Q);
+  await seed(async (db) => {
+    // Comme l'action « Faire corriger » : mesure + profil masqué, en même temps
+    await setDoc(doc(db, "moderation", Q), { fix_required: ["name"], fix_values: { name: "Quentin" }, hidden: true });
+    await setDoc(doc(db, "users", Q), { profile_visible: false }, { merge: true });
+  });
+  await t("correction : envoyer un message refusé", assertFails(addDoc(collection(qq, "messages"), { chatId: pqId, participants: pq, senderUid: Q, text: "salut", unreadBy: [P] })));
+  await t("correction : planifier une session refusé", assertFails(addDoc(collection(qq, "sessions"), { organizer_uid: Q, participants: pq, status: "planned", title: "x" })));
+  await t("correction : créer un groupe refusé", assertFails(addDoc(collection(qq, "groups"), { owner_uid: Q, name: "G", members: [Q] })));
+  await t("correction : modifier son nom accepté", assertSucceeds(setDoc(doc(qq, "users", Q), { display_name: "Quentin B." }, { merge: true })));
+  await t("correction : se rendre visible refusé", assertFails(setDoc(doc(qq, "users", Q), { profile_visible: true }, { merge: true })));
+  await t("correction : réglages privés modifiables", assertSucceeds(setDoc(doc(qq, "users", Q, "private", "settings"), { email_notifications: false }, { merge: true })));
+  await t("correction : l'étudiant ne lève pas la correction lui-même", assertFails(setDoc(doc(qq, "moderation", Q), { fix_required: [] }, { merge: true })));
+  await seed((db) => setDoc(doc(db, "moderation", Q), { fix_required: [], review_pending: true }, { merge: true }));
+  await t("correction faite : écrire à nouveau accepté", assertSucceeds(addDoc(collection(qq, "messages"), { chatId: pqId, participants: pq, senderUid: Q, text: "me revoilà", unreadBy: [P] })));
+  await t("correction faite : toujours masqué avant validation", assertFails(setDoc(doc(qq, "users", Q), { profile_visible: true }, { merge: true })));
 }

@@ -15,6 +15,11 @@ export default {
         contact: "A question or a mistake? Write to us at {{email}}.",
         close: "Close message",
         bioLockedField: "Bio removed by moderators",
+        fixRequired: "Your profile must be corrected before you can use BuddyEtude (reason: {{reason}}). To change: {{fields}}.",
+        fixHint: "Change what is highlighted in red below, then save: access to the site comes back right away.",
+        fixField: "To correct, at the moderators' request",
+        reviewPending: "Thanks for your correction! You can use BuddyEtude again. Your profile will reappear in search once moderators have checked it.",
+        fields: { name: "your name", photo: "your profile photo", bio: "your bio" },
         hideName: "Your profile is hidden from search because of your name. Choose another name in your profile, then write to us: we'll make it visible again after checking.",
         reasons: {
           offtopic: "off-topic content",
@@ -38,12 +43,15 @@ export default {
           noName: "No name",
           noBio: "No bio",
           showRestricted: "Lift the restriction first to make this profile visible.",
-          flags: { banned: "Banned", restricted: "Restricted", hidden: "Hidden", bioLocked: "Bio locked", photoLocked: "Photo locked" },
+          fields: { name: "name", photo: "photo", bio: "bio" },
+          flags: { fix: "To correct: {{fields}}", review: "Awaiting approval", banned: "Banned", restricted: "Restricted", hidden: "Hidden", bioLocked: "Bio locked", photoLocked: "Photo locked" },
           actions: {
+            fixName: "Ask to fix name", fixPhoto: "Ask to change photo", fixBio: "Ask to fix bio", validate: "Approve profile",
             photo: "Remove photo", bio: "Remove bio", unlockPhoto: "Allow a new photo", unlockBio: "Allow a bio",
             hide: "Hide", show: "Make visible", restrict: "Restrict", unrestrict: "Lift restriction", ban: "Ban", unban: "Unban"
           },
           done: {
+            fixName: "{{name}} must fix their name", fixPhoto: "{{name}} must change their photo", fixBio: "{{name}} must fix their bio", validate: "{{name}}'s profile approved and visible",
             photo: "{{name}}'s photo removed", bio: "{{name}}'s bio removed", unlockPhoto: "{{name}} can add a photo again", unlockBio: "{{name}} can write a bio again",
             hide: "{{name}}'s profile hidden", show: "{{name}}'s profile visible", restrict: "{{name}} is restricted", unrestrict: "{{name}}'s restriction lifted", ban: "{{name}} is banned", unban: "{{name}} is unbanned"
           }
