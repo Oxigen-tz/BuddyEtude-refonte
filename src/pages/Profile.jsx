@@ -111,6 +111,7 @@ export default function Profile() {
         // Mesures de modération (moderation/<uid>) : les règles refusent sinon l'enregistrement
         ...(moderation?.photo_locked ? { photo_url: "" } : {}),
         ...(moderation?.bio_locked ? { bio: "" } : {}),
+        ...(moderation?.name_locked ? { display_name: "Étudiant·e", full_name: "Étudiant·e" } : {}),
         ...(moderation?.restricted ? { profile_visible: false } : {}),
         profile_complete: true,
         // Toujours présent : la recherche (et les règles Firestore) filtrent sur ce champ
@@ -171,7 +172,7 @@ export default function Profile() {
             )}
           </div>
         </div>
-        <ProfileForm profile={profile} onSave={handleSave} saving={isSaving} bioLocked={moderation?.bio_locked === true} />
+        <ProfileForm profile={profile} onSave={handleSave} saving={isSaving} bioLocked={moderation?.bio_locked === true} nameLocked={moderation?.name_locked === true} />
       </div>
     );
   }

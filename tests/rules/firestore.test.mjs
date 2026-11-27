@@ -222,4 +222,23 @@ export async function firestoreTests(env, t) {
   await seed((db) => setDoc(doc(db, "users", M), { display_name: "Marc", profile_complete: true, profile_visible: false }));
   await t("modération : restreint, nouvelle demande refusée", assertFails(setDoc(doc(mk, "requests", mn.join("_")), { from_uid: M, to_uid: N, participants: mn, status: "pending", from_name: "Marc" })));
   await t("modération : un étudiant ne peut pas restreindre", assertFails(setDoc(doc(b, "moderation", N), { restricted: true })));
+
+  // Nom inapproprié remplacé par « Étudiant·e » puis bloqué
+  const nn = as(N);
+  await t("modération : remplacer un nom inapproprié (admin)", assertSucceeds((async () => {
+    const batch = writeBatch(admin);
+    batch.update(doc(admin, "users", N), { display_name: "Étudiant·e", full_name: "Étudiant·e" });
+    batch.set(doc(admin, "moderation", N), { name_locked: true }, { merge: true });
+    await batch.commit();
+  })()));
+  await t("modération : nom bloqué, en remettre un autre refusé", assertFails(setDoc(doc(nn, "users", N), { display_name: "Nina la vraie" }, { merge: true })));
+  await t("modération : nom bloqué, le reste du profil reste modifiable", assertSucceeds(setDoc(doc(nn, "users", N), { city: "Nantes" }, { merge: true })));
+  await t("modération : nom bloqué, recréer son profil avec un autre nom refusé", assertFails((async () => {
+    await deleteDoc(doc(nn, "users", N));
+    await setDoc(doc(nn, "users", N), { display_name: "Nina la vraie" });
+  })()));
+  await t("modération : nom débloqué, nouveau nom accepté", assertSucceeds((async () => {
+    await setDoc(doc(admin, "moderation", N), { name_locked: false }, { merge: true });
+    await setDoc(doc(nn, "users", N), { display_name: "Nina" }, { merge: true });
+  })()));
 }

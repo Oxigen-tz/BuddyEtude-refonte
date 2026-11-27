@@ -15,9 +15,12 @@ export default {
         contact: "Une question ou une erreur ? Écris-nous à {{email}}.",
         close: "Fermer le message",
         bioLockedField: "Présentation retirée par la modération",
+        nameLockedField: "Nom remplacé par la modération",
+        name: "La modération a remplacé ton nom par « Étudiant·e » (motif : {{reason}}). Tu ne peux pas le changer pour le moment.",
         reasons: {
           offtopic: "contenu hors sujet",
           inappropriate: "contenu inapproprié",
+          name: "nom inapproprié",
           photo: "photo non conforme",
           impersonation: "usurpation d'identité",
           spam: "publicité ou spam",
@@ -36,12 +39,14 @@ export default {
           noName: "Sans nom",
           noBio: "Pas de présentation",
           showRestricted: "Lève d'abord la restriction pour rendre ce profil visible.",
-          flags: { banned: "Banni", restricted: "Restreint", hidden: "Masqué", bioLocked: "Présentation bloquée", photoLocked: "Photo bloquée" },
+          flags: { banned: "Banni", restricted: "Restreint", hidden: "Masqué", bioLocked: "Présentation bloquée", photoLocked: "Photo bloquée", nameLocked: "Nom bloqué" },
           actions: {
+            name: "Réinitialiser le nom", unlockName: "Autoriser un nouveau nom",
             photo: "Retirer la photo", bio: "Retirer la présentation", unlockPhoto: "Autoriser une nouvelle photo", unlockBio: "Autoriser une présentation",
             hide: "Masquer", show: "Rendre visible", restrict: "Restreindre", unrestrict: "Lever la restriction", ban: "Bannir", unban: "Débannir"
           },
           done: {
+            name: "Nom de {{name}} remplacé par « Étudiant·e »", unlockName: "{{name}} peut choisir un nouveau nom",
             photo: "Photo de {{name}} retirée", bio: "Présentation de {{name}} retirée", unlockPhoto: "{{name}} peut remettre une photo", unlockBio: "{{name}} peut réécrire une présentation",
             hide: "Profil de {{name}} masqué", show: "Profil de {{name}} visible", restrict: "{{name}} est restreint", unrestrict: "Restriction de {{name}} levée", ban: "{{name}} est banni", unban: "{{name}} est débanni"
           }
